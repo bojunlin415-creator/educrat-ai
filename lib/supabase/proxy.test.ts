@@ -11,16 +11,19 @@ describe("Supabase Proxy without configuration", () => {
     vi.unstubAllEnvs();
   });
 
-  it("redirects a protected route to login", async () => {
-    const response = await updateSession(
-      new NextRequest("http://localhost:3000/dashboard"),
-    );
+  it.each(["/dashboard", "/onboarding", "/settings/profile"])(
+    "redirects the protected route %s to login",
+    async (path) => {
+      const response = await updateSession(
+        new NextRequest(`http://localhost:3000${path}`),
+      );
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe(
-      "http://localhost:3000/login?notice=authentication_required",
-    );
-  });
+      expect(response.status).toBe(307);
+      expect(response.headers.get("location")).toBe(
+        "http://localhost:3000/login?notice=authentication_required",
+      );
+    },
+  );
 
   it("allows a public auth route to render", async () => {
     const response = await updateSession(

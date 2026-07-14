@@ -4,7 +4,7 @@
 
 ## 目前狀態
 
-Sprint 3 已建立第一個待套用 Migration 與 Supabase client 程式，但未連接或修改任何 Supabase 專案。Migration 僅完成程式碼審查與靜態安全契約測試，尚未在真實 PostgreSQL／Supabase 執行。
+Sprint 3 與 Sprint 5 Migration 已套用至非 production 的 `educrat-development`。本機與遠端 migration history 一致，實際 catalog、資料列 RLS、Storage RLS、policy、trigger 與 function 均已驗證；production 未執行。
 
 ## profiles
 
@@ -34,6 +34,18 @@ Sprint 3 已建立第一個待套用 Migration 與 Supabase client 程式，但�
 - `delete`：無 grant、無 policy。
 
 所有 policy 明確指定 `to authenticated` 並使用 `(select auth.uid())`。Migration 先 revoke 預設權限，再依欄位授予最小權限。
+
+## avatars Storage bucket
+
+用途：保存使用者個人圖片。Bucket 設為 private，`profiles.avatar_url` 只保存伺服器產生的物件路徑，不保存永久公開網址。
+
+- Bucket id：`avatars`。
+- 大小限制：2 MB（2,097,152 bytes）。
+- MIME allowlist：`image/jpeg`、`image/png`、`image/webp`。
+- `select`／`insert`／`update`／`delete`：只允許 authenticated 使用者操作第一層資料夾等於 `auth.uid()` 的物件。
+- `anon`：沒有 policy，不能讀取私有圖片。
+- 應用層會再驗證宣告 MIME 與實際檔頭；Storage bucket 限制是第二道防線。
+- 顯示圖片使用 authenticated server client 產生一小時 signed URL，不使用 Service Role。
 
 ## 共用資料庫函式
 
@@ -105,7 +117,7 @@ Sprint 3 已建立第一個待套用 Migration 與 Supabase client 程式，但�
 
 ## Migration 規範
 
-- 位置：`database/migrations/`，於 Sprint 3 建立。
+- 位置：`supabase/migrations/`，由 Supabase CLI 作為唯一 Migration 來源。
 - 命名：`YYYYMMDDHHMMSS_s<兩位Sprint編號>_<動詞>_<資源>.sql`。
 - 每個 Migration 必須描述目的、風險、RLS、回復策略及驗證方式。
 - 不修改已套用的 Migration；修正應建立新檔案。
@@ -122,10 +134,28 @@ Sprint 3 已建立第一個待套用 Migration 與 Supabase client 程式，但�
 
 - Sprint 1：無。
 - Sprint 2：無。
-- Sprint 3：`20260713160000_s03_create_profiles.sql`，已建立但未套用。
+- Sprint 3：`20260713160000_s03_create_profiles.sql`，已套用至 `educrat-development`。
 - Sprint 4：無新 Migration；身分驗證使用 Supabase Auth 既有 schema。
+- Sprint 5：`20260714150000_s05_create_avatar_storage.sql`，建立私有 Avatar bucket 與 user-folder Storage policies，已套用至 `educrat-development`。
+
+## Supabase CLI 結構
+
+- `supabase/config.toml`：本機 Supabase CLI 設定，不包含正式環境密碼或金鑰。
+- `supabase/migrations/`：唯一 Migration 目錄；不得在其他路徑維護第二份副本。
+- `supabase/.temp/`：CLI 連結狀態，由 `supabase/.gitignore` 排除，不得提交。
+- `supabase migration list --linked`：比對本機與已連結非 production 專案的 migration history。
+- `supabase db push --linked --dry-run`：只預覽待套用 migration；實際 push 前仍須確認環境並取得授權。
 
 ## Sprint 3 驗證狀態
 
 - 靜態測試確認 RLS enable／force、自有資料 policy、最小 grant、無 delete 權限及 updated_at trigger。
-- 尚未完成真實 Supabase 的未登入、自有資料與跨使用者整合測試；需在非 production 專案套用後執行。
+- `educrat-development` catalog 確認 9 個欄位、PK、`auth.users(id)` cascade FK、三個 own policies、trigger 與 `database_health()`。
+- 全回滾交易確認 own insert／select／update、跨使用者隔離、匿名拒絕與 `updated_at` trigger；測試後未留下 Auth 或 profile 資料。
+- Sprint 5 不新增 `auth.users` trigger；使用者在首次 onboarding 由 authenticated Route Handler 建立自己的 profile，避免背景 trigger 隱藏應用狀態。
+
+## Sprint 5 驗證狀態
+
+- 靜態測試確認 bucket private、2 MB、MIME allowlist 與 select／insert／update／delete user-folder policies。
+- 一般使用者實測 own upload／read／delete 成功，第二帳號跨資料夾讀寫與匿名讀取均遭拒絕。
+- Storage 實測拒絕錯誤 MIME 與超過 2 MB 的物件；測試物件已清除。
+- Profile API 使用既有欄位級 grant 的分離 insert／update，不放寬為整表 UPDATE，也不修改已套用的 Sprint 3 Migration。

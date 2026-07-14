@@ -14,7 +14,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="zh-Hant-TW">
+    <html data-scroll-behavior="smooth" lang="zh-Hant-TW">
       <body>
         <header className="border-b border-emerald-950/10 bg-white/85 backdrop-blur">
           <div className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">

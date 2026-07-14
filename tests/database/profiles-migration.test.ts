@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 const migrationPath = resolve(
   process.cwd(),
-  "database/migrations/20260713160000_s03_create_profiles.sql",
+  "supabase/migrations/20260713160000_s03_create_profiles.sql",
 );
 const migration = readFileSync(migrationPath, "utf8").toLowerCase();
 

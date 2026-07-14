@@ -1,13 +1,18 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth/session";
+import { getOwnProfile } from "@/lib/profile/service";
 
 export const metadata: Metadata = { title: "工作台" };
 
 export default async function DashboardPage() {
   const user = await requireUser();
+  const profile = await getOwnProfile(user.id);
+  if (!profile?.onboarding_completed) redirect("/onboarding");
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
@@ -15,13 +20,19 @@ export default async function DashboardPage() {
         <div>
           <p className="font-bold text-amber-700">教材工作台</p>
           <h1 className="mt-1 text-3xl font-black text-emerald-950 sm:text-4xl">
-            下午好，老師
+            下午好，{profile.display_name ?? "老師"}
           </h1>
           <p className="mt-2 text-slate-600">
             已登入：{user.email ?? "已驗證帳號"}
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
+          <Link
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-emerald-900/15 bg-white px-5 py-2.5 font-bold text-emerald-950 transition-colors hover:bg-emerald-50"
+            href="/settings/profile"
+          >
+            個人資料
+          </Link>
           <Button disabled title="後續 Sprint 開放">
             建立新教材
           </Button>

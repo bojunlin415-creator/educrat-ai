@@ -118,7 +118,7 @@ Sprint 3 新增：
 
 - Supabase 公開環境變數有效／無效輸入單元測試。
 - profiles Migration 靜態安全契約測試，確認 RLS、policy、grant、trigger 與 health function。
-- 尚待非 production Supabase 環境的 RLS 整合測試：未登入拒絕、使用者讀寫自己、使用者無法存取他人、無法直接刪除。
+- 已在 non-production Supabase 完成未登入拒絕、使用者讀寫自己、跨使用者隔離與無直接刪除權限驗證。
 
 Sprint 4 新增：
 
@@ -126,4 +126,13 @@ Sprint 4 新增：
 - Auth provider 錯誤安全映射測試。
 - 可替換記憶體 rate limiter 的限制、重設與 key 隔離測試。
 - E2E 規格更新為未登入 Dashboard 必須導向登入頁。
-- 尚待非 production Supabase：Email confirmation、Google PKCE、登出 cookie、密碼復原、已登入／未登入 redirect 與 session 持久化 E2E。
+- Email 登入、callback、session、登入／未登入 redirect 與登出已在 development 驗證；Google OAuth 尚待人工驗收。
+- 密碼復原雖完成基本人工流程，recovery session 與目前登入帳號的綁定仍需高優先安全修正，不列為完全通過。
+
+Sprint 5 新增：
+
+- Profile Zod schema 的正規化、空電話、語言／時區 allowlist 與錯誤輸入測試。
+- Avatar JPEG／PNG／WebP 檔頭、MIME 不一致、大小限制與安全物件路徑單元測試。
+- Profile form 的 client 驗證、成功狀態與不支援圖片預先拒絕測試。
+- Avatar Storage migration 安全契約測試及真實 own／跨使用者／匿名 RLS 整合驗證。
+- Playwright 真實帳號 E2E：onboarding、個人資料更新、伺服器拒絕錯誤輸入、Avatar 上傳／移除、工作台名稱與登出保護。

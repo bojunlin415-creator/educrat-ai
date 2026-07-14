@@ -7,14 +7,14 @@
 ```text
 瀏覽器
   └─ Next.js App Router
-      ├─ Server Components：首頁、Dashboard、頁面外框
-      ├─ Client Components：登入表單、Dialog、錯誤重試
-      ├─ Route Handler：登入示範資料的伺服器端 Zod 驗證
+      ├─ Server Components：首頁、Dashboard、onboarding 與個人資料頁
+      ├─ Client Components：Auth／Profile 表單、Avatar、Dialog、錯誤重試
+      ├─ Route Handler：Auth、Profile 與 Avatar 的伺服器端驗證
       ├─ 共用 UI：Button、Input、Select、Card、Dialog、Alert、Spinner
       └─ 測試：Vitest / Testing Library / Playwright
 ```
 
-目前已建立 Supabase SSR client、Next.js 16 Proxy、環境驗證、`profiles` Migration 與資料庫健康檢查。尚未連接實際 Supabase 專案，也沒有 AI provider、背景工作、儲存、金流或正式監控整合。
+目前已建立 Supabase SSR client、Next.js 16 Proxy、環境驗證、`profiles`、首次 onboarding、個人資料 API、私有 Avatar Storage 與資料庫健康檢查，並已在 `educrat-development` 驗證 schema、資料列與物件 RLS。AI provider、背景工作、教材儲存、金流與正式監控尚未整合。
 
 ### Supabase SSR 邊界
 
@@ -39,6 +39,14 @@ Proxy 只負責 session cookie 更新，不作為最終授權層。後續受保�
 ### Rate limit
 
 Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭配 in-memory fixed window 實作。這只提供本機與單一 process 的基礎防護；staging／production 必須替換為所有 instance 共用、具原子操作與監控的持久化 provider。前端狀態或 Supabase 自身 rate limit 不能取代應用層防護。
+
+### Profile 與 onboarding 流程
+
+- Dashboard 與個人資料頁在 Server Component 重新驗證使用者，未建立 profile 或 `onboarding_completed = false` 時導向 `/onboarding`。
+- `PUT /api/profile` 只從 verified session 取得 user id，不接受 client 指定 id；JSON 經 Zod 驗證後，以分離的 insert／update 維持欄位級最小 grant。
+- Avatar route 先限制 multipart 大小，再比對 MIME 與 JPEG／PNG／WebP 實際檔頭；檔名與 Storage 路徑由伺服器產生。
+- `avatars` bucket 保持 private，物件只能位於 `auth.uid()` 對應的第一層資料夾；顯示時建立短效 signed URL。
+- Avatar API 不使用 Service Role，資料列與物件操作都經 authenticated client 及 RLS。
 
 ## 長期系統邊界
 
@@ -127,7 +135,8 @@ Web / Future Mobile Clients
 - `lib/ai/`：AI provider、工作、Prompt 與 schema。
 - `lib/exports/`：列印、PDF、DOCX provider。
 - `modules/`：各科 Subject Engine 與領域驗證器。
-- `database/`：Migration、seed、policy 與資料庫測試。
+- `supabase/`：Supabase CLI 設定、Migration、seed 與本機資料庫資源。
+- `tests/database/`：Migration 安全契約與資料庫邊界測試。
 - `docs/`：產品、安全、資料與版本決策。
 - `tests/integration/`：服務與資料邊界測試。
 - `tests/e2e/`：跨頁面關鍵流程。

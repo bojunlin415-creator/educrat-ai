@@ -5,10 +5,13 @@ import type { Database } from "@/lib/supabase/database.types";
 
 export async function updateSession(request: NextRequest) {
   const envResult = tryGetSupabasePublicEnv();
+  const protectedPrefixes = ["/dashboard", "/onboarding", "/settings"];
   const isProtectedRoute =
-    request.nextUrl.pathname === "/dashboard" ||
-    request.nextUrl.pathname.startsWith("/dashboard/") ||
-    request.nextUrl.pathname === "/reset-password";
+    protectedPrefixes.some(
+      (prefix) =>
+        request.nextUrl.pathname === prefix ||
+        request.nextUrl.pathname.startsWith(`${prefix}/`),
+    ) || request.nextUrl.pathname === "/reset-password";
   const isPublicAuthRoute = ["/login", "/signup"].includes(
     request.nextUrl.pathname,
   );

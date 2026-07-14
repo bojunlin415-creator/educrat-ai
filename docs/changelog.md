@@ -1,5 +1,68 @@
 # Changelog
 
+## 2026-07-14 — Sprint 5：使用者個人資料
+
+### 新增
+
+- 建立首次登入 onboarding、個人資料設定頁、受保護導向與工作台顯示名稱。
+- 建立 authenticated `GET／PUT /api/profile`，使用者 ID 只取自 server session，所有欄位以 Zod 驗證。
+- 建立 Avatar 上傳與移除 API，檢查 2 MB 上限、MIME allowlist 與 JPEG／PNG／WebP 實際檔頭。
+- 建立 private `avatars` bucket、user-folder Storage RLS 與短效 signed URL 顯示流程。
+- 新增 profile、Avatar、表單、Proxy、Migration 與真實 Playwright E2E 測試。
+
+### Migration 與安全
+
+- 新增 `20260714150000_s05_create_avatar_storage.sql`，已套用至 `educrat-development`；production 未執行。
+- 本機與遠端 migration history 均為 `20260713160000`、`20260714150000`。
+- own 物件讀寫成功，跨使用者讀寫與匿名讀取遭拒絕，錯誤 MIME 與超過 2 MB 物件遭拒絕；測試物件已清除。
+- Profile API 採 select 後分離 insert／update，維持 Sprint 3 欄位級 grant，不放寬整表 UPDATE。
+- 未使用 Supabase Secret／Service Role Key，未輸出或提交 `.env.local`。
+
+### 已知限制
+
+- 既有 Sprint 4 password recovery session 綁定仍需高優先修正；本 Sprint 未擴張處理。
+- Auth rate limit 仍是單程序記憶體實作，production 前須換為共享 provider。
+- 語言與時區先使用受控選項，未實作完整國際化。
+- Supabase CLI 套用後的 pg-delta catalog cache 需要本機 Docker；migration 本身與遠端 history 已成功。
+
+### 驗收
+
+- `pnpm run typecheck`、`pnpm run lint`、`pnpm run test`、`pnpm run build` 全部通過。
+- Vitest：11 個測試檔、49 項測試通過。
+- Playwright：共 3 項 E2E 全部通過；真實個人資料流程在同一登入 session 驗證桌面與手機 viewport，公開頁面另以桌面／手機 smoke test 驗證，沒有跳過案例。
+
+## 2026-07-13 — 維護：統一 Supabase CLI Migration 結構
+
+### 更新
+
+- 建立 `supabase/config.toml` 與 CLI 專用忽略規則。
+- 將 Sprint 3 Migration 原封不動移至 `supabase/migrations/`。
+- 更新 Migration 安全契約測試、README、系統設計及資料庫文件的路徑。
+
+### Migration 與環境
+
+- 未新增、刪除或修改 Migration SQL；僅調整為 Supabase CLI 標準路徑。
+- `supabase/.temp` 連結資訊維持不追蹤，避免提交環境識別資訊。
+- `supabase migration list --linked` 已確認本機與 `educrat-development` 均為版本 `20260713160000`。
+- 已以唯讀 catalog 與全回滾交易驗證 schema、RLS、跨使用者隔離、匿名拒絕及 trigger，未留下測試資料。
+- 不自行對 production 執行 Migration。
+
+## 2026-07-13 — Sprint 4 後整合驗收（部分完成）
+
+### 已通過
+
+- 首頁、登入頁與未登入 Dashboard 導向的桌面／手機 Playwright smoke 測試。
+- 註冊與忘記密碼頁可開啟，受保護的 Dashboard／重設密碼頁會將未登入者導向登入。
+- Auth callback 的外部 `next` 目的地會被拒絕，不會形成 open redirect。
+- `profiles` 實際 schema、RLS、own 權限、跨使用者隔離、匿名拒絕、trigger 與 `database_health()`。
+- Email 註冊／callback、登入、登入後 Dashboard、session refresh 與登出已在 development 流程驗證。
+
+### 尚未通過
+
+- Google OAuth 仍需以實際 provider 完成人工驗收。
+- Password recovery session 與目前登入帳號的所有權綁定尚未封板，列為正式商用前高優先修正。
+- `.env.local` 已在本機設定且維持 Git ignore；不得提交或輸出實際值。
+
 ## 2026-07-13 — Sprint 4：完整身分驗證
 
 ### 新增

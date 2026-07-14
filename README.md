@@ -1,6 +1,6 @@
 # 課堂星球（AI 國小教材生成 SaaS）
 
-為台灣國小補教業者與教師打造的 AI 原創教材生成工作台。目前完成平台基礎與開發規範，僅提供展示頁面、共用 UI、表單驗證及測試環境；尚未串接真實資料庫、登入服務或 AI。
+為台灣國小補教業者與教師打造的 AI 原創教材生成工作台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料與 onboarding；AI 功能尚未串接。
 
 ## 技術堆疊
 
@@ -32,8 +32,10 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 開啟 <http://localhost:3000>。可使用以下路徑：
 
 - `/`：首頁
-- `/login`：示範登入頁（不會保存資料）
-- `/dashboard`：空白教材工作台
+- `/login`：Email／Password 與 Google OAuth 登入頁
+- `/onboarding`：首次登入基本資料設定
+- `/settings/profile`：個人資料與 Avatar 管理
+- `/dashboard`：受保護的空白教材工作台
 
 ## 品質檢查
 
@@ -60,17 +62,17 @@ components/ui/       共用 UI 元件
 docs/                產品與工程文件
 lib/validation/      共用 Zod schema
 tests/e2e/           Playwright 測試
-database/migrations/ 經審查後才能套用的 PostgreSQL Migration
+supabase/migrations/ 經審查後才能套用的 Supabase CLI Migration
 public/              靜態資源
 ```
 
 ## Supabase 開發流程
 
-Sprint 3 已建立 SSR client、Next.js 16 Proxy、`profiles` Migration 與資料庫健康檢查，但未連接或修改任何 Supabase 專案。
+Sprint 3 已建立 SSR client、Next.js 16 Proxy、`profiles` Migration 與資料庫健康檢查。Migration 已套用至 `educrat-development` 並完成唯讀 schema 與 RLS 驗證；production 未執行。
 
 1. 建立獨立的 local 或 staging Supabase 專案，不得使用 production。
 2. 將 `.env.example` 複製為 `.env.local`，只填入該環境的 URL 與 Publishable Key。
-3. 人工審查 [Sprint 3 Migration](database/migrations/20260713160000_s03_create_profiles.sql)。
+3. 人工審查 [Sprint 3 profiles Migration](supabase/migrations/20260713160000_s03_create_profiles.sql) 與 [Sprint 5 Avatar Storage Migration](supabase/migrations/20260714150000_s05_create_avatar_storage.sql)。
 4. 由獲授權人員依 Supabase 工作流程套用至 local／staging。
 5. Migration 套用後重新產生型別，檢查差異再取代 `lib/supabase/database.types.ts`：
 
@@ -96,6 +98,8 @@ Sprint 4 已建立 Email／Password、Google OAuth、登出、忘記密碼、重
 
 目前 rate limit 採可替換的記憶體實作，只適合本機與單一程序測試；部署前必須換成所有 instance 共用的持久化服務。
 
+Sprint 5 的 Avatar 使用私有 `avatars` bucket；資料庫只保存使用者自己的物件路徑，顯示時由 authenticated server client 建立短效簽名網址。只接受 JPEG、PNG、WebP，檔案上限 2 MB，瀏覽器檢查不能取代伺服器檔頭驗證與 Storage 限制。
+
 ## 專案文件
 
 - [產品規格](docs/product-spec.md)：產品定位、角色、商用範圍與分期功能
@@ -119,6 +123,7 @@ Sprint 4 已建立 Email／Password、Google OAuth、登出、忘記密碼、重
 
 - Sprint 1：專案初始化，已完成。
 - Sprint 2：開發規範與文件，已完成。
-- Sprint 3：Supabase SSR、profiles Migration、RLS 與健康檢查，已完成程式與靜態驗證；尚待人工套用至非 production 環境。
-- Sprint 4：完整身分驗證流程、受保護路由與 rate-limit 介面，已完成程式與 mock／單元驗證；尚待非 production Auth E2E。
-- 下一步：Sprint 5 使用者個人資料；執行前須先完成人工 Supabase Auth 與 RLS 驗收。
+- Sprint 3：Supabase SSR、profiles Migration、RLS 與健康檢查，已在 `educrat-development` 完成 schema 與 RLS 驗收。
+- Sprint 4：身分驗證流程、受保護路由與 rate-limit 介面已完成；Email 登入、session、callback 與登出已在 development 驗證，Google OAuth 尚待人工驗收，密碼復原 session 綁定仍列為高優先修正。
+- Sprint 5：個人資料、首次 onboarding、私有 Avatar Storage、RLS 與真實 E2E 已完成。
+- 下一步：先處理既有密碼復原安全限制，再規劃 Sprint 6 機構與分校；目前不串接 AI。

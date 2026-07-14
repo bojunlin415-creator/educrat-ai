@@ -118,5 +118,6 @@
 - Sprint 2：產品、系統、資料、AI、版權、測試及協作規範。
 - Sprint 3：Supabase SSR 基礎、profiles schema、RLS 與資料庫健康檢查。
 - Sprint 4：Email／Google 身分驗證、密碼復原、session callback 與受保護 Dashboard。
+- Sprint 5：使用者個人資料、首次 onboarding、私有 Avatar 上傳與 user-scoped Storage RLS。
 
-目前仍未實作個人資料編輯、AI 生成、教材編輯、品質檢查或匯出。Sprint 3 Migration 與 Sprint 4 Auth 尚未在任何 Supabase 專案完成真實整合驗證。
+目前仍未實作機構、AI 生成、教材編輯、品質檢查或匯出。Sprint 3 與 Sprint 5 Migration 已在 `educrat-development` 完成 schema／Storage RLS 驗證；production 未執行。Sprint 4 的 Google OAuth 尚待人工驗收，密碼復原 session 綁定仍是正式商用前的高優先修正。
