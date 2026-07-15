@@ -172,6 +172,15 @@ Sprint 8 新增：
 
 `20260715160000` 與 `20260715183000` 已套用至 `educrat-development`，local／remote history 一致。Vitest 30 個測試檔／176 項、Playwright 4 項及修改後 production build 均已通過。`supabase test db --linked` 的 Docker-to-remote runner 曾在連線階段逾時，因此四角色 SQL 使用套用相同 migration 的本機隔離 DB 驗證；遠端 RPC 與 schema 由 migration history 及真實應用 E2E 交叉驗證。
 
+AR-001 新增：
+
+- Display Adapter unit test：既有三筆 legacy row 映射為教學進度模板 1／2／3，序列化結果不得包含原始品牌名稱，也不得形成對外品牌對照表。
+- Legacy API request contract：`publisherId` 仍可提交，但 server schema 必須正規化為 `curriculumReferenceId`。
+- Legacy API response contract：保留 `publisher_id`／`publisher` 欄位形狀，但 name/code 必須是中性相容值；同時提供 `reference.displayName`。
+- UI static scan：`app/` 與 `components/` 不得使用 Publisher 文案或 raw source name。
+- AI policy static scan（未來 AI Sprint）：Prompt context 不得包含 publisher identity keys。
+- AR-001 不建立 Migration；既有七筆 local／remote history 不得改變。
+
 ### Milestone 2 人工驗收待辦
 
 Sprint 6、Sprint 7 與 Sprint 8 的自動化整合驗收已完成。以下項目仍須由產品負責人操作實際裝置，且在完成前不得標記為人工驗收通過：

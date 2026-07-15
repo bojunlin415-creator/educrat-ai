@@ -1,5 +1,32 @@
 # Changelog
 
+## 2026-07-15 — AR-001：Curriculum Reference Abstraction（有條件核准修正完成）
+
+### Architecture
+
+- 新增 ADR-003，確立 `Education Knowledge Graph → Curriculum Reference → Curriculum → Version → Chapter → Lesson` 的依賴方向。
+- Publisher 從新 Domain Model 移除，只保留 `publishers`、`publisher_id`、舊 RPC 與舊 API 作 legacy compatibility。
+- 新增 AI Reference Policy 與 Legal Reference Policy；AI 禁止依賴 publisher identity，Reference 只能 Mapping Knowledge Point，不得直接 Mapping Lesson。
+- 完成 `curriculum_references`、`knowledge_sources`、`curriculum_reference_mappings`、新 FK、backfill、dual-write 與 forward-only rollback 的 Migration Design；本次未建立 Migration。
+
+### Compatibility Adapter
+
+- 新增 server-side Reference Display Adapter，將 legacy rows 轉為中性的 `CurriculumReferenceDisplay`。
+- Curriculum UI 改用「教材進度架構」與教學進度模板 1／2／3，不接收原始來源名稱，也不建立對外品牌對照。
+- 新 request 使用 `curriculumReferenceId`；舊 `publisherId` 仍可由 API 正規化。舊 response 保留欄位形狀，但只回傳中性 compatibility value。
+
+### 限制
+
+- 未新增、修改或套用 Migration，未改動 Development／Production schema 或資料。
+- CORE、CUSTOM、SYSTEM reference 尚未寫入資料庫；後續須以獨立 forward-only Migration 工作實作。
+- 未 commit、push、deploy、merge、建立 PR 或開始 Sprint 9。
+
+### Architecture Backlog
+
+- 新增 AR-002：Data Lifecycle & Audit Architecture Backlog，只記錄 Archive、Restore、Soft Delete、Recycle Bin、Permanent Delete、依賴保護、保留政策、角色權限與稽核需求。
+- AR-002 明定 Knowledge Point 原則上只能停用或版本化、歷程資料不可由一般使用者刪除，以及已有下游學習紀錄的 Lesson 不得直接硬刪除。
+- AR-002 不屬於 AR-001，本次未建立 Migration、API、UI 或刪除流程。
+
 ## 2026-07-15 — Sprint 8：Curriculum Editor（自動化驗收完成）
 
 ### 新增

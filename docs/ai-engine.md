@@ -17,6 +17,7 @@ AI 引擎負責依結構化教材規格產生原創草稿，不負責取代教�
 - 科目規則與 AI provider 分離；可程式計算的答案不交給模型猜測。
 - 任務具備冪等性、取消、timeout、錯誤分類、限制重試與成本紀錄。
 - 匯出權限由品質管線決定，AI 自評不能單獨使內容通過。
+- Education Knowledge Graph 是唯一知識核心；Publisher identity、legacy publisher FK 或來源品牌不得進入 AI context。
 
 ## 共用生成流程
 
@@ -110,11 +111,11 @@ AI 引擎負責依結構化教材規格產生原創草稿，不負責取代教�
 所有 production Prompt 必須：
 
 - 明確要求原創，不重現、改寫或模仿出版社與受保護作品。
-- 只接收完成來源審核的課綱、知識點及公開進度事實。
-- 不將出版社名稱帶入題幹或文章內容，除非為必要且合法的來源標示。
+- 只接收完成來源審核的課綱、Knowledge Point 與中性 Curriculum Reference。
+- 不接收或依賴 `publisher`、`publisher_id`、`publisher_name` 或 Publisher Code。
 - 抵抗使用者要求忽略規則、揭露系統 Prompt 或複製未授權內容。
 
-詳細資料來源與處置方式見 `docs/copyright-policy.md`。
+詳細 AI allowlist 見 `docs/ai/ai-reference-policy.md`；資料來源與處置方式見 `docs/copyright-policy.md` 與 `docs/legal/reference-policy.md`。
 
 ## 成本與隱私
 

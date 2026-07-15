@@ -27,6 +27,7 @@
 - 主要功能必須提供 loading、empty、error、success 狀態，並支援桌面、平板與手機。
 - 不得將出版社課文、題庫、教師手冊、插圖、答案或其他未授權內容加入程式、資料庫、測試資料或提示詞。
 - 出版社只能作為公開教學進度參考，不得宣稱為出版社官方教材或已獲背書。
+- Publisher 僅能存在於 legacy compatibility boundary；新 UI、Domain 與 AI context 必須使用 Curriculum Reference，AI 禁止依賴 publisher identity。
 - 不得自行修改正式環境資料、執行 production migration、commit、push 或 deploy。
 
 ## Git 工作規範

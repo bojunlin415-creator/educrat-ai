@@ -16,6 +16,8 @@
 
 目前已建立 Supabase SSR client、Next.js 16 Proxy、環境驗證、`profiles`、首次 onboarding、個人資料 API、私有 Avatar Storage、organization multi-tenancy、教材核心結構、章課編輯器與資料庫健康檢查。AI provider、背景工作、題庫、試卷、匯出、金流與正式監控尚未整合。
 
+AR-001 正式採用 `Education Knowledge Graph → Curriculum Reference → Curriculum → Version → Chapter → Lesson` 的單向依賴。`publishers` 只存在於 server legacy compatibility boundary；UI 使用 `CurriculumReferenceDisplay`，未來 AI 只能使用 Knowledge Graph 與中性 reference context。完整決策見 `docs/architecture/adr-003-reference-abstraction.md`。
+
 ### Supabase SSR 邊界
 
 - `lib/supabase/client.ts`：Client Components 使用 publishable key 的 browser client。
@@ -69,6 +71,14 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - `lib/curriculum/service.ts` 是唯一教材資料存取層，集中 list/detail/create/update、參照資料組合、active organization 篩選與領域錯誤；頁面和 Route Handler 不直接查表。
 - `GET／POST /api/curriculums` 與 `GET／PATCH /api/curriculums/[id]` 僅接受 Zod 驗證的 JSON。沒有 DELETE endpoint、table DELETE grant 或 policy。
 - Server Components 處理列表、詳細及權限畫面；`CurriculumForm` 只負責互動，owner/admin 權限仍由 server data layer 與 RLS 驗證。
+
+### Curriculum Reference Compatibility
+
+- `lib/curriculum/reference-display.ts` 是 legacy anti-corruption layer；原始 source name/code 在 server 轉為中性 `displayName`。
+- 新 UI 使用 `reference` 與 `curriculumReferenceId`，不使用 Publisher Domain。
+- 舊 API request `publisherId` 仍可解析；舊 response 的 `publisher_id`／`publisher` 形狀保留，但 display value 已中性化。
+- `publishers`、`publisher_id`、`p_publisher_id` 與歷史 Migration 均不修改。新 table、FK、backfill、dual-write 與 RPC v2 只存在於待核准的 Migration Design。
+- `knowledge_sources` 未來屬 admin provenance boundary，不得進入一般 UI 或 AI 回應。
 
 ### Curriculum Editor
 

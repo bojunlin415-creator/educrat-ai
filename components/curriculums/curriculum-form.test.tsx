@@ -18,11 +18,12 @@ const options = {
       name: "四年級",
     },
   ],
-  publishers: [
+  references: [
     {
-      code: "kang-hsuan",
+      code: "teaching-progress-template-2",
+      displayName: "教學進度模板 2",
       id: "10000000-0000-4000-8000-000000000003",
-      name: "康軒",
+      referenceType: "REFERENCE" as const,
     },
   ],
   subjects: [
@@ -37,7 +38,7 @@ const options = {
 const defaultValues = {
   gradeId: "10000000-0000-4000-8000-000000000002",
   name: "四年級數學",
-  publisherId: "10000000-0000-4000-8000-000000000003",
+  curriculumReferenceId: "10000000-0000-4000-8000-000000000003",
   schoolYear: 115,
   semester: 1 as const,
   status: "draft" as const,

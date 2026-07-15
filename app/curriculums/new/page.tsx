@@ -42,7 +42,7 @@ export default async function NewCurriculumPage() {
           defaultValues={{
             gradeId: "",
             name: "",
-            publisherId: "",
+            curriculumReferenceId: "",
             schoolYear: 115,
             semester: 1,
             status: "draft",

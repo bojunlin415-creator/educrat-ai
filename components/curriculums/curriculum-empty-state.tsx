@@ -13,7 +13,7 @@ export function CurriculumEmptyState({ canCreate }: { canCreate: boolean }) {
         </span>
         <h2 className="mt-4 text-xl font-black text-emerald-950">還沒有教材</h2>
         <p className="mx-auto mt-2 max-w-md text-slate-600">
-          先建立科目、年級、出版社進度與學年度結構；本 Sprint 不會呼叫 AI
+          先建立科目、年級、教材進度架構與學年度結構；本階段不會呼叫 AI
           或建立題目。
         </p>
         {canCreate ? (

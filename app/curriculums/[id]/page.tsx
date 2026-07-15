@@ -59,7 +59,7 @@ export default async function CurriculumDetailPage({
           </div>
         }
         backHref="/curriculums"
-        description={`${curriculum.subject.name} · ${curriculum.grade.name} · ${curriculum.publisher.name}進度參考`}
+        description={`${curriculum.subject.name} · ${curriculum.grade.name} · ${curriculum.reference.displayName}`}
         title={curriculum.name}
       />
 

@@ -37,7 +37,7 @@ export function CurriculumCard({
         <div>
           <dt className="text-slate-500">進度參考</dt>
           <dd className="mt-1 font-bold text-slate-900">
-            {curriculum.publisher.name}
+            {curriculum.reference.displayName}
           </dd>
         </div>
         <div>

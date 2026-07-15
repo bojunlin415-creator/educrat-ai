@@ -52,7 +52,7 @@ export function CurriculumTable({
                 {curriculum.subject.name}／{curriculum.grade.name}
               </td>
               <td className="px-5 py-4 text-slate-700">
-                {curriculum.publisher.name}
+                {curriculum.reference.displayName}
               </td>
               <td className="px-5 py-4 text-slate-700">
                 {curriculum.school_year} ·

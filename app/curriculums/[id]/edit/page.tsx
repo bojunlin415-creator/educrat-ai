@@ -62,7 +62,7 @@ export default async function EditCurriculumPage({
           defaultValues={{
             gradeId: curriculum.grade_id,
             name: curriculum.name,
-            publisherId: curriculum.publisher_id,
+            curriculumReferenceId: curriculum.reference.id,
             schoolYear: curriculum.school_year,
             semester: curriculum.semester,
             status: curriculum.status,

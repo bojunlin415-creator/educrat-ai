@@ -3,6 +3,10 @@ import "server-only";
 import type { Database } from "@/lib/supabase/database.types";
 import { CurriculumError } from "@/lib/curriculum/errors";
 import {
+  toCurriculumReferenceDisplay,
+  type CurriculumReferenceDisplay,
+} from "@/lib/curriculum/reference-display";
+import {
   requireOrganizationMembership,
   requireOrganizationRole,
 } from "@/lib/organization/service";
@@ -46,16 +50,16 @@ type ReferenceRow = {
 
 export interface CurriculumReferenceOptions {
   grades: ReferenceRow[];
-  publishers: ReferenceRow[];
+  references: CurriculumReferenceDisplay[];
   subjects: ReferenceRow[];
 }
 
-export interface CurriculumSummary extends CurriculumRow {
+export type CurriculumSummary = Omit<CurriculumRow, "publisher_id"> & {
   grade: ReferenceRow;
   latestVersion: number;
-  publisher: ReferenceRow;
+  reference: CurriculumReferenceDisplay;
   subject: ReferenceRow;
-}
+};
 
 export interface CurriculumChapter extends ChapterRow {
   lessons: LessonRow[];
@@ -181,7 +185,7 @@ export async function getCurriculumOptions(): Promise<CurriculumReferenceOptions
 
   return {
     grades: gradesResult.data,
-    publishers: publishersResult.data,
+    references: publishersResult.data.map(toCurriculumReferenceDisplay),
     subjects: subjectsResult.data,
   };
 }
@@ -223,13 +227,27 @@ async function hydrateCurriculums(
     }
   }
 
-  return rows.map((row) => ({
-    ...row,
-    grade: requireReference(grades, row.grade_id),
-    latestVersion: latestVersions.get(row.id) ?? 0,
-    publisher: requireReference(publishers, row.publisher_id),
-    subject: requireReference(subjects, row.subject_id),
-  }));
+  return rows.map((row) => {
+    const legacyReference = requireReference(publishers, row.publisher_id);
+
+    return {
+      created_at: row.created_at,
+      created_by: row.created_by,
+      grade: requireReference(grades, row.grade_id),
+      grade_id: row.grade_id,
+      id: row.id,
+      latestVersion: latestVersions.get(row.id) ?? 0,
+      name: row.name,
+      organization_id: row.organization_id,
+      reference: toCurriculumReferenceDisplay(legacyReference),
+      school_year: row.school_year,
+      semester: row.semester,
+      status: row.status,
+      subject: requireReference(subjects, row.subject_id),
+      subject_id: row.subject_id,
+      updated_at: row.updated_at,
+    };
+  });
 }
 
 export async function getCurriculums(): Promise<CurriculumSummary[]> {
@@ -322,7 +340,7 @@ export async function createCurriculum(
     {
       p_grade_id: parsed.data.gradeId,
       p_name: parsed.data.name,
-      p_publisher_id: parsed.data.publisherId,
+      p_publisher_id: parsed.data.curriculumReferenceId,
       p_school_year: parsed.data.schoolYear,
       p_semester: parsed.data.semester,
       p_status: parsed.data.status === "active" ? "active" : "draft",
@@ -356,7 +374,7 @@ export async function updateCurriculum(
     .update({
       grade_id: parsed.data.gradeId,
       name: parsed.data.name,
-      publisher_id: parsed.data.publisherId,
+      publisher_id: parsed.data.curriculumReferenceId,
       school_year: parsed.data.schoolYear,
       semester: parsed.data.semester,
       status: parsed.data.status,

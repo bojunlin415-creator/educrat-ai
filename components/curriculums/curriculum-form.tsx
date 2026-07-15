@@ -55,7 +55,7 @@ export function CurriculumForm({
           : {
               gradeId: values.gradeId,
               name: values.name,
-              publisherId: values.publisherId,
+              curriculumReferenceId: values.curriculumReferenceId,
               schoolYear: values.schoolYear,
               semester: values.semester,
               status: values.status,
@@ -126,16 +126,16 @@ export function CurriculumForm({
           {...register("gradeId")}
         />
         <Select
-          error={errors.publisherId?.message}
-          label="出版社進度參考"
+          error={errors.curriculumReferenceId?.message}
+          label="教材進度架構"
           options={[
-            { label: "請選擇進度參考", value: "" },
-            ...options.publishers.map((publisher) => ({
-              label: `${publisher.name}進度參考`,
-              value: publisher.id,
+            { label: "請選擇教材進度架構", value: "" },
+            ...options.references.map((reference) => ({
+              label: reference.displayName,
+              value: reference.id,
             })),
           ]}
-          {...register("publisherId")}
+          {...register("curriculumReferenceId")}
         />
         <Input
           error={errors.schoolYear?.message}

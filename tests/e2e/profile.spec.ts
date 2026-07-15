@@ -169,8 +169,8 @@ test("authenticated user completes and manages their profile", async ({
     await page.getByLabel("科目").selectOption({ label: "數學" });
     await page.getByLabel("年級").selectOption({ label: "四年級" });
     await page
-      .getByLabel("出版社進度參考")
-      .selectOption({ label: "康軒進度參考" });
+      .getByLabel("教材進度架構")
+      .selectOption({ label: "教學進度模板 2" });
     await page.getByLabel("學年度").fill("115");
     await page.getByLabel("學期").selectOption("1");
     await page.getByLabel("狀態").selectOption("draft");

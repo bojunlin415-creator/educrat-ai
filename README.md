@@ -1,6 +1,6 @@
 # EduCraft AI（AI 國小教材生成 SaaS）
 
-為台灣國小補教業者與教師打造的 AI 原創教材生成工作台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構，以及章節／課次編輯器；AI 功能尚未串接。
+為台灣國小補教業者與教師打造的 AI 原創教材生成工作台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構、章節／課次編輯器，以及 Curriculum Reference 相容層；AI 功能尚未串接。
 
 ## 技術堆疊
 
@@ -109,7 +109,7 @@ Sprint 5 的 Avatar 使用私有 `avatars` bucket；資料庫只保存使用者�
 
 Sprint 6 的機構建立只允許完成個人 onboarding 的登入者呼叫受控 RPC。RPC 以 `auth.uid()` 原子建立 organization、owner membership 與 active organization preference；一般 client 不能直接新增機構、成員或竄改 active context。跨機構授權同時由 server data layer 與 RLS 驗證，不以 UI 隱藏取代權限。
 
-Sprint 7 的教材建立只允許 active organization 的 owner/admin 呼叫受控 RPC。RPC 不接受 organization id 或 created-by，會原子建立教材與版本 1；teacher/reviewer 目前只能查看。科目、年級與出版社進度參考由資料庫提供，不寫死於前端。出版社名稱僅代表公開進度參考，不代表授權或官方背書。
+Sprint 7 的教材建立只允許 active organization 的 owner/admin 呼叫受控 RPC。RPC 不接受 organization id 或 created-by，會原子建立教材與版本 1；teacher/reviewer 目前只能查看。AR-001 起，既有 `publishers` 只作 legacy compatibility，server 會轉換為中性的 Curriculum Reference DTO；UI 不接收原始來源名稱。
 
 Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin 呼叫 fixed-search-path RPC。版本 1 在本 Sprint 唯讀，不能建立版本 2；排序必須提交完整且不重複的同層 ID，並由資料庫鎖定父層後原子重排。Teacher/reviewer 只能讀取目前機構的結構，不能直接寫表或呼叫變更 RPC。
 
@@ -122,6 +122,10 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - [資料庫設計](docs/database.md)：資料治理、RLS 與 Migration 規範
 - [AI 引擎設計](docs/ai-engine.md)：生成、結構化驗證與品質管線
 - [版權政策](docs/copyright-policy.md)：資料來源分級與禁止內容
+- [ADR-003](docs/architecture/adr-003-reference-abstraction.md)：Knowledge Graph、Curriculum Reference 與 Migration Design
+- [Architecture Backlog](docs/architecture/backlog.md)：尚待獨立審查的 Data Lifecycle、Audit 等架構議題
+- [AI Reference Policy](docs/ai/ai-reference-policy.md)：AI context allowlist 與 legacy identity 禁令
+- [Reference Legal Policy](docs/legal/reference-policy.md)：Reference、Knowledge Mapping 與內容法律邊界
 - [測試計畫](docs/test-plan.md)：測試層級、必要案例與完成門檻
 - [變更紀錄](docs/changelog.md)：各 Sprint 完成內容與影響
 - [協作規範](AGENTS.md)：永久工程規則與 Definition of Done
@@ -131,7 +135,8 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - 私密金鑰不可使用 `NEXT_PUBLIC_` 前綴，也不可送到瀏覽器。
 - 所有外部輸入必須由伺服器端 Zod 驗證。
 - 未來所有 AI 輸出都必須通過結構化 schema 與教材品質檢查。
-- 不得收錄出版社課文、題庫、教師手冊或其他未授權內容；出版社資訊僅可用作公開教學進度參考。
+- 不得收錄出版社課文、題庫、教師手冊或其他未授權內容；使用者介面與新 Domain 只使用中性的 Curriculum Reference。
+- AI 只能依賴 Knowledge Graph、Knowledge Point 與經驗證的 Curriculum Reference，不得讀取 legacy Publisher identity。
 - 不得自行執行正式環境 Migration 或修改正式資料。
 
 ## 專案狀態
@@ -144,4 +149,6 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - Sprint 6：機構、owner membership、active organization、organization onboarding／settings／switcher、多租戶 RLS 與自動化整合驗收已完成；人工 UI／手機版驗收延後至 Milestone 2，不標記為已完成。
 - Sprint 7：教材參照資料、教材／版本／章／課結構、API、頁面與 Dashboard 已完成；Development Migration、真實租戶隔離、Owner／Admin／Teacher／Reviewer RLS、Playwright、production build 與自動化整合驗收均已通過。人工 UI／手機版驗收延後至 Milestone 2，不標記為已完成。
 - Sprint 8：Curriculum Editor、章節／課次 CRUD、受控排序、Dashboard 統計、API、四角色 RLS 與真實 Playwright E2E 已完成自動化驗收；人工 UI／鍵盤／手機版驗收仍待產品負責人確認。
+- AR-001：ADR-003、AI／Legal Reference Policy 與非破壞性 Display Adapter 已獲有條件核准並完成命名修正；資料庫 Migration 僅完成設計，尚未建立或套用。
+- AR-002：Data Lifecycle & Audit Architecture 只登錄於 Backlog，尚未啟動或實作。
 - 下一步：先完成人工驗收與 Sprint 8 技術封板；未經指示不開始 Sprint 9。本階段不串接 AI、題庫或試卷。

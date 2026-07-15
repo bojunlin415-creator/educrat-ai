@@ -6,7 +6,7 @@
 
 ## 產品願景
 
-課堂星球協助台灣國小補習班、安親班與教師，依公開課綱、公開版本進度參考及教師設定，快速建立可編輯、可追溯且經品質檢查的原創教材。AI 是輔助工具，教師始終保有內容審核與最終決定權。
+課堂星球協助台灣國小補習班、安親班與教師，依 Education Knowledge Graph、公開課綱、中性 Curriculum Reference 及教師設定，快速建立可編輯、可追溯且經品質檢查的原創教材。AI 是輔助工具，教師始終保有內容審核與最終決定權。
 
 對外核心聲明：
 
@@ -45,7 +45,7 @@
 
 1. 對齊公開課綱與教師提供的教學目標。
 2. 不重製出版社課文、題庫、教師手冊或未授權內容。
-3. 出版社名稱與版本僅作為公開教學進度參考。
+3. Curriculum Reference 只作為 Knowledge Point 與教材進度之間的 Mapping Layer；Publisher 僅保留 legacy compatibility。
 4. AI 產出必須經結構化驗證、品質檢查及教師審閱後才能匯出。
 5. 清楚呈現處理中、無資料、錯誤與成功狀態。
 
@@ -54,7 +54,7 @@
 第一個可收費版本預計包含：
 
 - Email／OAuth 登入、機構、分校、成員、角色與權限。
-- 課綱、知識點、通用單元及公開出版社進度參考。
+- 課綱、Knowledge Point、通用單元及中性 Curriculum Reference。
 - 國語、英文、數學的原創教材、試卷、答案與解析。
 - 教材建立精靈、逐題編輯、單題重生、版本控制及教材庫。
 - 匯出前品質檢查、教師確認、學生版、教師版、PDF 與 DOCX。
@@ -103,9 +103,9 @@ Sprint 6 建立商用 SaaS 的租戶邊界：完成 Profile onboarding 的使用
 
 ## 教材核心結構
 
-Sprint 7 先建立教材結構，不建立 AI、題庫或試卷。科目、國小一至六年級及出版社進度參考由資料庫維護；前端不以 enum 寫死，因此後續可停用或新增參照項目。出版社初始資料為南一、康軒、翰林，介面一律以「進度參考」呈現。
+Sprint 7 先建立教材結構，不建立 AI、題庫或試卷。AR-001 將既有 publisher-centered model 限縮為 legacy compatibility，使用者介面改用「課綱通用版／教學進度模板 1、2、3／自訂教學進度」的 Curriculum Reference 語意；新資料表須由後續獨立 Migration 工作建立。
 
-每份教材屬於 active organization，保存教材名稱、科目、年級、出版社進度參考、學年度、學期與狀態。建立教材時同步建立初始版本，舊版本不得被新內容覆蓋。Sprint 8 已開放版本 1 下的章節／課次 CRUD、草稿／發布狀態、學習目標、預估時間、教學備註與同層排序；版本本身唯讀，尚不建立版本 2。
+每份教材屬於 active organization，保存教材名稱、科目、年級、Curriculum Reference、學年度、學期與狀態。建立教材時同步建立初始版本，舊版本不得被新內容覆蓋。Sprint 8 已開放版本 1 下的章節／課次 CRUD、草稿／發布狀態、學習目標、預估時間、教學備註與同層排序；版本本身唯讀，尚不建立版本 2。
 
 Lesson 另以 backward-compatible 欄位預留 grade-relative `difficulty`（1–5，可空）與人類可讀 `keywords`。欄位隨 Curriculum Version 階層保存並沿用 organization RLS，可直接成為 Sprint 12 Engine 的結構化輸入，但本階段不保存 Prompt、模型、Embedding、生成來源或 review workflow。
 
@@ -138,5 +138,6 @@ owner/admin 可建立與修改教材，teacher/reviewer 目前為唯讀。所有
 - Sprint 6：機構／補習班、owner membership、active organization、機構 onboarding／settings／switcher 與跨租戶 RLS。
 - Sprint 7：科目、年級、出版社進度參考、教材、不可覆蓋版本、章與課的核心結構，以及 organization-scoped 教材列表、建立、詳細與編輯流程。
 - Sprint 8：版本 1 唯讀的 Curriculum Editor、章節與課次 CRUD、server-validated 排序、樹狀導覽、Dashboard 章課統計，以及 owner/admin 寫入與 teacher/reviewer 唯讀權限。
+- AR-001：Knowledge Graph 核心、Curriculum Reference Mapping Layer、legacy display adapter，以及待核准的 forward-only Migration Design。
 
 目前仍未實作分校、成員邀請、細緻 RBAC、版本 2／發布稽核、AI 生成、題庫、試卷、品質檢查或匯出。Sprint 6 不開放任意加入機構或修改成員角色；這些能力保留給後續授權 Sprint。Production 未執行任何 Migration 或部署。Sprint 4 的 Google OAuth 尚待人工驗收，密碼復原 session 綁定仍是正式商用前的高優先修正。

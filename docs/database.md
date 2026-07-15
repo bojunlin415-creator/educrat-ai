@@ -6,6 +6,8 @@
 
 Sprint 3、Sprint 5、兩筆 Sprint 6、Sprint 7 Curriculum Foundation 與 Sprint 8 Curriculum Editor Migration 已套用至非 production 的 `educrat-development`。Sprint 8 已完成真實 Development Editor E2E，以及套用同一組 Migration 的隔離本機 Owner／Admin／Teacher／Reviewer RLS 驗收。Production 未執行。
 
+AR-001 不新增或套用 Migration。既有 `publishers` 與 `curriculums.publisher_id` 保持原樣，只作 legacy compatibility；目標 `curriculum_references`、`knowledge_sources`、`curriculum_reference_mappings`、新 FK、backfill 與 dual-write 設計已由 ADR-003 核准，但資料庫實作仍須後續獨立 Migration 工作授權。
+
 ## profiles
 
 用途：保存使用者可編輯的個人資料；登入憑證與 Auth 狀態仍由 `auth.users` 管理。
@@ -118,6 +120,8 @@ Sprint 7 新增下列正規化結構：
 Sprint 8 以 additive migration 擴充既有結構：`chapters.status` 使用 `draft`／`active`／`archived` 受控值（Editor 將 active 顯示為「已發布」）；`lessons.teaching_notes` 為最多 5,000 字的機構內部教學備註；`lessons.difficulty` 是 nullable 的 1–5 級年級相對難度；`lessons.keywords` 預設為空陣列，最多 30 個、每個 1–80 字、去除前後空白且不分大小寫唯一。沒有新增教材核心資料表。
 
 `difficulty` 與 `keywords` 是人類教學分類，不是 AI score、Prompt、Embedding 或生成 metadata。欄位位於 Lesson，會自然隨 `curriculum_version → chapter → lesson` 版本化，並沿既有 hierarchy RLS 取得 organization scope，因此 Sprint 12 不需搬移 Lesson 主資料。
+
+> AR-001 說明：上表的 `publishers` 已被定義為 legacy table，不再是新 Domain。新程式不可直接將其 name/code 傳到 UI 或 AI；移轉採新增 table／FK 與 dual-write，不 Rename 或 Drop。
 
 `curriculums` 額外保存 `name`，用於人類辨識、機構內重複名稱檢查與列表搜尋；其餘核心欄位為 subject、grade、publisher、school year、semester、status、created-by 與 timestamps。名稱唯一性以 `(organization_id, lower(name))` index 實作。
 

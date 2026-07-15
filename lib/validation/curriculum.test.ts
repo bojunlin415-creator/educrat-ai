@@ -1,14 +1,15 @@
 import { canManageCurriculums } from "@/lib/organization/constants";
 import {
+  createCurriculumRequestSchema,
   createCurriculumSchema,
   curriculumIdSchema,
   updateCurriculumSchema,
 } from "@/lib/validation/curriculum";
 
 const validInput = {
+  curriculumReferenceId: "10000000-0000-4000-8000-000000000003",
   gradeId: "10000000-0000-4000-8000-000000000002",
   name: "四年級數學上學期",
-  publisherId: "10000000-0000-4000-8000-000000000003",
   schoolYear: 115,
   semester: 1 as const,
   status: "draft" as const,
@@ -30,7 +31,7 @@ describe("curriculum validation", () => {
     { field: "name", value: "一" },
     { field: "subjectId", value: "not-a-uuid" },
     { field: "gradeId", value: "not-a-uuid" },
-    { field: "publisherId", value: "not-a-uuid" },
+    { field: "curriculumReferenceId", value: "not-a-uuid" },
     { field: "schoolYear", value: 99 },
     { field: "semester", value: 3 },
     { field: "status", value: "published" },
@@ -47,7 +48,7 @@ describe("curriculum validation", () => {
     const updateInput = {
       gradeId: archived.gradeId,
       name: archived.name,
-      publisherId: archived.publisherId,
+      curriculumReferenceId: archived.curriculumReferenceId,
       schoolYear: archived.schoolYear,
       semester: archived.semester,
       status: archived.status,
@@ -63,6 +64,17 @@ describe("curriculum validation", () => {
         organizationId: "10000000-0000-4000-8000-000000000004",
       }).success,
     ).toBe(false);
+  });
+
+  it("normalizes the legacy publisherId request field", () => {
+    const { curriculumReferenceId, ...rest } = validInput;
+    const result = createCurriculumRequestSchema.parse({
+      ...rest,
+      publisherId: curriculumReferenceId,
+    });
+
+    expect(result.curriculumReferenceId).toBe(curriculumReferenceId);
+    expect("publisherId" in result).toBe(false);
   });
 
   it("validates curriculum identifiers", () => {

@@ -19,16 +19,45 @@ const validUpdate = {
   subjectId: "10000000-0000-4000-8000-000000000001",
 };
 
+const reference = {
+  code: "teaching-progress-template-2",
+  displayName: "教學進度模板 2",
+  id: validUpdate.publisherId,
+  referenceType: "REFERENCE" as const,
+};
+
 describe("curriculum detail API", () => {
   afterEach(() => vi.clearAllMocks());
 
   it("loads one curriculum through the server data layer", async () => {
-    serviceMocks.getCurriculum.mockResolvedValue({ id, name: "教材" });
+    serviceMocks.getCurriculum.mockResolvedValue({
+      id,
+      name: "教材",
+      reference,
+    });
     const response = await GET(new Request(`http://localhost/${id}`), {
       params: Promise.resolve({ id }),
     });
+    const payload = (await response.json()) as {
+      curriculum?: {
+        publisher?: { code: string; name: string };
+        publisher_id?: string;
+        reference?: typeof reference;
+      };
+    };
     expect(response.status).toBe(200);
     expect(serviceMocks.getCurriculum).toHaveBeenCalledWith(id);
+    expect(payload.curriculum).toEqual(
+      expect.objectContaining({
+        publisher: {
+          code: "teaching-progress-template-2",
+          id: validUpdate.publisherId,
+          name: "教學進度模板 2",
+        },
+        publisher_id: validUpdate.publisherId,
+        reference,
+      }),
+    );
   });
 
   it("updates approved fields and returns the detail destination", async () => {
@@ -47,7 +76,11 @@ describe("curriculum detail API", () => {
     const payload = (await response.json()) as { redirectTo?: string };
 
     expect(response.status).toBe(200);
-    expect(serviceMocks.updateCurriculum).toHaveBeenCalledWith(id, validUpdate);
+    const { publisherId, ...rest } = validUpdate;
+    expect(serviceMocks.updateCurriculum).toHaveBeenCalledWith(id, {
+      ...rest,
+      curriculumReferenceId: publisherId,
+    });
     expect(payload.redirectTo).toBe(`/curriculums/${id}`);
   });
 

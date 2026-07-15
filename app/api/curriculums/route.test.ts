@@ -19,19 +19,45 @@ const validPayload = {
   versionRemark: "",
 };
 
+const reference = {
+  code: "teaching-progress-template-2",
+  displayName: "教學進度模板 2",
+  id: validPayload.publisherId,
+  referenceType: "REFERENCE" as const,
+};
+
 describe("curriculums collection API", () => {
   afterEach(() => vi.clearAllMocks());
 
   it("lists curricula through the server data layer", async () => {
-    serviceMocks.getCurriculums.mockResolvedValue([{ id: "curriculum-1" }]);
+    serviceMocks.getCurriculums.mockResolvedValue([
+      { id: "curriculum-1", reference },
+    ]);
     const response = await GET();
-    const payload: unknown = await response.json();
+    const payload = (await response.json()) as {
+      curriculums?: Array<{
+        publisher?: { code: string; name: string };
+        publisher_id?: string;
+        reference?: typeof reference;
+      }>;
+    };
 
     expect(response.status).toBe(200);
     expect(payload).toEqual(
       expect.objectContaining({
         success: true,
         curriculums: expect.any(Array),
+      }),
+    );
+    expect(payload.curriculums?.[0]).toEqual(
+      expect.objectContaining({
+        publisher: {
+          code: "teaching-progress-template-2",
+          id: validPayload.publisherId,
+          name: "教學進度模板 2",
+        },
+        publisher_id: validPayload.publisherId,
+        reference,
       }),
     );
   });
@@ -50,7 +76,11 @@ describe("curriculums collection API", () => {
     );
 
     expect(response.status).toBe(201);
-    expect(serviceMocks.createCurriculum).toHaveBeenCalledWith(validPayload);
+    const { publisherId, ...rest } = validPayload;
+    expect(serviceMocks.createCurriculum).toHaveBeenCalledWith({
+      ...rest,
+      curriculumReferenceId: publisherId,
+    });
   });
 
   it("rejects invalid and cross-tenant fields before calling the service", async () => {

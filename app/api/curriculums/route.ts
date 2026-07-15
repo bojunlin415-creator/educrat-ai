@@ -3,14 +3,17 @@ import {
   curriculumSuccess,
   parseCurriculumJson,
 } from "@/lib/curriculum/api";
+import { withLegacyReferenceCompatibility } from "@/lib/curriculum/reference-display";
 import { createCurriculum, getCurriculums } from "@/lib/curriculum/service";
-import { createCurriculumSchema } from "@/lib/validation/curriculum";
+import { createCurriculumRequestSchema } from "@/lib/validation/curriculum";
 
 export async function GET() {
   try {
     const curriculums = await getCurriculums();
     return Response.json(
-      curriculumSuccess("教材列表已載入。", { curriculums }),
+      curriculumSuccess("教材列表已載入。", {
+        curriculums: curriculums.map(withLegacyReferenceCompatibility),
+      }),
     );
   } catch (error: unknown) {
     return curriculumErrorResponse(error);
@@ -18,7 +21,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const parsed = await parseCurriculumJson(request, createCurriculumSchema);
+  const parsed = await parseCurriculumJson(
+    request,
+    createCurriculumRequestSchema,
+  );
   if (!parsed.success) return parsed.response;
 
   try {
