@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ProfileForm } from "@/components/forms/profile-form";
 import { Card } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth/session";
+import { hasAnyOrganization } from "@/lib/organization/service";
 import { getOwnProfile } from "@/lib/profile/service";
 
 export const metadata: Metadata = { title: "完成基本資料" };
@@ -10,7 +11,11 @@ export const metadata: Metadata = { title: "完成基本資料" };
 export default async function OnboardingPage() {
   const user = await requireUser();
   const profile = await getOwnProfile(user.id);
-  if (profile?.onboarding_completed) redirect("/dashboard");
+  if (profile?.onboarding_completed) {
+    redirect(
+      (await hasAnyOrganization()) ? "/dashboard" : "/onboarding/organization",
+    );
+  }
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">

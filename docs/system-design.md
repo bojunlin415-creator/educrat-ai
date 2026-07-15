@@ -14,7 +14,7 @@
       └─ 測試：Vitest / Testing Library / Playwright
 ```
 
-目前已建立 Supabase SSR client、Next.js 16 Proxy、環境驗證、`profiles`、首次 onboarding、個人資料 API、私有 Avatar Storage 與資料庫健康檢查，並已在 `educrat-development` 驗證 schema、資料列與物件 RLS。AI provider、背景工作、教材儲存、金流與正式監控尚未整合。
+目前已建立 Supabase SSR client、Next.js 16 Proxy、環境驗證、`profiles`、首次 onboarding、個人資料 API、私有 Avatar Storage、organization multi-tenancy、教材核心結構與資料庫健康檢查。AI provider、背景工作、題庫、試卷、匯出、金流與正式監控尚未整合。
 
 ### Supabase SSR 邊界
 
@@ -47,6 +47,35 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - Avatar route 先限制 multipart 大小，再比對 MIME 與 JPEG／PNG／WebP 實際檔頭；檔名與 Storage 路徑由伺服器產生。
 - `avatars` bucket 保持 private，物件只能位於 `auth.uid()` 對應的第一層資料夾；顯示時建立短效 signed URL。
 - Avatar API 不使用 Service Role，資料列與物件操作都經 authenticated client 及 RLS。
+
+### Organization 多租戶流程
+
+- `organizations` 是補習班／教育機構的 tenant boundary；`organization_members` 保存使用者角色與 membership 狀態。
+- active organization 放在獨立的 `user_preferences`，不加入既有 `profiles`。這避免身分／個人資料與租戶 context 耦合，也能在 Sprint 7 延伸 active branch，或日後增加裝置／session 偏好。
+- `create_organization_with_owner()` 使用 fixed `search_path` 的 `SECURITY DEFINER`，只從 `auth.uid()` 取得建立者。它在單一 transaction 中建立 organization、active owner membership 與 preference；任一步驟失敗會全部 rollback。
+- `switch_active_organization()` 不信任前端角色，會重新確認 active membership、organization status 與 soft-delete 狀態。
+- `lib/organization/service.ts` 集中 current context、list、create、update、switch 與 role guard；Route Handler 只處理不可信輸入與安全錯誤回應。
+- 一般 client 沒有 organization insert、membership write 或 preference write 權限；UI 的唯讀／可編輯狀態不能取代 server check 與 RLS。
+
+### 導向優先順序
+
+受保護工作區採單一優先規則：未登入導向 `/login?notice=authentication_required`；Profile 未完成導向 `/onboarding`；Profile 已完成但無 active organization 導向 `/onboarding/organization`；兩者皆完成才顯示 Dashboard 或 Organization Settings。Auth callback、登入／註冊與密碼重設不套用 organization guard，避免 redirect loop 或中斷 PKCE。
+
+### Curriculum Foundation
+
+- `subjects`、`grades`、`publishers` 是資料庫管理的共用參照資料；只有具有有效 active organization 的 authenticated 使用者可讀，client 無寫入權限。
+- `curriculums` 直接帶 `organization_id`；`curriculum_versions`、`chapters`、`lessons` 沿關聯回查教材 tenant。所有 RLS 以 `get_active_organization_id()` 與 active membership 雙重限制。
+- `create_curriculum_with_initial_version()` 是 fixed-search-path 的 `SECURITY DEFINER`。它只從 `auth.uid()` 與 active organization context 取得 owner，要求 owner/admin，並在同一 transaction 建立教材及版本 1。
+- `lib/curriculum/service.ts` 是唯一教材資料存取層，集中 list/detail/create/update、參照資料組合、active organization 篩選與領域錯誤；頁面和 Route Handler 不直接查表。
+- `GET／POST /api/curriculums` 與 `GET／PATCH /api/curriculums/[id]` 僅接受 Zod 驗證的 JSON。沒有 DELETE endpoint、table DELETE grant 或 policy。
+- Server Components 處理列表、詳細及權限畫面；`CurriculumForm` 只負責互動，owner/admin 權限仍由 server data layer 與 RLS 驗證。
+
+### 後續 Sprint 銜接
+
+- 新版 Roadmap 的 Sprint 7 改為 Curriculum Foundation；原先規劃的 branch Sprint 尚未執行，active branch 仍只保留架構延伸點。
+- 成員邀請與細緻 RBAC 必須透過後續明確 Sprint 增加受控 RPC，不可放寬目前的 direct membership write deny。
+- 章、課的新增／版本發布流程需另行定義不可覆蓋規則與稽核；Sprint 7 只建立 schema 與唯讀顯示。
+- Organization Logo 若實作，需建立獨立 private bucket、organization path 與 Storage RLS，不得共用個人 Avatar bucket。
 
 ## 長期系統邊界
 

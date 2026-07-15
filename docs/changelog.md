@@ -1,5 +1,71 @@
 # Changelog
 
+## 2026-07-15 — Sprint 7：Curriculum Foundation（自動化驗收完成）
+
+### 新增
+
+- 建立 `subjects`、`grades`、`publishers`、`curriculums`、`curriculum_versions`、`chapters`、`lessons`，初始科目為國語／英文／數學／自然／社會／生活，年級為一至六年級，出版社進度參考為南一／康軒／翰林。
+- 建立 organization-scoped 教材名稱、科目、年級、進度參考、學年度、學期與狀態；建立教材時原子新增版本 1，舊版本不可被唯一鍵覆蓋。
+- 建立 server-only Curriculum data layer、Zod validation、領域錯誤與 collection/detail Route Handlers；沒有 DELETE endpoint。
+- 建立教材列表、建立、詳細、編輯頁及 CurriculumForm、Card、Table、EmptyState、Header；Dashboard 新增教材總數、最近教材與可用的建立入口。
+- 新增 Curriculum validation、form、API、Migration static、Development RLS 與 Playwright E2E 規格。
+
+### Migration 與安全
+
+- 新增 `20260715090000_s07_create_curriculum_foundation.sql`；沒有修改 Sprint 1～6 Migration，沒有 DROP、TRUNCATE、DELETE、既有 table ALTER、Storage、AI、題庫或試卷物件。
+- 七張表均 enable/force RLS。教材階層只允許目前 active organization 的 member 讀取；owner/admin 可更新明列欄位，teacher/reviewer 唯讀。
+- `create_curriculum_with_initial_version()` 固定空 search path，只取 `auth.uid()` 與 active organization，不接受 caller 指定 organization／created-by；原子建立教材與初始版本。
+- Linked push 已將 Sprint 7 Migration 套用至 `educrat-development`；local／remote history 均包含 `20260715090000`。遠端 table inventory 已確認七張教材表存在。
+
+### 已知限制
+
+- 本 Sprint 只建立教材結構與基本資料 CRUD；章／課編輯、版本發布、AI、題庫、試卷與 Storage 不在範圍。
+- Teacher/reviewer 唯讀與 owner/admin 寫入已由 server/API unit、SQL contract、Development 兩帳號 RLS E2E 與隔離本機四角色 rollback transaction 驗證；未使用 Service Role 通過受測操作，也未在遠端留下不受控 membership。
+- 教材 E2E fixture 不硬刪除；無 DELETE 流程前使用 deterministic 名稱重用。
+
+### 驗收狀態
+
+- `pnpm run typecheck`、`pnpm run lint`、`pnpm run test`、Prettier 與修改後 `pnpm run build` 已通過；Vitest 共 24 個測試檔、147 項測試通過。
+- `pnpm run test:e2e` 共 4 項全部通過，涵蓋既有 regression、Curriculum UI、手機 viewport 與 Development 兩帳號真實 RLS。
+- 隔離本機 RLS acceptance 驗證七張表 enable/force RLS、八個 policies、Owner／Admin 寫入、Teacher／Reviewer 唯讀、跨租戶全階層隱藏與匿名拒絕；最後完整 rollback。
+- Sprint 7 自動化整合驗收完成；人工 UI／手機版驗收延後至 Milestone 2，在實際執行前不標記為人工驗收通過。
+- 未執行 deploy、PR、main merge 或 Sprint 8。
+
+## 2026-07-14 — Sprint 6：機構與補習班多租戶基礎
+
+### 新增
+
+- 建立 `organizations`、`organization_members`、`user_preferences`，以獨立 preference 保存 active organization，不變更既有 profiles schema。
+- 建立原子 `create_organization_with_owner()`：只使用 `auth.uid()`，確認 Profile onboarding，並在同一 transaction 建立機構、owner membership 與 active preference。
+- 建立受控 `switch_active_organization()`、active context fallback、最後一位 owner 保護及失效 preference 清除流程。
+- 建立 Organization onboarding、settings、switcher、active organization Dashboard context 與統一 workspace route guard。
+- 建立 server-only organization data layer、Zod API boundary、領域錯誤與 owner/admin server role check。
+- 新增 validation、表單、switcher、route precedence、Migration 安全契約及真實 Development RLS／UI E2E 測試。
+
+### Migration 與安全
+
+- 新增 `20260714180000_s06_create_organizations.sql`，三張新表均啟用並強制 RLS；沒有 DROP、TRUNCATE、DELETE、profiles ALTER 或 Storage 變更。
+- 新增 `20260714232000_s06_revoke_internal_function_access.sql`，修正 Supabase 預設 function ACL，四個 Trigger-only SECURITY DEFINER functions 對 public、anon、authenticated、service_role 均不可直接執行。
+- 兩筆 Migration 均先 dry-run，再套用至 `educrat-development`；production 未執行。local／remote history 均為 `20260713160000`、`20260714150000`、`20260714180000`、`20260714232000`。
+- 真實 RLS 測試以兩個一般 authenticated 帳號與 publishable key 驗證跨租戶隔離、匿名拒絕、直接寫入拒絕、自我升權拒絕、合法／非法切換與 duplicate rollback；未使用 Secret／Service Role Key。
+- 遠端 catalog 已確認三張表 RLS／FORCE RLS、四個 policies、triggers、functions、indexes 及 `database_health() = true`。
+
+### 已知限制
+
+- Sprint 6 只建立第一位 owner；分校、成員邀請與細緻 RBAC 分別留待 Sprint 7、8、9，不提前放寬 membership write。
+- Organization Logo 只預留 `logo_path`，獨立 private bucket 與 Storage RLS 延後至 Sprint 10 評估。
+- Development RLS E2E 重用固定雜湊 slug 的虛構 fixture，避免每次測試持續新增；完整安全成員清理流程待 Sprint 8 後補齊。
+- Security Advisor 仍列出刻意開放 authenticated 的 create／switch／context RPC，以及既存 `rls_auto_enable()` ACL 與 leaked-password protection 未啟用；後兩項需由環境管理者另行審核。
+- 既有 Sprint 4 Google OAuth 與 password recovery session 綁定限制不屬本 Sprint，狀態不變。
+
+### 驗收
+
+- `pnpm run typecheck`、`pnpm run lint`、`pnpm run test`、`pnpm run build`、Prettier 與 `git diff --check` 已通過；Vitest 共 19 個測試檔、104 項測試通過。
+- 真實 Development 多租戶 RLS 與完整 `pnpm run test:e2e` 已於 Sprint 7 技術封板重新執行，4 項全部通過，涵蓋 Organization、Profile、Avatar、Curriculum、桌面與手機 viewport regression。
+- Sprint 6 資料庫已重新確認 local／remote migration history 一致，並由真實 Development RLS 與隔離本機角色測試複驗租戶邊界。
+- Sprint 6 自動化整合驗收完成；人工 UI／手機版驗收延後至 Milestone 2，在實際執行前不標記為人工驗收通過。
+- 未執行 deploy、PR 或 main merge。
+
 ## 2026-07-14 — Sprint 5：使用者個人資料
 
 ### 新增

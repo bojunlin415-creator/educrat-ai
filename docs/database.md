@@ -4,7 +4,7 @@
 
 ## 目前狀態
 
-Sprint 3 與 Sprint 5 Migration 已套用至非 production 的 `educrat-development`。本機與遠端 migration history 一致，實際 catalog、資料列 RLS、Storage RLS、policy、trigger 與 function 均已驗證；production 未執行。
+Sprint 3、Sprint 5、兩筆 Sprint 6 與 Sprint 7 Curriculum Foundation Migration 已套用至非 production 的 `educrat-development`。Sprint 7 已完成遠端 table inventory、真實 Development 兩帳號租戶隔離，以及套用同一組 Migration 的隔離本機 Owner／Admin／Teacher／Reviewer RLS 驗收。Production 未執行。
 
 ## profiles
 
@@ -34,6 +34,99 @@ Sprint 3 與 Sprint 5 Migration 已套用至非 production 的 `educrat-developm
 - `delete`：無 grant、無 policy。
 
 所有 policy 明確指定 `to authenticated` 並使用 `(select auth.uid())`。Migration 先 revoke 預設權限，再依欄位授予最小權限。
+
+## organizations
+
+用途：代表補習班或教育機構的 tenant boundary。一般查詢只顯示目前使用者具有 active membership、organization status 為 active 且未 soft-delete 的資料。
+
+| 欄位          | 型別        | 必填 | 限制／預設                                       |
+| ------------- | ----------- | ---- | ------------------------------------------------ |
+| id            | uuid        | 是   | PK，`gen_random_uuid()`                          |
+| name          | text        | 是   | 去除前後空白，2–120 字元                         |
+| slug          | text        | 是   | unique，小寫英數與 hyphen，3–48 字元，拒絕保留字 |
+| business_name | text        | 否   | 2–160 字元                                       |
+| tax_id        | text        | 否   | 2–20 字元                                        |
+| phone         | text        | 否   | 6–30 字元                                        |
+| email         | text        | 否   | 最長 254 字元；應用層再以 Zod 驗證 email         |
+| address       | text        | 否   | 2–300 字元                                       |
+| logo_path     | text        | 否   | 私有機構 Logo 路徑預留，Sprint 6 不上傳          |
+| status        | text        | 是   | `active`／`suspended`／`archived`                |
+| created_by    | uuid        | 是   | FK → `auth.users.id`，`ON DELETE RESTRICT`       |
+| created_at    | timestamptz | 是   | UTC 建立時間                                     |
+| updated_at    | timestamptz | 是   | trigger 自動維護                                 |
+| deleted_at    | timestamptz | 否   | soft delete；有值時 status 必須 archived         |
+
+Slug 在 Sprint 6 建立後不可由一般 update API 修改，避免未來 URL、公開連結與稽核識別失效。Organization 沒有 client-side insert/delete policy；建立必須走原子 RPC，soft delete 與 status 生命週期待管理 Sprint 實作。
+
+`created_by` 採 `ON DELETE RESTRICT`，因此仍擁有 organization 的 Auth 使用者不能直接刪除帳號；後續帳號刪除流程必須先完成 owner 移轉或受控的 tenant 關閉。Logo 上傳與獨立 private bucket 延後至 Sprint 10 評估，不能共用個人 Avatar bucket。
+
+## organization_members
+
+用途：保存使用者在每個 organization 的 membership、角色與狀態。
+
+| 欄位            | 型別        | 必填 | 限制／預設                                                      |
+| --------------- | ----------- | ---- | --------------------------------------------------------------- |
+| id              | uuid        | 是   | PK                                                              |
+| organization_id | uuid        | 是   | FK → `organizations.id`，`ON DELETE RESTRICT`                   |
+| user_id         | uuid        | 是   | FK → `auth.users.id`，`ON DELETE CASCADE`                       |
+| role            | text        | 是   | owner／admin／teacher／reviewer；另預留 branch/student/guardian |
+| status          | text        | 是   | `active`／`invited`／`suspended`／`removed`                     |
+| joined_at       | timestamptz | 否   | active membership 必須有值                                      |
+| created_at      | timestamptz | 是   | UTC 建立時間                                                    |
+| updated_at      | timestamptz | 是   | trigger 自動維護                                                |
+
+`organization_id + user_id` 唯一。Sprint 6 不給 client 任何 membership insert/update/delete grant，防止自行加入、提升角色或移除 owner；建立機構時只由 RPC 建立建立者的 owner membership。最後一位 active owner 由 trigger 保護，新的 organization 在 transaction commit 前必須具有 active owner。
+
+## user_preferences
+
+用途：保存使用者自己的應用 context。active organization 不加入 `profiles`，讓未來 active branch、session 或 device preference 能獨立延伸，不耦合個人身分資料。
+
+| 欄位                   | 型別        | 必填 | 限制／預設                                    |
+| ---------------------- | ----------- | ---- | --------------------------------------------- |
+| user_id                | uuid        | 是   | PK、FK → `auth.users.id`，`ON DELETE CASCADE` |
+| active_organization_id | uuid        | 否   | FK → `organizations.id`，`ON DELETE SET NULL` |
+| created_at             | timestamptz | 是   | UTC 建立時間                                  |
+| updated_at             | timestamptz | 是   | trigger 自動維護                              |
+
+一般使用者只有 own select，不能直接 write。`switch_active_organization()` 驗證 membership 與 organization 狀態後才 upsert；membership 被移除／停權，或 organization 被停用／soft-delete 時，trigger 會清空失效 preference。`get_active_organization_id()` 會在 preference 無效或為空時 fallback 至最早加入的有效 organization。
+
+## Organization RLS 與 RPC
+
+- 三張 Sprint 6 表皆 `ENABLE` 且 `FORCE ROW LEVEL SECURITY`，anon 無 table 權限。
+- `organizations`：active member 可讀；active owner/admin 只能更新明確授權的基本欄位。Teacher/reviewer 無 update 權限。
+- `organization_members`：active member 可讀同一 organization 的 membership；所有直接 write 維持拒絕。
+- `user_preferences`：只能讀自己的列；active organization write 只能走 RPC。
+- `is_active_organization_member()` 與 `has_organization_role()` 使用 fixed empty `search_path` 的 `SECURITY DEFINER`，避免 policy 互查造成 RLS recursion。
+- `create_organization_with_owner()` 只使用 `auth.uid()`，要求 Profile onboarding 已完成，驗證名稱與 slug，並原子建立 organization、owner membership、preference；只授權 authenticated execute。
+- `switch_active_organization()` 不接受 user id／role，只能切換至 caller 自己的 active membership；只授權 authenticated execute。
+- 所有 SECURITY DEFINER function 都 revoke public execute；應用流程不使用 Service Role。
+
+## Curriculum Foundation
+
+Sprint 7 新增下列正規化結構：
+
+| 資料表                | 用途                   | 租戶邊界／主要限制                                 |
+| --------------------- | ---------------------- | -------------------------------------------------- |
+| `subjects`            | 科目參照               | 全域參照；active organization member 唯讀          |
+| `grades`              | 國小一至六年級參照     | 全域參照；active organization member 唯讀          |
+| `publishers`          | 可擴充的出版社進度參照 | 全域參照；不是 enum，不表示授權或官方背書          |
+| `curriculums`         | 機構教材基本資料       | 直接帶 `organization_id`；機構內名稱不分大小寫唯一 |
+| `curriculum_versions` | 不覆蓋的教材版本       | `curriculum_id + version` 唯一                     |
+| `chapters`            | 版本下的有序章         | 章號與排序在同一版本內唯一                         |
+| `lessons`             | 章下的有序課與學習目標 | 課號與排序在同一章內唯一；預估時間 1–600 分鐘      |
+
+`curriculums` 額外保存 `name`，用於人類辨識、機構內重複名稱檢查與列表搜尋；其餘核心欄位為 subject、grade、publisher、school year、semester、status、created-by 與 timestamps。名稱唯一性以 `(organization_id, lower(name))` index 實作。
+
+### Curriculum RLS 與建立流程
+
+- 七張表全部 `ENABLE` 且 `FORCE ROW LEVEL SECURITY`，先撤銷 anon/authenticated 預設權限。
+- 共用參照表只有 select grant；沒有 browser insert/update/delete。
+- 教材、版本、章、課的 select policy 都要求資料所屬 organization 等於 `get_active_organization_id()`，且 caller 是 active member。
+- `curriculums` 只授權 owner/admin 更新明列的基本欄位；organization id 與 created-by 不在欄位 grant 中。Teacher/reviewer 只有 select。
+- Client 沒有 curriculum insert；`create_curriculum_with_initial_version()` 從 `auth.uid()` 與 active context 取得使用者與 organization，驗證 active references 與 owner/admin role，再原子建立教材及版本 1。
+- RPC 固定空 `search_path`、撤銷 public/anon execute，只授權 authenticated；不接受 `organization_id`、`created_by` 或任意 user id。
+- 沒有 DELETE API、grant 或 policy。版本、章與課的變更 API 未在 Sprint 7 開放。
+- 本 Sprint 不建立 Storage、AI、題庫或試卷資料表。
 
 ## avatars Storage bucket
 
@@ -137,6 +230,11 @@ Sprint 3 與 Sprint 5 Migration 已套用至非 production 的 `educrat-developm
 - Sprint 3：`20260713160000_s03_create_profiles.sql`，已套用至 `educrat-development`。
 - Sprint 4：無新 Migration；身分驗證使用 Supabase Auth 既有 schema。
 - Sprint 5：`20260714150000_s05_create_avatar_storage.sql`，建立私有 Avatar bucket 與 user-folder Storage policies，已套用至 `educrat-development`。
+- Sprint 6：`20260714180000_s06_create_organizations.sql`，建立 organizations、organization_members、user_preferences、RLS helpers、原子建立／切換 RPC 與最後 owner／preference triggers；Development 套用狀態以 CLI migration history 為準。
+- Sprint 6 安全修正：`20260714232000_s06_revoke_internal_function_access.sql`，明確撤銷 Trigger-only SECURITY DEFINER functions 對 public、anon、authenticated、service_role 的直接執行權；已由 function ACL 查詢與 Security Advisor 複驗。
+- Sprint 7：`20260715090000_s07_create_curriculum_foundation.sql`，建立參照資料、教材版本階層、RLS、最小 grant 與原子建立 RPC；已套用至 `educrat-development`，並完成遠端 table inventory、Development 真實 RLS E2E 與隔離本機四角色 SQL RLS 驗收。
+
+目前 Development local／remote history 均為 `20260713160000`、`20260714150000`、`20260714180000`、`20260714232000`、`20260715090000`。Production 未套用任何本專案 Migration。
 
 ## Supabase CLI 結構
 

@@ -8,7 +8,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
-  workers: 2,
+  // Real Supabase Auth/RLS suites intentionally share a small set of
+  // development-only fixture accounts. Serial workers avoid false failures
+  // from concurrent sign-ins and provider rate limits.
+  workers: 1,
   reporter: "html",
   expect: { timeout: 10_000 },
   use: {
@@ -19,7 +22,7 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     {
       name: "mobile",
-      testIgnore: /profile\.spec\.ts/,
+      testIgnore: /(?:profile|tenant-rls)\.spec\.ts/,
       use: { ...devices["Pixel 7"] },
     },
   ],

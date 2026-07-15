@@ -136,3 +136,35 @@ Sprint 5 新增：
 - Profile form 的 client 驗證、成功狀態與不支援圖片預先拒絕測試。
 - Avatar Storage migration 安全契約測試及真實 own／跨使用者／匿名 RLS 整合驗證。
 - Playwright 真實帳號 E2E：onboarding、個人資料更新、伺服器拒絕錯誤輸入、Avatar 上傳／移除、工作台名稱與登出保護。
+
+Sprint 6 新增：
+
+- Organization Zod schema、slug 正規化、保留字與邊界值單元測試。
+- Organization onboarding／settings／switcher 的 loading、success、error、唯讀權限與切換互動測試。
+- Migration 靜態安全契約：新表 RLS enable／force、最小 grant、fixed-search-path RPC、原子 owner 建立、最後 owner 保護、active preference fallback 與無破壞性 SQL。
+- 真實 Development Supabase RLS E2E 使用兩個一般 authenticated 帳號與 publishable key，驗證 own read、跨租戶隱藏、匿名拒絕、直接 insert／membership mutation 拒絕、跨租戶切換拒絕、合法切換及 duplicate rollback；禁止以 Service Role 通過測試。
+- Playwright UI E2E 驗證第一個機構建立、Dashboard context、owner settings、Organization Switcher、桌面／手機與 Sprint 5 Profile／Avatar regression。
+- Supabase Security Advisor 與直接 function ACL 查詢驗證 Trigger-only SECURITY DEFINER functions 不可由 API roles 呼叫；需供登入者使用的 create／switch／current-context RPC 保留 authenticated execute，並以 `auth.uid()` 與 membership 檢查限制結果。
+
+為避免 Auth provider rate limit 造成非產品錯誤，真實 Auth/RLS E2E 以單一 worker 執行。RLS fixture 使用 development-only 虛構帳號與可重複的雜湊 slug；沒有安全的成員刪除流程前不以破壞性 SQL 清理，會重用固定 fixture 而不持續新增資料。Sprint 8 完成邀請與移除流程後，須補齊 teacher／reviewer 真實 membership E2E 與正式清理流程。
+
+Sprint 7 新增：
+
+- Curriculum Zod schema 測試：有效建立／更新、非法 UUID、學年度、學期、狀態、未知 organization 欄位與機構角色權限。
+- Curriculum Form 測試：建立、編輯、client validation、success routing 與初始版本欄位狀態。
+- Collection／detail API 測試：list、create、update、invalid input、未登入、not-found 與 teacher/reviewer forbidden 安全回應。
+- Migration 靜態安全契約：七張表 RLS enable／force、active organization policy、owner/admin mutation、原子 RPC、資料庫 seed、無 direct insert/delete、無歷史 table ALTER 與無 Storage／題庫／試卷。
+- Development RLS E2E：以兩個一般帳號與 publishable key 驗證教材建立與版本 1、重複名稱、direct insert 拒絕、owner update、active organization 切換、跨租戶隱藏與匿名拒絕，已通過。
+- 隔離本機 SQL RLS acceptance：以同一組 Migration、`authenticated`／`anon` 資料庫角色及 JWT subject claim 驗證 Owner／Admin 可建立與修改、Teacher／Reviewer 唯讀、另一 active tenant 全階層不可見，以及匿名拒絕；測試資料置於單一 transaction 並完整 rollback，已通過。
+- Playwright UI：教材列表、空狀態、建立、詳細、修改、重複名稱、非法資料、桌面／手機及登出 regression，共 4 項已通過。
+
+`20260715090000` 已套用至 `educrat-development`，local／remote history 一致。遠端七張教材表已確認存在；Development 真實兩帳號 RLS、隔離本機四角色 RLS、Vitest 24 檔 147 項、Playwright 4 項及修改後 production build 均已通過。邀請／角色管理 UI 仍屬後續 Sprint，因此四角色 fixture 只在本機 rollback transaction 建立，不在遠端留下不受控 membership。
+
+### Milestone 2 人工驗收待辦
+
+Sprint 6 與 Sprint 7 的自動化整合驗收已完成。以下項目因產品負責人目前無法操作實際裝置，統一延後至 Milestone 2，且在完成前不得標記為人工驗收通過：
+
+- 桌面與手機實際操作 Organization onboarding、settings 與 switcher。
+- 桌面與手機實際操作 Curriculum 列表、空狀態、建立、詳細與編輯流程。
+- 確認實際裝置的導覽、按鈕、欄位、錯誤訊息、loading 與成功回饋沒有破版或操作障礙。
+- 由產品負責人記錄人工驗收日期、裝置、瀏覽器、結果與待修項目。

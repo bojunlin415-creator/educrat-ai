@@ -1,7 +1,7 @@
 # 產品規格
 
 文件版本：v1.0  
-產品暫稱：課堂星球  
+產品暫稱：EduCraft AI
 市場範圍：台灣國小教育與補教市場
 
 ## 產品願景
@@ -95,6 +95,20 @@
   → 通過檢查後匯出學生版／教師版
 ```
 
+## 機構多租戶流程
+
+Sprint 6 建立商用 SaaS 的租戶邊界：完成 Profile onboarding 的使用者可建立第一個機構，建立者由資料庫原子流程自動成為 `organization_owner`，並將該機構設為 active organization。使用者可屬於多個機構，但每次 server request 都必須重新確認 active membership，不能信任瀏覽器傳入的角色或 organization id。
+
+目前開放角色為機構擁有者、機構管理員、教師與審核者；`branch_manager`、`student`、`guardian` 只在資料庫受控值中預留，尚未提供操作介面。Sprint 6 只建立建立者 membership；其他使用者加入機構將由 Sprint 8 的一次性邀請流程完成，Sprint 9 再建立細緻 RBAC。
+
+## 教材核心結構
+
+Sprint 7 先建立教材結構，不建立 AI、題庫或試卷。科目、國小一至六年級及出版社進度參考由資料庫維護；前端不以 enum 寫死，因此後續可停用或新增參照項目。出版社初始資料為南一、康軒、翰林，介面一律以「進度參考」呈現。
+
+每份教材屬於 active organization，保存教材名稱、科目、年級、出版社進度參考、學年度、學期與狀態。建立教材時同步建立初始版本，舊版本不得被新內容覆蓋；版本下預留章與課的順序、學習目標及預估時間結構。本 Sprint 只提供教材基本資料建立與編輯，章課編輯另待後續 Sprint。
+
+owner/admin 可建立與修改教材，teacher/reviewer 目前為唯讀。所有 API 與資料查詢都在伺服器重新確認 active organization 及 membership，client 不可指定 organization 或 created-by。
+
 ## 非功能需求
 
 - 安全：跨機構資料完全隔離，敏感操作可追溯，私密金鑰不得外洩。
@@ -119,5 +133,7 @@
 - Sprint 3：Supabase SSR 基礎、profiles schema、RLS 與資料庫健康檢查。
 - Sprint 4：Email／Google 身分驗證、密碼復原、session callback 與受保護 Dashboard。
 - Sprint 5：使用者個人資料、首次 onboarding、私有 Avatar 上傳與 user-scoped Storage RLS。
+- Sprint 6：機構／補習班、owner membership、active organization、機構 onboarding／settings／switcher 與跨租戶 RLS。
+- Sprint 7：科目、年級、出版社進度參考、教材、不可覆蓋版本、章與課的核心結構，以及 organization-scoped 教材列表、建立、詳細與編輯流程。
 
-目前仍未實作機構、AI 生成、教材編輯、品質檢查或匯出。Sprint 3 與 Sprint 5 Migration 已在 `educrat-development` 完成 schema／Storage RLS 驗證；production 未執行。Sprint 4 的 Google OAuth 尚待人工驗收，密碼復原 session 綁定仍是正式商用前的高優先修正。
+目前仍未實作分校、成員邀請、細緻 RBAC、章課編輯、AI 生成、題庫、試卷、品質檢查或匯出。Sprint 6 不開放任意加入機構或修改成員角色；這些能力保留給後續授權 Sprint。Production 未執行任何 Migration 或部署。Sprint 4 的 Google OAuth 尚待人工驗收，密碼復原 session 綁定仍是正式商用前的高優先修正。

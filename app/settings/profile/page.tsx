@@ -1,16 +1,13 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { ProfileForm } from "@/components/forms/profile-form";
 import { Card } from "@/components/ui/card";
-import { requireUser } from "@/lib/auth/session";
-import { getOwnProfile, getSignedAvatarUrl } from "@/lib/profile/service";
+import { requireWorkspaceContext } from "@/lib/onboarding/guard";
+import { getSignedAvatarUrl } from "@/lib/profile/service";
 
 export const metadata: Metadata = { title: "個人資料" };
 
 export default async function ProfileSettingsPage() {
-  const user = await requireUser();
-  const profile = await getOwnProfile(user.id);
-  if (!profile?.onboarding_completed) redirect("/onboarding");
+  const { profile, user } = await requireWorkspaceContext();
 
   const signedAvatarUrl = await getSignedAvatarUrl(profile.avatar_url, user.id);
 

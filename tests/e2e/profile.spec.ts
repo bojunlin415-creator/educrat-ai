@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { createHash } from "node:crypto";
 
 const email = process.env.E2E_AUTH_EMAIL;
 const passwordCandidates = [
@@ -6,20 +7,57 @@ const passwordCandidates = [
   process.env.E2E_AUTH_NEW_PASSWORD,
 ].filter((password): password is string => Boolean(password));
 
-test.describe.configure({ timeout: 60_000 });
+function requireConfiguredAuthAccount() {
+  if (!email || passwordCandidates.length === 0) {
+    throw new Error(
+      "E2E auth account is not configured. Set local E2E_AUTH_EMAIL and password variables.",
+    );
+  }
+
+  return { email, passwordCandidates };
+}
+
+// This real browser flow covers the integrated Sprint 5 profile, Sprint 6
+// organization, and Sprint 7 curriculum journeys against Development
+// Supabase. Keep one authenticated session to avoid provider rate limits, but
+// allow enough time for the full remote round-trip sequence on slower runs.
+test.describe.configure({ timeout: 180_000 });
 
 test("authenticated user completes and manages their profile", async ({
   page,
 }) => {
-  test.skip(
-    !email || passwordCandidates.length === 0,
-    "E2E auth account is not configured.",
-  );
+  const authAccount = requireConfiguredAuthAccount();
+
+  const fixtureSlug = `e2e-${createHash("sha256")
+    .update(authAccount.email)
+    .digest("hex")
+    .slice(0, 12)}`;
+  const curriculumFixtureName = `Sprint 7 教材 ${createHash("sha256")
+    .update(authAccount.email)
+    .digest("hex")
+    .slice(0, 8)}`;
+  const unauthenticatedCreateResponse = await page
+    .context()
+    .request.post("/api/organizations", {
+      data: {
+        address: "",
+        businessName: "",
+        email: "",
+        name: "未登入測試機構",
+        phone: "",
+        slug: "unauthenticated-school",
+      },
+    });
+  expect(unauthenticatedCreateResponse.status()).toBe(401);
+  const unauthenticatedCurriculumsResponse = await page
+    .context()
+    .request.get("/api/curriculums");
+  expect(unauthenticatedCurriculumsResponse.status()).toBe(401);
 
   await page.goto("/login");
   let authenticated = false;
-  for (const password of passwordCandidates) {
-    await page.getByLabel("電子郵件").fill(email ?? "");
+  for (const password of authAccount.passwordCandidates) {
+    await page.getByLabel("電子郵件").fill(authAccount.email);
     await page.getByLabel("密碼").fill(password);
     const loginResponsePromise = page.waitForResponse(
       (response) =>
@@ -38,13 +76,16 @@ test("authenticated user completes and manages their profile", async ({
   // A direct navigation also proves the login response wrote a usable session
   // cookie, without depending on a pending development-mode RSC transition.
   await page.goto("/dashboard");
-  await expect(page).toHaveURL(/\/(dashboard|onboarding)$/);
+  await expect(page).toHaveURL(
+    /\/(dashboard|onboarding|onboarding\/organization)$/,
+  );
 
   // Exercise the authenticated profile UI at a phone viewport in this same
   // session. Keeping one real login avoids unnecessary Supabase Auth traffic
   // while the separate mobile project continues to cover public navigation.
   await page.setViewportSize({ width: 390, height: 844 });
-  if (new URL(page.url()).pathname === "/onboarding") {
+  const mobilePath = new URL(page.url()).pathname;
+  if (mobilePath === "/onboarding") {
     await expect(
       page.getByRole("heading", { name: "先完成老師基本資料" }),
     ).toBeVisible();
@@ -52,7 +93,16 @@ test("authenticated user completes and manages their profile", async ({
     await expect(
       page.getByRole("button", { name: "完成基本資料" }),
     ).toBeVisible();
+  } else if (mobilePath === "/onboarding/organization") {
+    await expect(
+      page.getByRole("heading", { name: "建立你的補習班機構" }),
+    ).toBeVisible();
+    await expect(page.getByLabel("機構／補習班名稱")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "建立機構並進入工作台" }),
+    ).toBeVisible();
   } else {
+    await expect(page.getByLabel("目前機構")).toBeVisible();
     await page.goto("/settings/profile");
     await expect(page.getByRole("heading", { name: "個人資料" })).toBeVisible();
     await expect(page.getByLabel("顯示名稱")).toBeVisible();
@@ -61,7 +111,9 @@ test("authenticated user completes and manages their profile", async ({
 
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto("/dashboard");
-  await expect(page).toHaveURL(/\/(dashboard|onboarding)$/);
+  await expect(page).toHaveURL(
+    /\/(dashboard|onboarding|onboarding\/organization)$/,
+  );
 
   if (new URL(page.url()).pathname === "/onboarding") {
     await page.getByLabel("顯示名稱").fill("Sprint 5 測試老師");
@@ -69,8 +121,118 @@ test("authenticated user completes and manages their profile", async ({
     await page.getByLabel("介面語言").selectOption("zh-TW");
     await page.getByLabel("時區").selectOption("Asia/Taipei");
     await page.getByRole("button", { name: "完成基本資料" }).click();
+    await expect(page).toHaveURL(/\/(dashboard|onboarding\/organization)$/);
+  }
+
+  await page.goto("/dashboard");
+  if (new URL(page.url()).pathname === "/onboarding/organization") {
+    await page.getByLabel("機構／補習班名稱").fill("Sprint 6 E2E 機構");
+    await page.getByRole("textbox", { name: /網址代稱/ }).fill(fixtureSlug);
+    await page.getByRole("button", { name: "建立機構並進入工作台" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
   }
+
+  await expect(page.getByLabel("目前機構")).toBeVisible();
+  await expect(page.getByText(/機構擁有者/).first()).toBeVisible();
+
+  await page.goto("/curriculums");
+  await expect(page.getByRole("heading", { name: "教材列表" })).toBeVisible();
+  const existingCurriculumLink = page.getByRole("link", {
+    exact: true,
+    name: curriculumFixtureName,
+  });
+  if ((await existingCurriculumLink.count()) === 0) {
+    await page
+      .getByRole("link", { name: /建立.*教材/ })
+      .first()
+      .click();
+    await expect(page).toHaveURL(/\/curriculums\/new$/);
+    await page.getByLabel("教材名稱").fill(curriculumFixtureName);
+    await page.getByLabel("科目").selectOption({ label: "數學" });
+    await page.getByLabel("年級").selectOption({ label: "四年級" });
+    await page
+      .getByLabel("出版社進度參考")
+      .selectOption({ label: "康軒進度參考" });
+    await page.getByLabel("學年度").fill("115");
+    await page.getByLabel("學期").selectOption("1");
+    await page.getByLabel("狀態").selectOption("draft");
+    await page.getByLabel("初始版本備註（選填）").fill("E2E 初始版本");
+    await page.getByRole("button", { name: "建立教材" }).click();
+    await expect(page).toHaveURL(/\/curriculums\/[0-9a-f-]+$/);
+  } else {
+    await existingCurriculumLink.click();
+  }
+
+  await expect(
+    page.getByRole("heading", { name: curriculumFixtureName }),
+  ).toBeVisible();
+  await expect(page.getByText("版本 1")).toBeVisible();
+  const curriculumId = new URL(page.url()).pathname.split("/").at(-1) ?? "";
+  const curriculumDetailResponse = await page
+    .context()
+    .request.get(`/api/curriculums/${curriculumId}`);
+  expect(curriculumDetailResponse.status()).toBe(200);
+  const curriculumDetailPayload = (await curriculumDetailResponse.json()) as {
+    curriculum: {
+      grade_id: string;
+      publisher_id: string;
+      subject_id: string;
+    };
+  };
+
+  const invalidCurriculumResponse = await page
+    .context()
+    .request.post("/api/curriculums", {
+      data: {
+        gradeId: "invalid",
+        name: "非法教材",
+        organizationId: "00000000-0000-4000-8000-000000000000",
+        publisherId: "invalid",
+        schoolYear: 99,
+        semester: 3,
+        status: "draft",
+        subjectId: "invalid",
+        versionRemark: "",
+      },
+    });
+  expect(invalidCurriculumResponse.status()).toBe(422);
+
+  const duplicateCurriculumResponse = await page
+    .context()
+    .request.post("/api/curriculums", {
+      data: {
+        gradeId: curriculumDetailPayload.curriculum.grade_id,
+        name: curriculumFixtureName,
+        publisherId: curriculumDetailPayload.curriculum.publisher_id,
+        schoolYear: 115,
+        semester: 1,
+        status: "draft",
+        subjectId: curriculumDetailPayload.curriculum.subject_id,
+        versionRemark: "",
+      },
+    });
+  expect(duplicateCurriculumResponse.status()).toBe(409);
+
+  await page.getByRole("link", { name: "編輯教材" }).click();
+  await page.getByLabel("教材名稱").fill(`${curriculumFixtureName} 已更新`);
+  await page.getByLabel("學期").selectOption("2");
+  await page.getByRole("button", { name: "儲存教材" }).click();
+  await expect(page).toHaveURL(new RegExp(`/curriculums/${curriculumId}$`));
+  await expect(
+    page.getByRole("heading", { name: `${curriculumFixtureName} 已更新` }),
+  ).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/curriculums/${curriculumId}`);
+  await expect(page.getByText("目前版本")).toBeVisible();
+  await expect(page.getByText("v1")).toBeVisible();
+
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto(`/curriculums/${curriculumId}/edit`);
+  await page.getByLabel("教材名稱").fill(curriculumFixtureName);
+  await page.getByLabel("學期").selectOption("1");
+  await page.getByRole("button", { name: "儲存教材" }).click();
+  await expect(page).toHaveURL(new RegExp(`/curriculums/${curriculumId}$`));
 
   await page.goto("/settings/profile");
   await expect(page.getByRole("heading", { name: "個人資料" })).toBeVisible();
@@ -124,6 +286,88 @@ test("authenticated user completes and manages their profile", async ({
 
   await page.goto("/dashboard");
   await expect(page.getByText("下午好，Sprint 5 驗收老師")).toBeVisible();
+
+  await page.goto("/settings/organization");
+  await expect(page.getByRole("heading", { name: "機構設定" })).toBeVisible();
+  const currentOrganizationSlug = await page
+    .getByText("網址代稱", { exact: true })
+    .locator("..")
+    .locator("dd")
+    .innerText();
+  const organizationNameInput = page.getByLabel("機構名稱");
+  const businessNameInput = page.getByLabel("立案或公司名稱");
+  const taxIdInput = page.getByLabel("統一編號／稅籍編號");
+  const organizationPhoneInput = page.getByLabel("機構電話");
+  const organizationEmailInput = page.getByLabel("機構電子郵件");
+  const organizationAddressInput = page.getByLabel("機構地址");
+  const originalOrganization = {
+    address: await organizationAddressInput.inputValue(),
+    businessName: await businessNameInput.inputValue(),
+    email: await organizationEmailInput.inputValue(),
+    name: await organizationNameInput.inputValue(),
+    phone: await organizationPhoneInput.inputValue(),
+    taxId: await taxIdInput.inputValue(),
+  };
+
+  await organizationNameInput.fill("Sprint 6 驗收機構");
+  await businessNameInput.fill("Sprint 6 測試補習班");
+  await taxIdInput.fill("12345678");
+  await organizationPhoneInput.fill("02-2345-6789");
+  await organizationEmailInput.fill("school@example.com");
+  await organizationAddressInput.fill("台北市測試路 6 號");
+  await page.getByRole("button", { name: "儲存機構資料" }).click();
+  await expect(page.getByText("機構資料已儲存。")).toBeVisible();
+
+  const invalidOrganizationResponse = await page
+    .context()
+    .request.put("/api/organizations/current", {
+      data: {
+        ...originalOrganization,
+        createdBy: "00000000-0000-0000-0000-000000000000",
+      },
+    });
+  expect(invalidOrganizationResponse.status()).toBe(422);
+
+  const invalidSwitchResponse = await page
+    .context()
+    .request.put("/api/organizations/active", {
+      data: { organizationId: "00000000-0000-4000-8000-000000000000" },
+    });
+  expect(invalidSwitchResponse.status()).toBe(403);
+
+  const duplicateSlugResponse = await page
+    .context()
+    .request.post("/api/organizations", {
+      data: {
+        address: "",
+        businessName: "",
+        email: "",
+        name: "重複網址測試機構",
+        phone: "",
+        slug: currentOrganizationSlug,
+      },
+    });
+  expect(duplicateSlugResponse.status()).toBe(409);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dashboard");
+  await expect(page.getByLabel("目前機構")).toBeVisible();
+  await expect(page.getByText("Sprint 6 驗收機構").first()).toBeVisible();
+  await page.goto("/settings/organization");
+  await expect(page.getByRole("heading", { name: "機構設定" })).toBeVisible();
+
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto("/settings/organization");
+  await page.getByLabel("機構名稱").fill(originalOrganization.name);
+  await page
+    .getByLabel("立案或公司名稱")
+    .fill(originalOrganization.businessName);
+  await page.getByLabel("統一編號／稅籍編號").fill(originalOrganization.taxId);
+  await page.getByLabel("機構電話").fill(originalOrganization.phone);
+  await page.getByLabel("機構電子郵件").fill(originalOrganization.email);
+  await page.getByLabel("機構地址").fill(originalOrganization.address);
+  await page.getByRole("button", { name: "儲存機構資料" }).click();
+  await expect(page.getByText("機構資料已儲存。")).toBeVisible();
 
   await page.goto("/settings/profile");
   await page.getByLabel("顯示名稱").fill(originalProfile.displayName);
