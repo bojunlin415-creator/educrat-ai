@@ -4,7 +4,7 @@
 
 ## 目前狀態
 
-Sprint 3、Sprint 5、兩筆 Sprint 6 與 Sprint 7 Curriculum Foundation Migration 已套用至非 production 的 `educrat-development`。Sprint 7 已完成遠端 table inventory、真實 Development 兩帳號租戶隔離，以及套用同一組 Migration 的隔離本機 Owner／Admin／Teacher／Reviewer RLS 驗收。Production 未執行。
+Sprint 3、Sprint 5、兩筆 Sprint 6、Sprint 7 Curriculum Foundation 與 Sprint 8 Curriculum Editor Migration 已套用至非 production 的 `educrat-development`。Sprint 8 已完成真實 Development Editor E2E，以及套用同一組 Migration 的隔離本機 Owner／Admin／Teacher／Reviewer RLS 驗收。Production 未執行。
 
 ## profiles
 
@@ -115,6 +115,10 @@ Sprint 7 新增下列正規化結構：
 | `chapters`            | 版本下的有序章         | 章號與排序在同一版本內唯一                         |
 | `lessons`             | 章下的有序課與學習目標 | 課號與排序在同一章內唯一；預估時間 1–600 分鐘      |
 
+Sprint 8 以 additive migration 擴充既有結構：`chapters.status` 使用 `draft`／`active`／`archived` 受控值（Editor 將 active 顯示為「已發布」）；`lessons.teaching_notes` 為最多 5,000 字的機構內部教學備註；`lessons.difficulty` 是 nullable 的 1–5 級年級相對難度；`lessons.keywords` 預設為空陣列，最多 30 個、每個 1–80 字、去除前後空白且不分大小寫唯一。沒有新增教材核心資料表。
+
+`difficulty` 與 `keywords` 是人類教學分類，不是 AI score、Prompt、Embedding 或生成 metadata。欄位位於 Lesson，會自然隨 `curriculum_version → chapter → lesson` 版本化，並沿既有 hierarchy RLS 取得 organization scope，因此 Sprint 12 不需搬移 Lesson 主資料。
+
 `curriculums` 額外保存 `name`，用於人類辨識、機構內重複名稱檢查與列表搜尋；其餘核心欄位為 subject、grade、publisher、school year、semester、status、created-by 與 timestamps。名稱唯一性以 `(organization_id, lower(name))` index 實作。
 
 ### Curriculum RLS 與建立流程
@@ -125,8 +129,17 @@ Sprint 7 新增下列正規化結構：
 - `curriculums` 只授權 owner/admin 更新明列的基本欄位；organization id 與 created-by 不在欄位 grant 中。Teacher/reviewer 只有 select。
 - Client 沒有 curriculum insert；`create_curriculum_with_initial_version()` 從 `auth.uid()` 與 active context 取得使用者與 organization，驗證 active references 與 owner/admin role，再原子建立教材及版本 1。
 - RPC 固定空 `search_path`、撤銷 public/anon execute，只授權 authenticated；不接受 `organization_id`、`created_by` 或任意 user id。
-- 沒有 DELETE API、grant 或 policy。版本、章與課的變更 API 未在 Sprint 7 開放。
+- Curriculum 本身仍沒有 DELETE API。章與課的 CRUD／排序只能經 Sprint 8 受控 RPC；direct table write 仍沒有 authenticated grant 或 write policy。
 - 本 Sprint 不建立 Storage、AI、題庫或試卷資料表。
+
+### Curriculum Editor RPC
+
+- `create_chapter()`、`update_chapter()`、`delete_chapter()`、`reorder_chapters()`。
+- `create_lesson()`、`update_lesson()`、`delete_lesson()`、`reorder_lessons()`。
+- 八個 RPC 均為 fixed empty `search_path` 的 `SECURITY DEFINER`，只授權 authenticated execute；public、anon、service_role 均被明確撤銷。
+- 每次變更都重新驗證 `auth.uid()`、active organization、active owner/admin membership、version 1 與實際 parent hierarchy。Caller 不能傳入 organization、role、user 或 created-by。
+- 排序陣列必須包含同一父層完整且不重複的 ID，最多 500 筆；資料庫鎖定版本／章後以兩階段更新避免 unique order 衝突。
+- 刪除章節會在同一 transaction 刪除其課次並壓縮章排序；刪除課次會壓縮該章課次排序。Teacher/reviewer 維持 select-only。
 
 ## avatars Storage bucket
 
@@ -233,8 +246,10 @@ Sprint 7 新增下列正規化結構：
 - Sprint 6：`20260714180000_s06_create_organizations.sql`，建立 organizations、organization_members、user_preferences、RLS helpers、原子建立／切換 RPC 與最後 owner／preference triggers；Development 套用狀態以 CLI migration history 為準。
 - Sprint 6 安全修正：`20260714232000_s06_revoke_internal_function_access.sql`，明確撤銷 Trigger-only SECURITY DEFINER functions 對 public、anon、authenticated、service_role 的直接執行權；已由 function ACL 查詢與 Security Advisor 複驗。
 - Sprint 7：`20260715090000_s07_create_curriculum_foundation.sql`，建立參照資料、教材版本階層、RLS、最小 grant 與原子建立 RPC；已套用至 `educrat-development`，並完成遠端 table inventory、Development 真實 RLS E2E 與隔離本機四角色 SQL RLS 驗收。
+- Sprint 8：`20260715160000_s08_extend_curriculum_editor.sql`，新增章狀態、課次教學備註與八個受控 CRUD／排序 RPC；已套用至 `educrat-development`，並完成真實 Editor E2E 與隔離本機四角色 rollback RLS 驗收。
+- Sprint 8 AI-ready reserve：`20260715183000_s08_add_lesson_ai_ready_fields.sql`，新增 optional difficulty、受限 keywords 與 immutable constraint helper；不含 AI 執行物件，已套用 Development，並完成 backward-compatibility RLS 驗收。
 
-目前 Development local／remote history 均為 `20260713160000`、`20260714150000`、`20260714180000`、`20260714232000`、`20260715090000`。Production 未套用任何本專案 Migration。
+目前 Development local／remote history 均為 `20260713160000`、`20260714150000`、`20260714180000`、`20260714232000`、`20260715090000`、`20260715160000`、`20260715183000`。Production 未套用任何本專案 Migration。
 
 ## Supabase CLI 結構
 

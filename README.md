@@ -1,6 +1,6 @@
 # EduCraft AI（AI 國小教材生成 SaaS）
 
-為台灣國小補教業者與教師打造的 AI 原創教材生成工作台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎，以及教材核心結構；AI 功能尚未串接。
+為台灣國小補教業者與教師打造的 AI 原創教材生成工作台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構，以及章節／課次編輯器；AI 功能尚未串接。
 
 ## 技術堆疊
 
@@ -42,6 +42,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 - `/curriculums/new`：owner/admin 建立教材與初始版本
 - `/curriculums/[id]`：教材、版本與章節詳細資料
 - `/curriculums/[id]/edit`：owner/admin 編輯教材基本資料
+- `/curriculums/[id]/editor`：章節與課次樹狀編輯器；teacher/reviewer 唯讀
 
 ## 品質檢查
 
@@ -74,11 +75,11 @@ public/              靜態資源
 
 ## Supabase 開發流程
 
-Sprint 3 已建立 SSR client、Next.js 16 Proxy、`profiles` Migration 與資料庫健康檢查。Sprint 3、5、6、7 的五筆 Migration 均已套用至 `educrat-development`，local／remote history 一致；Sprint 7 已完成遠端七張教材表、真實 Development 租戶隔離、隔離本機四角色 RLS 與 Playwright 驗證。Production 未執行。
+Sprint 3 已建立 SSR client、Next.js 16 Proxy、`profiles` Migration 與資料庫健康檢查。Sprint 3、5、6、7、8 的七筆 Migration 均已套用至 `educrat-development`，local／remote history 一致；Sprint 8 已完成遠端章課 CRUD 真實 E2E、隔離本機四角色 RLS 與 Playwright 驗證。Production 未執行。
 
 1. 建立獨立的 local 或 staging Supabase 專案，不得使用 production。
 2. 將 `.env.example` 複製為 `.env.local`，只填入該環境的 URL 與 Publishable Key。
-3. 人工審查 [Sprint 3 profiles Migration](supabase/migrations/20260713160000_s03_create_profiles.sql)、[Sprint 5 Avatar Storage Migration](supabase/migrations/20260714150000_s05_create_avatar_storage.sql)、[Sprint 6 Organizations Migration](supabase/migrations/20260714180000_s06_create_organizations.sql)、[Sprint 6 Function ACL Migration](supabase/migrations/20260714232000_s06_revoke_internal_function_access.sql) 與 [Sprint 7 Curriculum Foundation Migration](supabase/migrations/20260715090000_s07_create_curriculum_foundation.sql)。
+3. 人工審查 [Sprint 3 profiles Migration](supabase/migrations/20260713160000_s03_create_profiles.sql)、[Sprint 5 Avatar Storage Migration](supabase/migrations/20260714150000_s05_create_avatar_storage.sql)、[Sprint 6 Organizations Migration](supabase/migrations/20260714180000_s06_create_organizations.sql)、[Sprint 6 Function ACL Migration](supabase/migrations/20260714232000_s06_revoke_internal_function_access.sql)、[Sprint 7 Curriculum Foundation Migration](supabase/migrations/20260715090000_s07_create_curriculum_foundation.sql)、[Sprint 8 Curriculum Editor Migration](supabase/migrations/20260715160000_s08_extend_curriculum_editor.sql) 與 [Sprint 8 AI-ready Fields Migration](supabase/migrations/20260715183000_s08_add_lesson_ai_ready_fields.sql)。
 4. 由獲授權人員依 Supabase 工作流程套用至 local／staging。
 5. Migration 套用後重新產生型別，檢查差異再取代 `lib/supabase/database.types.ts`：
 
@@ -110,6 +111,10 @@ Sprint 6 的機構建立只允許完成個人 onboarding 的登入者呼叫受�
 
 Sprint 7 的教材建立只允許 active organization 的 owner/admin 呼叫受控 RPC。RPC 不接受 organization id 或 created-by，會原子建立教材與版本 1；teacher/reviewer 目前只能查看。科目、年級與出版社進度參考由資料庫提供，不寫死於前端。出版社名稱僅代表公開進度參考，不代表授權或官方背書。
 
+Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin 呼叫 fixed-search-path RPC。版本 1 在本 Sprint 唯讀，不能建立版本 2；排序必須提交完整且不重複的同層 ID，並由資料庫鎖定父層後原子重排。Teacher/reviewer 只能讀取目前機構的結構，不能直接寫表或呼叫變更 RPC。
+
+為避免 Sprint 12 AI Engine 重設 Lesson schema，Sprint 8 另預留 nullable 的 1–5 級 `difficulty` 與預設空陣列的 `keywords`。兩者是版本內的中立教學屬性，不是 Prompt、Embedding、生成紀錄或 AI Metadata；目前不提供 AI 流程，也不改變既有 Lesson CRUD 行為。
+
 ## 專案文件
 
 - [產品規格](docs/product-spec.md)：產品定位、角色、商用範圍與分期功能
@@ -138,4 +143,5 @@ Sprint 7 的教材建立只允許 active organization 的 owner/admin 呼叫受�
 - Sprint 5：個人資料、首次 onboarding、私有 Avatar Storage、RLS 與真實 E2E 已完成。
 - Sprint 6：機構、owner membership、active organization、organization onboarding／settings／switcher、多租戶 RLS 與自動化整合驗收已完成；人工 UI／手機版驗收延後至 Milestone 2，不標記為已完成。
 - Sprint 7：教材參照資料、教材／版本／章／課結構、API、頁面與 Dashboard 已完成；Development Migration、真實租戶隔離、Owner／Admin／Teacher／Reviewer RLS、Playwright、production build 與自動化整合驗收均已通過。人工 UI／手機版驗收延後至 Milestone 2，不標記為已完成。
-- 下一步：完成 Sprint 6＋7 Git 技術封板後可開始 Sprint 8；Milestone 2 再統一人工驗收機構與教材的桌面／手機流程。本階段不串接 AI、題庫或試卷。
+- Sprint 8：Curriculum Editor、章節／課次 CRUD、受控排序、Dashboard 統計、API、四角色 RLS 與真實 Playwright E2E 已完成自動化驗收；人工 UI／鍵盤／手機版驗收仍待產品負責人確認。
+- 下一步：先完成人工驗收與 Sprint 8 技術封板；未經指示不開始 Sprint 9。本階段不串接 AI、題庫或試卷。

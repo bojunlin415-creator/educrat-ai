@@ -146,7 +146,7 @@ Sprint 6 新增：
 - Playwright UI E2E 驗證第一個機構建立、Dashboard context、owner settings、Organization Switcher、桌面／手機與 Sprint 5 Profile／Avatar regression。
 - Supabase Security Advisor 與直接 function ACL 查詢驗證 Trigger-only SECURITY DEFINER functions 不可由 API roles 呼叫；需供登入者使用的 create／switch／current-context RPC 保留 authenticated execute，並以 `auth.uid()` 與 membership 檢查限制結果。
 
-為避免 Auth provider rate limit 造成非產品錯誤，真實 Auth/RLS E2E 以單一 worker 執行。RLS fixture 使用 development-only 虛構帳號與可重複的雜湊 slug；沒有安全的成員刪除流程前不以破壞性 SQL 清理，會重用固定 fixture 而不持續新增資料。Sprint 8 完成邀請與移除流程後，須補齊 teacher／reviewer 真實 membership E2E 與正式清理流程。
+為避免 Auth provider rate limit 造成非產品錯誤，真實 Auth/RLS E2E 以單一 worker 執行。RLS fixture 使用 development-only 虛構帳號與可重複的雜湊 slug；沒有安全的成員刪除流程前不以破壞性 SQL 清理，會重用固定 fixture 而不持續新增資料。Teacher／reviewer 的遠端 membership 管理與正式清理流程須由後續成員管理 Sprint 補齊，Curriculum Editor 不擴張 membership 權限。
 
 Sprint 7 新增：
 
@@ -160,11 +160,25 @@ Sprint 7 新增：
 
 `20260715090000` 已套用至 `educrat-development`，local／remote history 一致。遠端七張教材表已確認存在；Development 真實兩帳號 RLS、隔離本機四角色 RLS、Vitest 24 檔 147 項、Playwright 4 項及修改後 production build 均已通過。邀請／角色管理 UI 仍屬後續 Sprint，因此四角色 fixture 只在本機 rollback transaction 建立，不在遠端留下不受控 membership。
 
+Sprint 8 新增：
+
+- Chapter／Lesson Zod schema：建立、修改、刪除、完整排序、非法 UUID、重複排序 ID、狀態與欄位邊界。
+- Chapter／Lesson API：未登入、owner/admin 受控變更、teacher/reviewer forbidden、not-found、衝突與安全錯誤映射。
+- Migration static：只新增 Sprint 8 欄位與 fixed-search-path RPC，不修改 Sprint 1～7 migration、不新增核心 table、不放寬 direct write。
+- AI-ready Migration static：difficulty nullable 1–5、keywords 安全預設與正規化限制；確認沒有 Prompt、Embedding、生成或 review workflow 物件。
+- Editor component：章分頁 lazy render、展開後才 render 課次、唯讀模式與可存取控制。
+- 隔離本機 SQL RLS：Owner／Admin CRUD 與排序、Teacher／Reviewer 唯讀、跨 organization 隱藏、匿名拒絕、direct insert 拒絕、刪除後連續排序，全部置於 transaction 並 rollback。
+- Playwright 真實 Development 流程：新增／修改／排序／刪除章與課、版本 1 唯讀、未登入 API 拒絕、手機 viewport，以及 Sprint 1～7 完整 regression，共 4 項通過。
+
+`20260715160000` 與 `20260715183000` 已套用至 `educrat-development`，local／remote history 一致。Vitest 30 個測試檔／176 項、Playwright 4 項及修改後 production build 均已通過。`supabase test db --linked` 的 Docker-to-remote runner 曾在連線階段逾時，因此四角色 SQL 使用套用相同 migration 的本機隔離 DB 驗證；遠端 RPC 與 schema 由 migration history 及真實應用 E2E 交叉驗證。
+
 ### Milestone 2 人工驗收待辦
 
-Sprint 6 與 Sprint 7 的自動化整合驗收已完成。以下項目因產品負責人目前無法操作實際裝置，統一延後至 Milestone 2，且在完成前不得標記為人工驗收通過：
+Sprint 6、Sprint 7 與 Sprint 8 的自動化整合驗收已完成。以下項目仍須由產品負責人操作實際裝置，且在完成前不得標記為人工驗收通過：
 
 - 桌面與手機實際操作 Organization onboarding、settings 與 switcher。
 - 桌面與手機實際操作 Curriculum 列表、空狀態、建立、詳細與編輯流程。
+- 桌面與手機實際操作 Curriculum Editor 的章／課新增、修改、刪除、展開／收合與拖曳排序。
+- 只用鍵盤驗證 Tree 焦點、方向鍵展開／收合及上下排序按鈕。
 - 確認實際裝置的導覽、按鈕、欄位、錯誤訊息、loading 與成功回饋沒有破版或操作障礙。
 - 由產品負責人記錄人工驗收日期、裝置、瀏覽器、結果與待修項目。

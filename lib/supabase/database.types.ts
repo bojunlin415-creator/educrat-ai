@@ -17,6 +17,7 @@ export interface Database {
           description: string | null;
           id: string;
           order_no: number;
+          status: "draft" | "active" | "archived";
           title: string;
           updated_at: string;
         };
@@ -27,6 +28,7 @@ export interface Database {
           description?: string | null;
           id?: string;
           order_no: number;
+          status?: "draft" | "active" | "archived";
           title: string;
           updated_at?: string;
         };
@@ -35,6 +37,7 @@ export interface Database {
           curriculum_version_id?: string;
           description?: string | null;
           order_no?: number;
+          status?: "draft" | "active" | "archived";
           title?: string;
         };
         Relationships: [];
@@ -138,33 +141,42 @@ export interface Database {
         Row: {
           chapter_id: string;
           created_at: string;
+          difficulty: number | null;
           estimated_minutes: number | null;
           id: string;
+          keywords: string[];
           learning_objectives: string[];
           lesson_no: number;
           order_no: number;
           status: "draft" | "active" | "archived";
+          teaching_notes: string | null;
           title: string;
           updated_at: string;
         };
         Insert: {
           chapter_id: string;
           created_at?: string;
+          difficulty?: number | null;
           estimated_minutes?: number | null;
           id?: string;
+          keywords?: string[];
           learning_objectives?: string[];
           lesson_no: number;
           order_no: number;
           status?: "draft" | "active" | "archived";
+          teaching_notes?: string | null;
           title: string;
           updated_at?: string;
         };
         Update: {
+          difficulty?: number | null;
           estimated_minutes?: number | null;
+          keywords?: string[];
           learning_objectives?: string[];
           lesson_no?: number;
           order_no?: number;
           status?: "draft" | "active" | "archived";
+          teaching_notes?: string | null;
           title?: string;
         };
         Relationships: [];
@@ -387,6 +399,16 @@ export interface Database {
     };
     Views: { [_ in never]: never };
     Functions: {
+      create_chapter: {
+        Args: {
+          p_chapter_no: number;
+          p_curriculum_version_id: string;
+          p_description?: string | null;
+          p_status?: "draft" | "active";
+          p_title: string;
+        };
+        Returns: string;
+      };
       create_curriculum_with_initial_version: {
         Args: {
           p_grade_id: string;
@@ -398,6 +420,18 @@ export interface Database {
           p_subject_id: string;
           p_version?: number;
           p_version_remark?: string | null;
+        };
+        Returns: string;
+      };
+      create_lesson: {
+        Args: {
+          p_chapter_id: string;
+          p_estimated_minutes?: number | null;
+          p_learning_objectives?: string[];
+          p_lesson_no: number;
+          p_status?: "draft" | "active";
+          p_teaching_notes?: string | null;
+          p_title: string;
         };
         Returns: string;
       };
@@ -416,6 +450,14 @@ export interface Database {
         Args: Record<PropertyKey, never>;
         Returns: boolean;
       };
+      delete_chapter: {
+        Args: { p_chapter_id: string };
+        Returns: string;
+      };
+      delete_lesson: {
+        Args: { p_lesson_id: string };
+        Returns: string;
+      };
       get_active_organization_id: {
         Args: Record<PropertyKey, never>;
         Returns: string | null;
@@ -428,8 +470,41 @@ export interface Database {
         Args: { p_organization_id: string };
         Returns: boolean;
       };
+      reorder_chapters: {
+        Args: {
+          p_curriculum_version_id: string;
+          p_ordered_ids: string[];
+        };
+        Returns: string[];
+      };
+      reorder_lessons: {
+        Args: { p_chapter_id: string; p_ordered_ids: string[] };
+        Returns: string[];
+      };
       switch_active_organization: {
         Args: { p_organization_id: string };
+        Returns: string;
+      };
+      update_chapter: {
+        Args: {
+          p_chapter_id: string;
+          p_chapter_no: number;
+          p_description?: string | null;
+          p_status?: "draft" | "active";
+          p_title: string;
+        };
+        Returns: string;
+      };
+      update_lesson: {
+        Args: {
+          p_estimated_minutes?: number | null;
+          p_learning_objectives?: string[];
+          p_lesson_id: string;
+          p_lesson_no: number;
+          p_status?: "draft" | "active";
+          p_teaching_notes?: string | null;
+          p_title: string;
+        };
         Returns: string;
       };
     };

@@ -14,7 +14,7 @@
       └─ 測試：Vitest / Testing Library / Playwright
 ```
 
-目前已建立 Supabase SSR client、Next.js 16 Proxy、環境驗證、`profiles`、首次 onboarding、個人資料 API、私有 Avatar Storage、organization multi-tenancy、教材核心結構與資料庫健康檢查。AI provider、背景工作、題庫、試卷、匯出、金流與正式監控尚未整合。
+目前已建立 Supabase SSR client、Next.js 16 Proxy、環境驗證、`profiles`、首次 onboarding、個人資料 API、私有 Avatar Storage、organization multi-tenancy、教材核心結構、章課編輯器與資料庫健康檢查。AI provider、背景工作、題庫、試卷、匯出、金流與正式監控尚未整合。
 
 ### Supabase SSR 邊界
 
@@ -70,11 +70,19 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - `GET／POST /api/curriculums` 與 `GET／PATCH /api/curriculums/[id]` 僅接受 Zod 驗證的 JSON。沒有 DELETE endpoint、table DELETE grant 或 policy。
 - Server Components 處理列表、詳細及權限畫面；`CurriculumForm` 只負責互動，owner/admin 權限仍由 server data layer 與 RLS 驗證。
 
+### Curriculum Editor
+
+- Sprint 8 沿用 `curriculum_versions`、`chapters`、`lessons`，只為章增加編輯狀態、為課增加教學備註；版本 1 唯讀，不建立版本 2。
+- 八個 fixed-search-path RPC 集中 chapter／lesson create、update、delete、reorder。RPC 只使用 `auth.uid()` 與 active organization context，要求 owner/admin，逐次驗證 version 1 與完整 hierarchy ownership，並撤銷 public／anon／service_role execute。
+- `lib/curriculum/service.ts` 仍是唯一資料層；Route Handler、Server Component 與 client editor 不直接操作資料表。排序必須提交完整、不重複、同父層 ID，資料庫鎖定父層後以兩階段更新維持 unique order。
+- Editor 以三次批次查詢取得教材、版本、章與課，不逐節點查詢。Tree 分頁顯示章節，只有展開章節才 render 課次；拖曳之外保留可聚焦的上下移動按鈕與方向鍵展開／收合。
+- AI-ready reserve 只在 Lesson 保存 nullable 1–5 級 `difficulty` 與受限 `keywords` 陣列。它們位於 version-owned、tenant-scoped hierarchy 中，未來 Engine 可直接取用；Prompt、Embedding、provider／model、generation provenance 與 review workflow 必須使用後續獨立模型，不得塞入這兩個欄位。
+
 ### 後續 Sprint 銜接
 
 - 新版 Roadmap 的 Sprint 7 改為 Curriculum Foundation；原先規劃的 branch Sprint 尚未執行，active branch 仍只保留架構延伸點。
 - 成員邀請與細緻 RBAC 必須透過後續明確 Sprint 增加受控 RPC，不可放寬目前的 direct membership write deny。
-- 章、課的新增／版本發布流程需另行定義不可覆蓋規則與稽核；Sprint 7 只建立 schema 與唯讀顯示。
+- 章、課編輯已由 Sprint 8 開放；版本 2、版本發布稽核、還原與跨版本複製仍需後續 Sprint 明確定義。
 - Organization Logo 若實作，需建立獨立 private bucket、organization path 與 Storage RLS，不得共用個人 Avatar bucket。
 
 ## 長期系統邊界

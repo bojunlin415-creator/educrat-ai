@@ -21,7 +21,7 @@ function requireConfiguredAuthAccount() {
 // organization, and Sprint 7 curriculum journeys against Development
 // Supabase. Keep one authenticated session to avoid provider rate limits, but
 // allow enough time for the full remote round-trip sequence on slower runs.
-test.describe.configure({ timeout: 180_000 });
+test.describe.configure({ timeout: 240_000 });
 
 test("authenticated user completes and manages their profile", async ({
   page,
@@ -53,6 +53,24 @@ test("authenticated user completes and manages their profile", async ({
     .context()
     .request.get("/api/curriculums");
   expect(unauthenticatedCurriculumsResponse.status()).toBe(401);
+  expect(
+    (
+      await page
+        .context()
+        .request.get(
+          "/api/chapters?curriculumId=00000000-0000-4000-8000-000000000000",
+        )
+    ).status(),
+  ).toBe(401);
+  expect(
+    (
+      await page
+        .context()
+        .request.get(
+          "/api/lessons?chapterId=00000000-0000-4000-8000-000000000000",
+        )
+    ).status(),
+  ).toBe(401);
 
   await page.goto("/login");
   let authenticated = false;
@@ -213,7 +231,7 @@ test("authenticated user completes and manages their profile", async ({
     });
   expect(duplicateCurriculumResponse.status()).toBe(409);
 
-  await page.getByRole("link", { name: "編輯教材" }).click();
+  await page.getByRole("link", { name: "編輯基本資料" }).click();
   await page.getByLabel("教材名稱").fill(`${curriculumFixtureName} 已更新`);
   await page.getByLabel("學期").selectOption("2");
   await page.getByRole("button", { name: "儲存教材" }).click();
@@ -233,6 +251,124 @@ test("authenticated user completes and manages their profile", async ({
   await page.getByLabel("學期").selectOption("1");
   await page.getByRole("button", { name: "儲存教材" }).click();
   await expect(page).toHaveURL(new RegExp(`/curriculums/${curriculumId}$`));
+
+  // Sprint 8 Curriculum Editor: clean deterministic fixtures, then exercise
+  // chapter/lesson create, edit, server reorder, and delete through the UI.
+  const existingHierarchyResponse = await page
+    .context()
+    .request.get(`/api/chapters?curriculumId=${curriculumId}`);
+  expect(existingHierarchyResponse.status()).toBe(200);
+  const existingHierarchy = (await existingHierarchyResponse.json()) as {
+    hierarchy: { chapters: Array<{ id: string; title: string }> };
+  };
+  for (const chapter of existingHierarchy.hierarchy.chapters.filter(
+    ({ title }) => title.startsWith("Sprint 8 E2E"),
+  )) {
+    const cleanupResponse = await page
+      .context()
+      .request.delete("/api/chapters", {
+        data: { chapterId: chapter.id },
+      });
+    expect(cleanupResponse.ok()).toBe(true);
+  }
+
+  await page.goto(`/curriculums/${curriculumId}/editor`);
+  await expect(
+    page.getByRole("heading", { name: curriculumFixtureName }),
+  ).toBeVisible();
+  await expect(page.getByText("版本 1（唯讀）")).toBeVisible();
+
+  await page.getByRole("button", { name: "新增章節" }).first().click();
+  await page.getByLabel("章節編號").fill("91");
+  await page.getByLabel("章節標題").fill("Sprint 8 E2E Chapter A");
+  await page.getByLabel("章節說明").fill("章節 A 說明");
+  await page.getByRole("button", { name: "建立章節" }).click();
+  await expect(page.getByText("Sprint 8 E2E Chapter A")).toBeVisible();
+
+  await page.getByRole("button", { name: "新增章節" }).first().click();
+  await page.getByLabel("章節編號").fill("92");
+  await page.getByLabel("章節標題").fill("Sprint 8 E2E Chapter B");
+  await page.getByRole("button", { name: "建立章節" }).click();
+  await expect(page.getByText("Sprint 8 E2E Chapter B")).toBeVisible();
+
+  await page.getByRole("button", { name: "將第 92 章向上移" }).click();
+  await expect(
+    page.getByRole("tree").locator("li[role='treeitem']").first(),
+  ).toContainText("Sprint 8 E2E Chapter B");
+
+  await page
+    .getByRole("button", { name: /第 91 章.*Sprint 8 E2E Chapter A/ })
+    .click();
+  await page.getByLabel("章節標題").fill("Sprint 8 E2E Chapter A Updated");
+  await page.getByLabel("狀態").selectOption("active");
+  await page.getByRole("button", { name: "儲存章節" }).click();
+  await expect(page.getByText("Sprint 8 E2E Chapter A Updated")).toBeVisible();
+
+  const chapterAItem = page
+    .getByRole("treeitem")
+    .filter({ hasText: "Sprint 8 E2E Chapter A Updated" })
+    .first();
+  await chapterAItem.getByRole("button", { name: "新增課次" }).click();
+  await page.getByLabel("課次編號").fill("1");
+  await page.getByLabel("課次標題").fill("Sprint 8 E2E Lesson One");
+  await page.getByLabel("預估分鐘（選填）").fill("40");
+  await page.getByLabel("學習目標（每行一項）").fill("能完成第一個目標");
+  await page.getByLabel("教學備註").fill("第一課教學備註");
+  await page.getByRole("button", { name: "建立課次" }).click();
+  await expect(page.getByText("Sprint 8 E2E Lesson One")).toBeVisible();
+
+  await chapterAItem.getByRole("button", { name: "新增課次" }).click();
+  await page.getByLabel("課次編號").fill("2");
+  await page.getByLabel("課次標題").fill("Sprint 8 E2E Lesson Two");
+  await page.getByLabel("預估分鐘（選填）").fill("45");
+  await page.getByRole("button", { name: "建立課次" }).click();
+  await expect(page.getByText("Sprint 8 E2E Lesson Two")).toBeVisible();
+
+  await page.getByRole("button", { name: "將第 2 課向上移" }).click();
+  const chapterAAfterLessons = page
+    .getByRole("treeitem")
+    .filter({ hasText: "Sprint 8 E2E Chapter A Updated" })
+    .first();
+  await expect(
+    chapterAAfterLessons.locator("li[role='treeitem']").first(),
+  ).toContainText("Sprint 8 E2E Lesson Two");
+
+  await page
+    .getByRole("button", { name: /第 1 課.*Sprint 8 E2E Lesson One/ })
+    .click();
+  await page.getByLabel("課次標題").fill("Sprint 8 E2E Lesson One Updated");
+  await page.getByLabel("狀態").selectOption("active");
+  await page.getByRole("button", { name: "儲存課次" }).click();
+  await expect(page.getByText("Sprint 8 E2E Lesson One Updated")).toBeVisible();
+
+  await page
+    .getByRole("button", { name: /第 2 課.*Sprint 8 E2E Lesson Two/ })
+    .click();
+  await page.getByRole("button", { name: "刪除課次" }).click();
+  await page.getByRole("button", { name: "確定刪除" }).click();
+  await expect(page.getByText("Sprint 8 E2E Lesson Two")).not.toBeVisible();
+
+  await page
+    .getByRole("button", { name: /第 92 章.*Sprint 8 E2E Chapter B/ })
+    .click();
+  await page.getByRole("button", { name: "刪除章節" }).click();
+  await page.getByRole("button", { name: "確定刪除" }).click();
+  await expect(page.getByText("Sprint 8 E2E Chapter B")).not.toBeVisible();
+
+  await page
+    .getByRole("button", {
+      name: /第 91 章.*Sprint 8 E2E Chapter A Updated/,
+    })
+    .click();
+  await page.getByRole("button", { name: "刪除章節" }).click();
+  await page.getByRole("button", { name: "確定刪除" }).click();
+  await expect(page.getByText("尚未建立章節")).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/curriculums/${curriculumId}/editor`);
+  await expect(page.getByText("教材結構")).toBeVisible();
+  await expect(page.getByText("選擇一個章節或課次")).toBeVisible();
+  await page.setViewportSize({ width: 1280, height: 720 });
 
   await page.goto("/settings/profile");
   await expect(page.getByRole("heading", { name: "個人資料" })).toBeVisible();

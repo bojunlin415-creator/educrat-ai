@@ -4,7 +4,10 @@ import { CurriculumCard } from "@/components/curriculums/curriculum-card";
 import { CurriculumEmptyState } from "@/components/curriculums/curriculum-empty-state";
 import { OrganizationSwitcher } from "@/components/organizations/organization-switcher";
 import { Card } from "@/components/ui/card";
-import { getCurriculums } from "@/lib/curriculum/service";
+import {
+  getCurriculumDashboardStats,
+  getCurriculums,
+} from "@/lib/curriculum/service";
 import { requireDashboardContext } from "@/lib/onboarding/guard";
 import {
   canManageCurriculums,
@@ -18,6 +21,7 @@ export default async function DashboardPage() {
     await requireDashboardContext();
   const { membership, organization } = currentOrganization;
   const curriculums = await getCurriculums();
+  const curriculumStats = await getCurriculumDashboardStats(curriculums);
   const canCreateCurriculum = canManageCurriculums(membership.role);
 
   return (
@@ -68,7 +72,7 @@ export default async function DashboardPage() {
           }))}
         />
       </div>
-      <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-5">
           <p className="text-sm font-bold text-slate-500">教材總數</p>
           <p className="mt-2 text-3xl font-black text-emerald-950">
@@ -81,13 +85,51 @@ export default async function DashboardPage() {
             查看教材列表 →
           </Link>
         </Card>
-        <Card className="p-5 sm:col-span-1 lg:col-span-2">
-          <p className="text-sm font-bold text-slate-500">目前範圍</p>
-          <p className="mt-2 font-black text-emerald-950">教材結構與版本管理</p>
-          <p className="mt-2 text-sm text-slate-600">
-            Sprint 7 不會呼叫 AI、建立題庫或產生試卷。
+        <Card className="p-5">
+          <p className="text-sm font-bold text-slate-500">Chapter 數</p>
+          <p className="mt-2 text-3xl font-black text-emerald-950">
+            {curriculumStats.chapterCount}
           </p>
         </Card>
+        <Card className="p-5">
+          <p className="text-sm font-bold text-slate-500">Lesson 數</p>
+          <p className="mt-2 text-3xl font-black text-emerald-950">
+            {curriculumStats.lessonCount}
+          </p>
+        </Card>
+        <Card className="p-5">
+          <p className="text-sm font-bold text-slate-500">目前範圍</p>
+          <p className="mt-2 font-black text-emerald-950">章節與課次編輯</p>
+          <p className="mt-2 text-sm text-slate-600">本階段不會呼叫 AI。</p>
+        </Card>
+      </section>
+      <section aria-labelledby="recent-lessons-title" className="mt-10">
+        <h2
+          className="text-xl font-black text-emerald-950"
+          id="recent-lessons-title"
+        >
+          最近修改的 Lesson
+        </h2>
+        {curriculumStats.recentLessons.length === 0 ? (
+          <p className="mt-4 rounded-2xl border border-dashed border-emerald-900/20 bg-white p-5 text-sm text-slate-600">
+            尚無課次修改紀錄。
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {curriculumStats.recentLessons.map((lesson) => (
+              <Link
+                className="rounded-2xl border border-emerald-950/10 bg-white p-4 shadow-sm hover:bg-emerald-50"
+                href={`/curriculums/${lesson.curriculumId}/editor`}
+                key={lesson.id}
+              >
+                <p className="font-black text-emerald-950">{lesson.title}</p>
+                <p className="mt-1 text-sm text-slate-600">
+                  {lesson.curriculumName} · {lesson.chapterTitle}
+                </p>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
       <section aria-labelledby="recent-title" className="mt-10">
         <div className="flex items-center justify-between gap-4">

@@ -1,5 +1,36 @@
 # Changelog
 
+## 2026-07-15 — Sprint 8：Curriculum Editor（自動化驗收完成）
+
+### 新增
+
+- 建立 `/curriculums/[id]/editor` 雙欄教材編輯器、章課 Tree、麵包屑、工具列、章／課表單與唯讀模式。
+- 建立 Chapter／Lesson GET、POST、PATCH、DELETE API 與 server-only data layer；所有輸入皆經 Zod 驗證。
+- 完成章節與課次新增、修改、刪除、草稿／發布狀態、教學備註，以及拖曳和鍵盤按鈕排序。
+- Dashboard 新增章節數、課次數、最近修改教材與最近課次；教材結構維持批次查詢，沒有 N+1。
+
+### Migration 與安全
+
+- 新增 `20260715160000_s08_extend_curriculum_editor.sql`；只 additive 增加 `chapters.status`、`lessons.teaching_notes` 與八個受控 RPC，沒有修改 Sprint 1～7 migration、DROP、TRUNCATE、新核心 table、Storage、AI、題庫或試卷。
+- 新增 `20260715183000_s08_add_lesson_ai_ready_fields.sql`；以 nullable difficulty 與安全預設 keywords 預留 Sprint 12 結構化輸入，不建立 Prompt、Embedding、生成 metadata 或 review workflow。
+- RPC 固定空 search path，只使用 `auth.uid()` 與 active organization context，要求 owner/admin 並驗證 version 1 及 hierarchy；public、anon、service_role execute 均撤銷。
+- Teacher/reviewer 維持 read-only，direct table write 維持拒絕；完整排序陣列由 server/database 驗證並在 parent lock 下原子更新。
+- 兩筆 Sprint 8 Migration 已套用至 `educrat-development`；local／remote history 均包含 `20260715160000`、`20260715183000`，Production 未套用。
+
+### 驗收狀態
+
+- Typecheck、Lint、Prettier、production build、Vitest 30 個測試檔／176 項與 Playwright 4 項均通過；E2E 涵蓋真實 Development 章課 CRUD／排序／刪除、未登入拒絕、手機 viewport 與 Sprint 1～7 regression。
+- 隔離本機四角色 rollback RLS 驗收通過：Owner／Admin 可變更，Teacher／Reviewer 唯讀，跨租戶與匿名不可見／不可寫，direct insert 被拒絕。
+- 人工桌面／手機／鍵盤與拖曳驗收尚未執行，不標記為人工驗收完成。
+- 未執行 commit、push、deploy、PR、main merge 或 Sprint 9。
+
+### 已知限制
+
+- 版本 1 在本 Sprint 唯讀；版本 2、發布稽核、還原與跨版本複製尚未實作。
+- Difficulty／keywords 已完成資料層預留，但尚未加入 Editor 表單或任何 AI 流程。
+- 章刪除會一併刪除其課次，UI 已二次確認；尚未建立回收桶或 undo。
+- `supabase test db --linked` 的 Docker-to-remote runner 曾在連線階段逾時；相同 migration 已在本機隔離 DB 通過四角色 SQL，遠端 RPC 由真實 E2E 驗證。
+
 ## 2026-07-15 — Sprint 7：Curriculum Foundation（自動化驗收完成）
 
 ### 新增
@@ -52,9 +83,9 @@
 
 ### 已知限制
 
-- Sprint 6 只建立第一位 owner；分校、成員邀請與細緻 RBAC 分別留待 Sprint 7、8、9，不提前放寬 membership write。
+- Sprint 6 只建立第一位 owner；分校、成員邀請與細緻 RBAC 留待後續明確授權的 Sprint，不提前放寬 membership write。
 - Organization Logo 只預留 `logo_path`，獨立 private bucket 與 Storage RLS 延後至 Sprint 10 評估。
-- Development RLS E2E 重用固定雜湊 slug 的虛構 fixture，避免每次測試持續新增；完整安全成員清理流程待 Sprint 8 後補齊。
+- Development RLS E2E 重用固定雜湊 slug 的虛構 fixture，避免每次測試持續新增；完整安全成員清理流程待後續成員管理 Sprint 補齊。
 - Security Advisor 仍列出刻意開放 authenticated 的 create／switch／context RPC，以及既存 `rls_auto_enable()` ACL 與 leaked-password protection 未啟用；後兩項需由環境管理者另行審核。
 - 既有 Sprint 4 Google OAuth 與 password recovery session 綁定限制不屬本 Sprint，狀態不變。
 

@@ -41,14 +41,22 @@ export default async function CurriculumDetailPage({
     <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
       <CurriculumHeader
         actions={
-          canEdit ? (
+          <div className="flex flex-wrap gap-3">
+            {canEdit ? (
+              <Link
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-emerald-900/15 bg-white px-5 py-2.5 font-bold text-emerald-950 hover:bg-emerald-50"
+                href={`/curriculums/${curriculum.id}/edit`}
+              >
+                編輯基本資料
+              </Link>
+            ) : null}
             <Link
               className="inline-flex min-h-11 items-center justify-center rounded-xl bg-emerald-800 px-5 py-2.5 font-bold text-white hover:bg-emerald-900"
-              href={`/curriculums/${curriculum.id}/edit`}
+              href={`/curriculums/${curriculum.id}/editor`}
             >
-              編輯教材
+              {canEdit ? "編輯章節與課次" : "查看章節與課次"}
             </Link>
-          ) : null
+          </div>
         }
         backHref="/curriculums"
         description={`${curriculum.subject.name} · ${curriculum.grade.name} · ${curriculum.publisher.name}進度參考`}
@@ -91,7 +99,7 @@ export default async function CurriculumDetailPage({
               </div>
               {version.chapters.length === 0 ? (
                 <p className="mt-5 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-                  尚未建立章節。章節與課次的編輯流程將在後續 Sprint 開放。
+                  尚未建立章節。可前往教材編輯器建立章節與課次。
                 </p>
               ) : (
                 <ol className="mt-5 space-y-3">

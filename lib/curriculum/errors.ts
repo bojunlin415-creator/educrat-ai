@@ -4,6 +4,7 @@ export type CurriculumErrorCode =
   | "forbidden"
   | "not_found"
   | "duplicate_name"
+  | "hierarchy_conflict"
   | "invalid_input"
   | "service_unavailable";
 
@@ -13,6 +14,7 @@ const curriculumErrorMessages: Record<CurriculumErrorCode, string> = {
   forbidden: "你的機構角色沒有管理教材的權限。",
   not_found: "找不到這份教材，或你沒有查看權限。",
   duplicate_name: "目前機構已有相同名稱的教材，請更換名稱。",
+  hierarchy_conflict: "章節或課次的編號重複，請調整後再試。",
   invalid_input: "教材資料格式不正確。",
   service_unavailable: "目前無法處理教材資料，請稍後再試。",
 };
@@ -38,6 +40,7 @@ export function getCurriculumErrorStatus(error: CurriculumError): number {
     case "not_found":
       return 404;
     case "duplicate_name":
+    case "hierarchy_conflict":
       return 409;
     case "invalid_input":
       return 400;
