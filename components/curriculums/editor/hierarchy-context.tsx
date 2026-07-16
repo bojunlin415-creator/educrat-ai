@@ -11,6 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import type { CurriculumChapter } from "@/lib/curriculum/service";
 import { sendHierarchyMutation } from "@/lib/curriculum/hierarchy-client";
+import type { LessonEditorFormInput } from "@/lib/validation/curriculum-hierarchy";
 
 export type EditorSelection =
   | { kind: "chapter"; mode: "create" }
@@ -45,6 +46,10 @@ interface HierarchyContextValue {
   setNotice: (notice: Notice) => void;
   setSelection: (selection: EditorSelection) => void;
   toggleChapter: (chapterId: string) => void;
+  updateLessonInHierarchy: (
+    lessonId: string,
+    values: LessonEditorFormInput,
+  ) => void;
   versionId: string;
 }
 
@@ -105,6 +110,30 @@ export function HierarchyProvider({
   const refreshHierarchy = useCallback(() => {
     router.refresh();
   }, [router]);
+
+  const updateLessonInHierarchy = useCallback(
+    (lessonId: string, values: LessonEditorFormInput) => {
+      setChapters((current) =>
+        current.map((chapter) => ({
+          ...chapter,
+          lessons: chapter.lessons.map((lesson) =>
+            lesson.id === lessonId
+              ? {
+                  ...lesson,
+                  estimated_minutes: values.estimatedMinutes,
+                  learning_objectives: values.learningObjectives,
+                  lesson_no: values.lessonNo,
+                  status: values.status,
+                  teaching_notes: values.teachingNotes || null,
+                  title: values.title,
+                }
+              : lesson,
+          ),
+        })),
+      );
+    },
+    [],
+  );
 
   const moveChapter = useCallback(
     async (chapterId: string, targetChapterId: string) => {
@@ -196,6 +225,7 @@ export function HierarchyProvider({
       setNotice,
       setSelection,
       toggleChapter,
+      updateLessonInHierarchy,
       versionId,
     }),
     [
@@ -209,6 +239,7 @@ export function HierarchyProvider({
       refreshHierarchy,
       selection,
       toggleChapter,
+      updateLessonInHierarchy,
       versionId,
     ],
   );

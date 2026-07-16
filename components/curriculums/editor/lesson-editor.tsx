@@ -24,6 +24,7 @@ export function LessonEditor() {
     selection,
     setNotice: setHierarchyNotice,
     setSelection,
+    updateLessonInHierarchy,
   } = useHierarchy();
   const [notice, setNotice] = useState<FormNotice>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -73,7 +74,9 @@ export function LessonEditor() {
           });
       setNotice({ type: "success", message: payload.message });
       setHierarchyNotice({ type: "success", message: payload.message });
-      if (!isEdit && payload.entityId) {
+      if (isEdit) {
+        updateLessonInHierarchy(selection.lessonId, values);
+      } else if (payload.entityId) {
         setSelection(null);
       }
       refreshHierarchy();
