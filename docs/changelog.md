@@ -1,5 +1,83 @@
 # Changelog
 
+## 2026-07-16 — AP-002 Final Architecture Approval & Git Seal
+
+### Approval
+
+- AP-002、ADR-004、ADR-005、ADR-006 與 ADR-007 狀態統一為 **Accepted — Architecture Approved**。
+- Capability Map 成為 **Approved Product Capability Baseline**。
+- Event Catalog 成為 **Approved Contract Baseline — Not Implemented**。
+- 核准只涵蓋架構、產品、資料、UX 與未來 Migration contract；Identity／RBAC、Audit、Lifecycle、Event Bus、Queue、Notification、Platform Admin Console、Migration、API 與 UI 均未因本次封板而實作。
+
+### Implementation Order
+
+1. AP-003 Identity, RBAC & Permission Framework
+2. AP-002B Immutable Audit Foundation
+3. AP-002A Lifecycle Schema Foundation
+4. AP-002C Dependency Protection
+5. AP-004 Background Job, Event & Notification Foundation
+6. AP-002D Organization Closing
+7. AP-002E Account Privacy／Deletion
+8. AP-002F Recycle Bin
+9. AP-002G Platform Admin Console
+
+上述 Package 與 Sprint 9 均未開始。
+
+### Development OAuth Verification Record
+
+- Development Supabase Google Provider 已由環境管理者啟用。
+- Google Cloud Web OAuth Client 已設定 Supabase callback URL。
+- Development Supabase Site URL 與 Redirect URLs 已驗證。
+- Google OAuth 登入已由產品負責人完成一次人工成功驗收。
+- 文件未保存 Client ID、Client Secret、Key、Token 或測試帳號；本次未修改 OAuth 程式、callback、Proxy、`.env.local`、`config.toml`、Database 或 Migration。
+
+### Scope
+
+- 本次只變更 README 與 `docs/`，未修改程式、UI、測試、generated type 或 Migration。
+- 未操作 Production，未開始 AP-003、AP-002A～G、AP-004 或 Sprint 9。
+
+## 2026-07-16 — AP-002 Amendment：Identity、Domain、Capability、Event（Final Review Pending）
+
+### Architecture
+
+- 新增 ADR-007，正式區分 Authentication Account、Person Profile、Organization Membership、Teacher／Student／Parent／Reviewer Persona 與 Platform Role Assignment，支援同一人跨機構、多角色及多 Persona。
+- 定義 15 個 Domain 的 purpose、owner、authority data、primary entities、RACI、allowed/forbidden dependencies、published/consumed contracts、event/data ownership，以及 Lifecycle／Audit／Analytics／AI 責任。
+- 新增 Capability Map，將 Platform、Organization、Teacher、Reviewer、Student、Parent、Knowledge、AI、Analytics、Governance 能力對應 Primary User、owning/supporting Domains、產品價值、North Star E/L/C/D、狀態與 Roadmap gate。
+- 新增 Event Catalog，涵蓋 Organization、Membership、Curriculum、Knowledge、Teaching、Assessment、Learning、AI、Communication、Billing，定義 envelope、version、payload allowlist、scope、correlation、idempotency、PII、Audit、retry、ordering 與 failure semantics。
+
+### Amendment Decisions
+
+- Audit foundation 必須先於任何新的 lifecycle write flow。
+- AP-003 Identity／RBAC 阻擋 Platform role、高風險跨租戶 access、Account lifecycle、ownership override 與 Platform Console mutation。
+- Background Job 架構阻擋 permanent deletion、不可逆 anonymization、大型 inventory/export 與 retention cleanup。
+- Platform Console 的 permanent delete、force close、irreversible anonymize、ownership override、hold release、break-glass content access、Platform role mutation 與 unrestricted Audit export 延後。
+
+### 限制
+
+- 本 Amendment 只修改文件，沒有建立 Identity Framework、Persona、RBAC、Event Bus、Queue、Outbox、Consumer、Migration、API 或 UI。
+- 本階段當時未 commit、push、deploy、merge、建立 PR、開始 AP-003 或 Sprint 9；其待核准狀態已由本文件最上方的 Final Architecture Approval 紀錄取代。
+
+## 2026-07-16 — AP-002：Platform Governance Foundation（歷史 Proposed 階段）
+
+### Architecture
+
+- 新增 Platform、Organization、Workspace、Data/AI 四層治理與 Platform role／Organization Membership 分離契約。
+- 定義 Organization、Account、Membership 與 30+ Entity 的生命週期、Dependency Protection、Recycle Bin、Retention、Hold、不可變 Audit 與 permission responsibility matrix。
+- 新增 Organization Closing、Account Deletion、Danger Zone、Recycle Bin 與 Platform Admin Console 的產品流程與文字 wireframe。
+- 新增 ADR-004（state machines）、ADR-005（Platform vs Organization Admin）與 ADR-006（Deletion/Retention/Audit）。
+- 提出 Hybrid additive Migration Design、backfill、dual-read/write、feature flag rollout、forward-only correction 與 Sprint 8 delete RPC 退場策略。
+
+### 文件
+
+- 新增 `docs/architecture/ap-002-platform-governance.md`、三份 ADR、Lifecycle UX、Platform Admin Governance、Retention/Deletion Policy 與完整 Entity Lifecycle Matrix。
+- 更新 README、產品、系統、資料庫、測試計畫與 Architecture Backlog，只標記 Proposed 狀態，不宣稱功能已實作。
+
+### 限制
+
+- 本段記錄當時的 **Proposed** 階段；目前狀態已由最上方的 **Accepted — Architecture Approved** 紀錄取代。
+- 未新增或修改程式、Database schema、Migration、API、UI、Platform role、RBAC、Audit、Retention、Recycle Bin 或刪除功能。
+- 未操作 Production，未 commit、push、deploy、merge、建立 PR 或開始 Sprint 9。
+
 ## 2026-07-15 — AR-001：Curriculum Reference Abstraction（有條件核准修正完成）
 
 ### Architecture
@@ -181,9 +259,9 @@
 - `profiles` 實際 schema、RLS、own 權限、跨使用者隔離、匿名拒絕、trigger 與 `database_health()`。
 - Email 註冊／callback、登入、登入後 Dashboard、session refresh 與登出已在 development 流程驗證。
 
-### 尚未通過
+### 當時尚未通過
 
-- Google OAuth 仍需以實際 provider 完成人工驗收。
+- Google OAuth 當時仍需以實際 provider 完成人工驗收；此項已於 2026-07-16 由產品負責人完成並記錄於本文件最上方。
 - Password recovery session 與目前登入帳號的所有權綁定尚未封板，列為正式商用前高優先修正。
 - `.env.local` 已在本機設定且維持 Git ignore；不得提交或輸出實際值。
 

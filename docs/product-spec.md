@@ -41,6 +41,10 @@
 | 學生       | 接收作業與線上作答             | 預留、預設關閉 |
 | 家長       | 查看學習報告與通知             | 預留、預設關閉 |
 
+平台治理角色與 Organization Membership 必須分離。AP-002 提議 `PLATFORM_SUPER_ADMIN`、`PLATFORM_ADMIN`、`PLATFORM_SUPPORT`、`PLATFORM_AUDITOR` 四種平台角色；這些角色不自動成為 Organization Owner，也不因職位取得跨租戶教材與學生資料的日常瀏覽權。跨租戶支援只能在具體案件、最小欄位、有效期限、理由、re-auth 與 Audit 下進行。完整 RBAC 尚未實作。
+
+Identity Concept 進一步區分 Authentication Account、Person Profile、Organization Membership、Teacher／Student／Parent／Reviewer Persona 與 Platform Role Assignment。同一人可加入多個 Organization、擁有不同角色，並在同一 Organization 擁有多個 Persona；登入、Profile、租戶關係、業務身分與平台權限不得合併成單一全域 role。完整 authority 與 RACI 見 ADR-007，正式 Identity／RBAC 實作屬 AP-003。
+
 ## 核心原則
 
 1. 對齊公開課綱與教師提供的教學目標。
@@ -119,6 +123,19 @@ owner/admin 可建立與修改教材，teacher/reviewer 目前為唯讀。所有
 - 可追溯：題目保存來源、模型、Prompt、schema、審核與教師修改版本。
 - 可維護：科目、AI provider、匯出及金流使用清楚介面，不將規則散落於頁面。
 - 品質：`fail` 教材不得匯出，`warning` 必須經教師確認。
+- 治理：Archive、Restore、Recycle Bin、Anonymize 與 Permanent Delete 必須走受控 state machine、dependency、retention、re-auth 與 immutable Audit；永久刪除不得作為一般 CRUD。
+
+## Platform Governance（AP-002 Accepted Architecture）
+
+AP-002 將平台治理分成 Platform、Organization、Workspace、Data/AI 四層，並提出 Organization、Account、Membership 與教材階層的生命週期契約。Organization Owner 可提出封存或刪除申請，但不能直接永久刪除；Platform Super Admin 只負責受控核准，實際不可逆處理由未來 background deletion job 執行。
+
+Account、Profile、Membership、Teacher／Student／Parent domain identity 與 Platform role 不得視為同一筆資料。老師離職通常停用 Membership，學生退班或畢業通常改變 Enrollment/Student 狀態；Organization-owned content、Teaching/Learning History、Assessment、Invoice 與 Audit 不因 Account deletion cascade 消失。
+
+Curriculum 可封存、還原與在無受保護依賴時移入回收桶；published Curriculum Version、Knowledge Point、Teaching/Learning History、Invoice 與 Audit Event 不提供一般永久刪除。Sprint 8 現有 Chapter/Lesson delete 屬 legacy compatibility，後續治理實作必須以新流程取代並在安全切換後撤銷一般執行權。
+
+AP-002 目前狀態為 **Accepted — Architecture Approved**。核准只建立產品與架構契約；它沒有建立 UI、API、Migration、Identity Framework、RBAC、Platform role、Event Bus、Queue、Notification、Audit、Retention、Recycle Bin、Platform Admin Console 或刪除功能。
+
+產品能力、Primary User、owning/supporting Domains、North Star E／L／C／D、Roadmap 與 Data/Audit/AI/Analytics 門檻由 `docs/product/capability-map.md` 管理。跨 Domain 事件由 `docs/architecture/event-catalog.md` 定義；目前未實作 Event Bus、Queue、Outbox 或 Consumer。
 
 ## 成功衡量方向
 
@@ -139,5 +156,8 @@ owner/admin 可建立與修改教材，teacher/reviewer 目前為唯讀。所有
 - Sprint 7：科目、年級、出版社進度參考、教材、不可覆蓋版本、章與課的核心結構，以及 organization-scoped 教材列表、建立、詳細與編輯流程。
 - Sprint 8：版本 1 唯讀的 Curriculum Editor、章節與課次 CRUD、server-validated 排序、樹狀導覽、Dashboard 章課統計，以及 owner/admin 寫入與 teacher/reviewer 唯讀權限。
 - AR-001：Knowledge Graph 核心、Curriculum Reference Mapping Layer、legacy display adapter，以及待核准的 forward-only Migration Design。
+- AP-002：Platform Governance、生命週期、Dependency Protection、Retention、不可變 Audit、Danger Zone 與 Platform Console 架構已核准，未實作。
 
-目前仍未實作分校、成員邀請、細緻 RBAC、版本 2／發布稽核、AI 生成、題庫、試卷、品質檢查或匯出。Sprint 6 不開放任意加入機構或修改成員角色；這些能力保留給後續授權 Sprint。Production 未執行任何 Migration 或部署。Sprint 4 的 Google OAuth 尚待人工驗收，密碼復原 session 綁定仍是正式商用前的高優先修正。
+目前仍未實作分校、成員邀請、細緻 RBAC、版本 2／發布稽核、AI 生成、題庫、試卷、品質檢查或匯出。Sprint 6 不開放任意加入機構或修改成員角色；這些能力保留給後續授權 Sprint。Production 未執行任何 Migration 或部署。Sprint 4 的 Google OAuth 已在 Development 完成人工成功驗收；密碼復原 session 綁定仍是正式商用前的高優先修正。
+
+AP-002 implementation Package 的正式順序為：AP-003 Identity, RBAC & Permission Framework → AP-002B Immutable Audit Foundation → AP-002A Lifecycle Schema Foundation → AP-002C Dependency Protection → AP-004 Background Job, Event & Notification Foundation → AP-002D Organization Closing → AP-002E Account Privacy／Deletion → AP-002F Recycle Bin → AP-002G Platform Admin Console。所有 Package 與 Sprint 9 均尚未開始。

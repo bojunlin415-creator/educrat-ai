@@ -126,7 +126,7 @@ Sprint 4 新增：
 - Auth provider 錯誤安全映射測試。
 - 可替換記憶體 rate limiter 的限制、重設與 key 隔離測試。
 - E2E 規格更新為未登入 Dashboard 必須導向登入頁。
-- Email 登入、callback、session、登入／未登入 redirect 與登出已在 development 驗證；Google OAuth 尚待人工驗收。
+- Email 登入、callback、session、登入／未登入 redirect、登出與 Google OAuth 已在 development 驗證；Google OAuth 由產品負責人完成人工成功驗收，未在文件保存帳號或憑證。
 - 密碼復原雖完成基本人工流程，recovery session 與目前登入帳號的綁定仍需高優先安全修正，不列為完全通過。
 
 Sprint 5 新增：
@@ -191,3 +191,29 @@ Sprint 6、Sprint 7 與 Sprint 8 的自動化整合驗收已完成。以下項�
 - 只用鍵盤驗證 Tree 焦點、方向鍵展開／收合及上下排序按鈕。
 - 確認實際裝置的導覽、按鈕、欄位、錯誤訊息、loading 與成功回饋沒有破版或操作障礙。
 - 由產品負責人記錄人工驗收日期、裝置、瀏覽器、結果與待修項目。
+
+## AP-002 未來治理驗證契約（Accepted Architecture — Not Implemented）
+
+AP-002 本身只修改文件，沒有 Governance 功能可執行 E2E。後續 implementation packages 依 AP-003 → AP-002B → AP-002A → AP-002C → AP-004 → AP-002D → AP-002E → AP-002F → AP-002G 順序，至少需要：
+
+- Organization、Account、Membership、Curriculum 的每一合法／非法 state transition。
+- 最後一位 active owner suspend/downgrade/remove/leave 全部拒絕，ownership transfer 全 transaction 成功或 rollback。
+- 無 case、錯 scope、過期 capability、self-approval、超欄位 allowlist 與跨租戶 Platform access 拒絕。
+- Platform Support PII 遮罩、Auditor read-only、Super Admin 非日常 browse、role revocation 即時失效。
+- Dependency decision 的 allowed/warning/reassignment/export/reauth/platform approval 與所有 blocked result。
+- Retention policy priority、version snapshot、Organization 不可低於 platform minimum、legal hold apply/release。
+- Recycle Bin restore 的唯一性、parent state、permission、deadline、dependency 與不可還原案例。
+- Account deletion 的多 Organization、唯一 Owner、content ownership、actor tombstone、PII redaction 與 Auth removal 順序。
+- Audit append-only、失敗 high-risk action、Support access、export、metadata allowlist、Secret/PII negative scan。
+- Deletion job idempotency、checkpoint、final dependency scan、cancel boundary、partial failure 與 forward correction。
+- Sprint 8 legacy delete caller 切換完成後的 execute revocation，以及 protected history 永不被 cascade delete。
+
+每個 Package 都需 local/Development RLS acceptance、跨租戶 negative tests、Migration dry-run、backfill checksum、feature-flag rollback rehearsal 與人工 Danger Zone/accessibility 驗收。Production 不得自動套用。
+
+### AP-002 Amendment 文件與逾時診斷
+
+- ADR-007、Capability Map 與 Event Catalog 是文件 contract，不代表 Identity、RBAC、Event Bus 或 Queue 已實作。
+- Amendment 必須確認只有 README／docs 變更，沒有 `app/`、`components/`、`lib/`、`tests/`、generated types 或 `supabase/migrations/` 變更。
+- Unit Test 與 Playwright 必須在沒有平行 build／test 的乾淨執行環境依序執行。
+- 不得為通過 Amendment 驗證而調高 test timeout、修改 Sprint 8 程式／測試或跳過案例。
+- 若相同測試再次逾時，停止重跑並記錄命令、spec、案例、失敗步驟、預期／實際、timeout、worker、環境與 artifact 路徑，另開修正工作。

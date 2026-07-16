@@ -1,0 +1,71 @@
+# EduCraft AI Capability Map
+
+- 狀態：**Approved Product Capability Baseline**
+- Architecture Package：AP-002 Amendment
+- 日期：2026-07-16
+
+## 1. 使用方式
+
+本文件把 Product Blueprint 轉成可追蹤的產品能力，不代表尚未完成的能力已經實作。狀態固定使用：
+
+- **Implemented**：目前程式與資料邊界已存在；仍可能有人工驗收或正式上線限制。
+- **Designed**：已有核准前架構／產品規格，沒有功能。
+- **Planned**：已列入 Roadmap，尚未完成正式 Architecture／PRD。
+- **Deferred**：保留長期方向，沒有近期實作承諾。
+
+North Star：
+
+- **E — Teacher Efficiency**：提升教師效率。
+- **L — Learning Outcomes**：提升學生學習成果。
+- **C — Cost Efficiency**：降低教育機構營運成本。
+- **D — Decision Intelligence**：AI／Analytics 成為教育決策助手。
+
+## 2. Capability Map
+
+| Area／Capability                                 | Primary user                      | Owning Domain              | Supporting Domains                | Product value                  | North Star | Status      | Target Package／Sprint               | Data requirement                           | Audit requirement            | AI／Analytics requirement                     |
+| ------------------------------------------------ | --------------------------------- | -------------------------- | --------------------------------- | ------------------------------ | ---------- | ----------- | ------------------------------------ | ------------------------------------------ | ---------------------------- | --------------------------------------------- |
+| Platform／Secure access shell                    | All authenticated users           | Platform／Identity         | Permission                        | 安全進入產品並維持 session     | E,C        | Implemented | Sprint 1–5                           | Account reference、Profile、session        | Auth/security events         | 無 AI；登入健康指標                           |
+| Platform／Platform operations overview           | Platform Admin                    | Platform                   | Analytics、Governance             | 掌握平台健康與待處理工作       | C,D        | Designed    | AP-002G（AP-003 後）                 | masked operational projection              | 所有查閱與 export            | 營運分析；AI 不作權限決策                     |
+| Platform／System configuration                   | Platform Super Admin              | Platform                   | Governance、Permission            | 一致治理全域設定               | C          | Planned     | Future Configuration Package         | versioned configuration                    | 高風險變更必記錄             | 無 AI；設定採用率分析                         |
+| Organization／Tenant onboarding                  | Organization Owner                | Organization               | Identity、Membership              | 建立機構與 owner context       | E,C        | Implemented | Sprint 6                             | Organization、owner Membership、preference | 建立與 context 變更          | 無 AI；onboarding funnel                      |
+| Organization／Organization settings and switcher | Owner／Admin／Member              | Organization               | Membership、Permission            | 多機構工作 context             | E,C        | Implemented | Sprint 6                             | Organization profile、active context       | settings/switch audit future | 無 AI；切換／使用分析                         |
+| Organization／Member administration              | Owner／Admin                      | Membership                 | Identity、Permission、Governance  | 安全管理團隊與角色             | E,C        | Planned     | AP-003 + future Membership Package   | Membership、role、invitation               | 全 lifecycle action          | 無 AI；人力與授權分析                         |
+| Organization／Lifecycle and closing              | Owner／Platform reviewer          | Governance／Organization   | Membership、Billing、Audit        | 可控暫停、封存、關閉           | C          | Designed    | AP-003、AP-002B/A/C、AP-004、AP-002D | lifecycle request、dependency、hold        | immutable required           | AI 不決定；影響摘要 analytics                 |
+| Teacher／Profile and workspace                   | Teacher                           | Identity／Teaching         | Organization                      | 快速進入個人工作區             | E          | Implemented | Sprint 5–6                           | Profile、Membership context                | Profile/permission changes   | 教師使用分析                                  |
+| Teacher／Curriculum management                   | Teacher（目前唯讀）／Owner／Admin | Curriculum                 | Knowledge、Organization           | 組織教學進度與版本             | E,C        | Implemented | Sprint 7–8                           | Curriculum hierarchy、Reference            | 目前有限；治理後完整         | 未來 AI 只讀 allowlisted learning contract    |
+| Teacher／Lesson planning                         | Teacher                           | Teaching                   | Curriculum、Knowledge、AI         | 降低備課時間                   | E,L        | Planned     | Future Lesson Planning Package       | Lesson、objective、strategy                | 版本／採用／修改             | Lesson Agent proposal；成效分析               |
+| Teacher／Worksheet generation                    | Teacher                           | Assessment                 | Knowledge、Curriculum、AI         | 快速建立原創練習與答案         | E,L,C      | Planned     | Future Worksheet／AI Sprints         | blueprint、question、answer、quality       | generation/review/export     | Worksheet Agent；品質與修改率                 |
+| Teacher／Teaching analytics                      | Teacher                           | Analytics                  | Teaching、Assessment、Learning    | 調整教學策略                   | L,D        | Planned     | Future Analytics Package             | minimized teaching／result events          | report access                | Teaching Coach；cohort analytics              |
+| Reviewer／Curriculum review visibility           | Reviewer                          | Curriculum                 | Membership、Permission            | 唯讀檢視教材架構               | E,C        | Implemented | Sprint 7–8                           | Curriculum projection                      | read access future audit     | 無 AI；review funnel future                   |
+| Reviewer／Quality review workflow                | Reviewer                          | Assessment／Governance     | Knowledge、AI、Curriculum         | 阻止錯誤教材發布               | L,D        | Planned     | Future Quality Package               | review assignment、finding、decision       | 每個 decision                | AI review proposal；人機差異分析              |
+| Student／Assignment workspace                    | Student                           | Learning                   | Teaching、Assessment、Identity    | 清楚接收與完成任務             | L,E        | Deferred    | Future Student Workspace             | Student Persona、Enrollment、Assignment    | access/submission            | Learning Coach；完成率分析                    |
+| Student／Online attempt and feedback             | Student                           | Assessment／Learning       | Knowledge、AI                     | 即時練習與可理解回饋           | L,D        | Deferred    | Future Assessment Package            | Attempt、Response、grading                 | 作答／評分／更正             | 輔助回饋；不得自行最終高風險評分              |
+| Student／Learning growth map                     | Student／Teacher                  | Learning／Analytics        | Knowledge、Assessment             | 了解能力成長與弱點             | L,D        | Deferred    | Future Learning Analytics            | versioned skill evidence                   | profile/report access        | Weakness Agent；evidence-based analytics      |
+| Parent／Guardian linkage                         | Parent／Guardian                  | Learning／Identity         | Membership、Permission            | 安全建立監護與 consent         | L          | Deferred    | AP-003 + Future Guardian Package     | Guardian Persona、relationship、consent    | 建立／撤銷／查閱             | 無 AI；關係與通知分析                         |
+| Parent／Progress report                          | Parent                            | Communication／Analytics   | Learning、Teaching                | 取得可理解學習資訊             | L,D        | Deferred    | Future Parent Reporting              | minimized report projection                | report delivery/access       | Parent Communication Agent；趨勢分析          |
+| Parent／Communication preferences                | Parent                            | Communication              | Identity、Learning                | 控制通知管道與頻率             | E,C        | Deferred    | Future Communication Package         | preference、consent、delivery              | consent/preference changes   | 內容輔助；delivery analytics                  |
+| Knowledge／Knowledge Point governance            | Academic Admin／Reviewer          | Knowledge                  | Governance                        | 建立穩定教育語意核心           | L,D        | Designed    | Future Knowledge Graph Package       | Knowledge Point、relations、versions       | 所有 merge/supersede         | Knowledge Agent proposal；coverage analytics  |
+| Knowledge／Source provenance                     | Academic Admin                    | Knowledge                  | Legal／Governance                 | 可追溯知識來源與授權           | L,C        | Designed    | AR-001 follow-up                     | Knowledge Source、license、visibility      | source/review lifecycle      | AI 只消費核准 projection；來源風險分析        |
+| Knowledge／Curriculum Reference mapping          | Academic Admin                    | Knowledge／Curriculum      | Governance                        | 中性對接教學進度               | E,L        | Designed    | AR-001 Migration Package             | Reference、Knowledge Point mapping         | mapping/version changes      | AI 不接觸 legacy identity；coverage analytics |
+| AI／Job orchestration                            | Teacher／Domain service           | AI                         | Permission、Billing、Governance   | 安全、可重試且可計費的 AI 工作 | E,C        | Planned     | Future AI Foundation                 | Job、step、prompt/schema/model version     | request/result/failure/usage | AI 核心；成功率／成本分析                     |
+| AI／Structured generation and quality            | Teacher／Reviewer                 | AI + requesting Domain     | Knowledge、Assessment、Governance | 產生可驗證而非自由文字內容     | E,L,D      | Planned     | Future AI/Quality Packages           | structured output、validation、review      | generation/accept/reject     | provider + quality analytics                  |
+| AI／Decision support                             | Teacher／Organization Admin       | Analytics／AI              | Teaching、Learning、Business      | 提供有證據的建議               | L,C,D      | Deferred    | Future Decision Intelligence         | approved metrics/projections               | recommendation/view/action   | AI 只能建議；人類保有決策權                   |
+| Analytics／Learning analytics                    | Teacher／Student／Parent          | Analytics                  | Learning、Assessment、Knowledge   | 找出弱點與進步                 | L,D        | Deferred    | Future Learning Analytics            | versioned events、metric lineage           | report/access audit          | Weakness analysis；不可反寫權威資料           |
+| Analytics／Teaching analytics                    | Teacher／Owner                    | Analytics                  | Teaching、Assessment              | 改善教學方法與資源配置         | E,L,D      | Planned     | Future Teaching Analytics            | teaching/session/result events             | sensitive cohort access      | Teaching Coach；聚合門檻                      |
+| Analytics／Business analytics                    | Owner／Platform Admin             | Analytics                  | Organization、Billing、AI         | 控制成本、留存與營運           | C,D        | Planned     | Future Business Analytics            | usage、billing、operational events         | dashboard/export             | BI Agent；不得讀教育內容全文                  |
+| Governance／Immutable Audit                      | Auditor／Security                 | Governance／Audit          | All Domains                       | 可證明高風險行為與決策         | C,D        | Designed    | AP-002B（任何 lifecycle write 前）   | append-only Audit Event                    | 本身即 Audit authority       | AI 不寫任意 metadata；Audit analytics         |
+| Governance／Lifecycle and dependency protection  | Owner／Platform reviewer          | Governance + owning Domain | Permission、Audit、Retention      | 防止錯誤刪除與狀態跳轉         | C          | Designed    | AP-002A + AP-002C                    | state、request、dependency decision        | 每次 request/result          | AI 不核准；impact aggregation                 |
+| Governance／Recycle Bin and restore              | Owner／Admin                      | Governance + owning Domain | Audit、Retention                  | 安全還原工作資料               | E,C        | Designed    | AP-002F                              | trash metadata、parent/dependency state    | trash/restore/delete request | 無 AI；recovery analytics                     |
+| Governance／Retention and legal holds            | Platform governance／Auditor      | Governance                 | Billing、Learning、Audit          | 符合法務與資料保存責任         | C          | Designed    | AP-002A + AP-002C                    | versioned policy、hold、decision snapshot  | apply/release/decision       | AI 不決定期限；policy impact analytics        |
+
+## 3. Cross-capability Gates
+
+1. **Identity first, Audit before writes**：AP-003 先建立授權邊界；AP-002B 的 append-only Audit writer 與事件 allowlist 必須先於任何新的 lifecycle write flow。
+2. **Identity／Permission gate**：Platform role、Account lifecycle、跨租戶 support、ownership override 與高風險 Console action 受 AP-003 阻擋。
+3. **Job gate**：永久刪除、PII anonymization、全機構 inventory/export 與 retention cleanup 受 AP-004 Background Job／Event／Notification 架構阻擋。
+4. **Knowledge gate**：AI Worksheet、Learning Analytics 與 Decision Intelligence 受 Knowledge Point、provenance 與 mapping governance 阻擋。
+5. **Human authority**：AI 可提出 proposal 或 decision support，不可核准 lifecycle、permission、legal hold、教材發布或不可逆個資處理。
+
+## 4. Capability Review Rule
+
+每個新 Package／Sprint 必須至少對應一個 North Star，指定一個 owning Domain，列出所需 authority data、Audit、AI／Analytics 邊界，並確認不跨越 ADR-007 的 forbidden dependencies。沒有 owning Domain 或依賴權威不明的能力不得進入實作。

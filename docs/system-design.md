@@ -18,6 +18,8 @@
 
 AR-001 正式採用 `Education Knowledge Graph → Curriculum Reference → Curriculum → Version → Chapter → Lesson` 的單向依賴。`publishers` 只存在於 server legacy compatibility boundary；UI 使用 `CurriculumReferenceDisplay`，未來 AI 只能使用 Knowledge Graph 與中性 reference context。完整決策見 `docs/architecture/adr-003-reference-abstraction.md`。
 
+AP-002 Amendment 以 ADR-007 區分 Authentication Account、Person Profile、Organization Membership、Domain Persona 與 Platform Role Assignment，並為 Platform、Identity、Permission、Organization、Membership、Knowledge、Curriculum、Teaching、Assessment、Learning、AI、Analytics、Communication、Billing、Governance/Audit 指定 authority。這是 conceptual contract；目前 `auth.users`、`profiles`、`organization_members` 仍是 Sprint 1～8 相容模型，不能宣稱 Persona、Platform Role、完整 RBAC 或 Identity Framework 已實作。
+
 ### Supabase SSR 邊界
 
 - `lib/supabase/client.ts`：Client Components 使用 publishable key 的 browser client。
@@ -163,6 +165,29 @@ Web / Future Mobile Clients
 - Log、追蹤與錯誤訊息不得包含密碼、token、完整個資、AI Key 或 Service Role Key。
 
 ## 架構決策
+
+### AP-002 Platform Governance（Accepted Architecture — Not Implemented）
+
+AP-002 已核准四層治理契約，但尚未實作：
+
+```text
+Platform Layer
+  → Organization Layer
+    → Workspace Layer
+      → Data / AI Layer
+```
+
+Platform role 與 Organization Membership 必須完全分離。Platform Console 未來使用 `/platform/*`、獨立 authorization context、case-scoped access、遮罩 DTO、fresh re-auth 與 append-only Audit；不得將 Platform Admin 加入每個 Organization，也不得用 Service Role 作一般管理者 session。Organization Workspace 繼續使用 active organization、membership 與既有 RLS。
+
+Organization、Account、Membership、Curriculum 階層採顯式 state machine。Lifecycle transition 不提供任意 status update，而是經 `request → dependency/retention decision → approval → transaction/job → audit`。AI Agent 不是治理角色，不能發起、核准或執行管理權限。
+
+AP-002 推薦 Hybrid data design：Domain/typed companion 保存 canonical current state；共用 lifecycle/deletion requests、Retention、Hold、Recycle Bin workflow 與 Audit。永久刪除由 Platform Super Admin 核准、一次性 background capability 執行，Organization Owner 只能提出申請。完整契約見 `docs/architecture/ap-002-platform-governance.md`。
+
+現有 Sprint 8 Chapter/Lesson delete RPC 保留相容，但不得延伸到有 Teaching/Learning dependency 的未來資料。Lifecycle v2 切換完成後，應以新的 forward-only Migration 撤銷 authenticated execute；不修改歷史 Migration，也不直接 cascade delete 教材或歷程。
+
+Domain ownership、allowed/forbidden dependency、RACI 與 published contract 見 ADR-007。產品能力與 North Star 見 `docs/product/capability-map.md`；future Domain Events 見 `docs/architecture/event-catalog.md`。事件文件不表示 Event Bus、Queue、Outbox、Consumer 或 replay infrastructure 已存在。正式執行順序為 AP-003 → AP-002B Audit → AP-002A Lifecycle Schema → AP-002C Dependency Protection → AP-004 Background Job/Event/Notification → AP-002D Organization Closing → AP-002E Account Privacy/Deletion → AP-002F Recycle Bin → AP-002G Platform Admin Console。所有項目均尚未開始。
+
+### 既有決策
 
 - 採模組化單體作為早期商用架構，以明確介面隔離領域；有實際規模需求前不拆微服務。
 - UI 預設使用 Server Components；只有瀏覽器互動或狀態需求才使用 Client Components。

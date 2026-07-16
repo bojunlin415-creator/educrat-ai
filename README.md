@@ -1,6 +1,6 @@
-# EduCraft AI（AI 國小教材生成 SaaS）
+# EduCraft AI（Education Intelligence Platform）
 
-為台灣國小補教業者與教師打造的 AI 原創教材生成工作台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構、章節／課次編輯器，以及 Curriculum Reference 相容層；AI 功能尚未串接。
+為台灣國小補教業者與教師打造的教育智慧平台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構、章節／課次編輯器，以及 Curriculum Reference 相容層；AI 功能尚未串接。AP-002 的平台治理、Identity Concept、Domain Boundary、生命週期、刪除、保留、事件與稽核架構已核准並完成 Git 封板準備，但相關治理功能尚未實作。
 
 ## 技術堆疊
 
@@ -93,7 +93,14 @@ pnpm dlx supabase@latest gen types typescript \
 
 ## Supabase Auth 設定
 
-Sprint 4 已建立 Email／Password、Google OAuth、登出、忘記密碼、重設密碼與 PKCE callback。要在非 production 環境實測，還需由管理者完成：
+Sprint 4 已建立 Email／Password、Google OAuth、登出、忘記密碼、重設密碼與 PKCE callback。Development 環境的 Google OAuth 外部設定與人工驗收已完成：
+
+- 環境管理者已在 Development Supabase 啟用 Google Provider。
+- Google Cloud Web OAuth Client 已設定 Supabase callback URL。
+- Development Supabase Site URL 與 Redirect URLs 已驗證。
+- Google OAuth 登入已由產品負責人完成一次人工成功驗收。
+
+上述紀錄不保存 Client ID、Client Secret、Key、Token 或測試帳號。其他 staging／production 環境仍須由管理者逐環境完成：
 
 1. 在 Supabase Auth 啟用 Email provider，決定是否要求 Email confirmation。
 2. 將下列網址加入 Redirect URLs：
@@ -123,7 +130,18 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - [AI 引擎設計](docs/ai-engine.md)：生成、結構化驗證與品質管線
 - [版權政策](docs/copyright-policy.md)：資料來源分級與禁止內容
 - [ADR-003](docs/architecture/adr-003-reference-abstraction.md)：Knowledge Graph、Curriculum Reference 與 Migration Design
-- [Architecture Backlog](docs/architecture/backlog.md)：尚待獨立審查的 Data Lifecycle、Audit 等架構議題
+- [AP-002 Platform Governance](docs/architecture/ap-002-platform-governance.md)：已核准的平台／機構治理、生命週期、Dependency、Audit 與 Migration Design（尚未實作）
+- [ADR-004](docs/architecture/adr-004-lifecycle-state-machines.md)：已核准的受控生命週期狀態機
+- [ADR-005](docs/architecture/adr-005-platform-vs-organization-admin.md)：已核准的 Platform 與 Organization 管理邊界
+- [ADR-006](docs/architecture/adr-006-deletion-retention-audit.md)：已核准的刪除、保留與不可變稽核架構
+- [ADR-007](docs/architecture/adr-007-domain-boundaries.md)：已核准的 Identity Concept、Domain authority、RACI 與 cross-domain contract
+- [Capability Map](docs/product/capability-map.md)：Approved Product Capability Baseline
+- [Event Catalog](docs/architecture/event-catalog.md)：Approved Contract Baseline — Not Implemented
+- [Lifecycle UX Guidelines](docs/product/lifecycle-ux-guidelines.md)：已核准的 Danger Zone、關閉精靈與回收桶 wireframe
+- [Platform Admin Governance](docs/security/platform-admin-governance.md)：已核准的跨租戶支援、PII 與高風險操作安全契約
+- [Retention and Deletion Policy](docs/data/retention-and-deletion-policy.md)：已核准的版本化保留與刪除政策
+- [Entity Lifecycle Matrix](docs/data/entity-lifecycle-matrix.md)：已核准的 33 類 Entity 完整生命週期與角色責任
+- [Architecture Backlog](docs/architecture/backlog.md)：架構議題與 Package 狀態
 - [AI Reference Policy](docs/ai/ai-reference-policy.md)：AI context allowlist 與 legacy identity 禁令
 - [Reference Legal Policy](docs/legal/reference-policy.md)：Reference、Knowledge Mapping 與內容法律邊界
 - [測試計畫](docs/test-plan.md)：測試層級、必要案例與完成門檻
@@ -144,11 +162,11 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - Sprint 1：專案初始化，已完成。
 - Sprint 2：開發規範與文件，已完成。
 - Sprint 3：Supabase SSR、profiles Migration、RLS 與健康檢查，已在 `educrat-development` 完成 schema 與 RLS 驗收。
-- Sprint 4：身分驗證流程、受保護路由與 rate-limit 介面已完成；Email 登入、session、callback 與登出已在 development 驗證，Google OAuth 尚待人工驗收，密碼復原 session 綁定仍列為高優先修正。
+- Sprint 4：身分驗證流程、受保護路由與 rate-limit 介面已完成；Email 登入、session、callback、登出與 Google OAuth 已在 development 驗證，密碼復原 session 綁定仍列為高優先修正。
 - Sprint 5：個人資料、首次 onboarding、私有 Avatar Storage、RLS 與真實 E2E 已完成。
 - Sprint 6：機構、owner membership、active organization、organization onboarding／settings／switcher、多租戶 RLS 與自動化整合驗收已完成；人工 UI／手機版驗收延後至 Milestone 2，不標記為已完成。
 - Sprint 7：教材參照資料、教材／版本／章／課結構、API、頁面與 Dashboard 已完成；Development Migration、真實租戶隔離、Owner／Admin／Teacher／Reviewer RLS、Playwright、production build 與自動化整合驗收均已通過。人工 UI／手機版驗收延後至 Milestone 2，不標記為已完成。
 - Sprint 8：Curriculum Editor、章節／課次 CRUD、受控排序、Dashboard 統計、API、四角色 RLS 與真實 Playwright E2E 已完成自動化驗收；人工 UI／鍵盤／手機版驗收仍待產品負責人確認。
 - AR-001：ADR-003、AI／Legal Reference Policy 與非破壞性 Display Adapter 已獲有條件核准並完成命名修正；資料庫 Migration 僅完成設計，尚未建立或套用。
-- AR-002：Data Lifecycle & Audit Architecture 只登錄於 Backlog，尚未啟動或實作。
-- 下一步：先完成人工驗收與 Sprint 8 技術封板；未經指示不開始 Sprint 9。本階段不串接 AI、題庫或試卷。
+- AP-002：Platform Governance Foundation 與 Amendment 已取得 Final Architecture Approval；Identity Concept、ADR-004～007、Capability Map 與 Event Catalog 已成為核准基線。未建立 Migration、API、UI、Identity Framework、RBAC、Event Bus、Queue、Notification、Audit table、生命週期寫入、Platform Admin Console 或刪除功能。
+- 下一步正式順序：AP-003 → AP-002B → AP-002A → AP-002C → AP-004 → AP-002D → AP-002E → AP-002F → AP-002G。這些 Package 與 Sprint 9 均尚未開始；本階段不串接 AI、題庫或試卷。

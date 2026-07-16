@@ -145,6 +145,30 @@ Sprint 8 以 additive migration 擴充既有結構：`chapters.status` 使用 `d
 - 排序陣列必須包含同一父層完整且不重複的 ID，最多 500 筆；資料庫鎖定版本／章後以兩階段更新避免 unique order 衝突。
 - 刪除章節會在同一 transaction 刪除其課次並壓縮章排序；刪除課次會壓縮該章課次排序。Teacher/reviewer 維持 select-only。
 
+> AP-002 治理風險：上述 delete RPC 是 Sprint 8 的 legacy 行為，目前沒有 Teaching／Learning／Assessment 下游資料。未來一旦存在 protected history，就不得繼續使用直接硬刪除。後續需先以 additive lifecycle v2、dependency scan、archive/trash/restore 與 Audit 取代 caller，再由新的 forward-only Migration 撤銷 authenticated execute；不得修改 Sprint 8 Migration 或 Drop 函式。
+
+## Platform Governance Migration Design（AP-002 Accepted Architecture）
+
+AP-002 不建立 Migration，只提出未來契約。推薦 Hybrid approach：Organization、Account、Membership 與 Curriculum family 的 canonical state 由 typed companion/domain state 保存；共用 workflow 由 `lifecycle_requests`、`deletion_requests`、`retention_policies`、`retention_holds`、`recycle_bin_entries` 與 append-only `audit_events` 承擔。平台角色預留 `platform_roles` 與 `platform_role_assignments`，但不與 `organization_members` 合併。
+
+未來 additive proposal：
+
+- `organization_lifecycle`：1:1 Organization canonical state、state version 與 state timestamps；legacy `organizations.status/deleted_at` 保留。
+- `account_governance`：Account state、privacy/deletion workflow reference；不保存 password/token。
+- `membership_lifecycle`：補足 ARCHIVED 與 workflow metadata；legacy Membership status 保留。
+- `lifecycle_requests`／`deletion_requests`：transition、reason、impact、policy、approval、grace、execution 與 tombstone reference。
+- `retention_policies`／`retention_holds`：版本化規則、jurisdiction、scope 與 override。
+- `recycle_bin_entries`：restore workflow metadata，不是所有 Domain 的 canonical source。
+- `audit_events`：append-only、allowlisted metadata、partition/external archive ready。
+
+所有新 public table 必須 ENABLE/FORCE RLS、預設撤銷 direct write、FK 優先 `ON DELETE RESTRICT`。Platform authorization 使用獨立 helper 與 case-scoped capability，不得以 active organization helper 或 Service Role 當一般管理 session。永久刪除函式不 grant 給 browser roles，只供核准後的受控 job。
+
+Backfill 只從已知 legacy 狀態建立 canonical state；unknown value 停止。先 dual-read、再 dual-write compatible states；新狀態只寫 canonical layer。Rollback 關 flag、停 job、保留新增資料並以 correction Migration 修正，不 Drop、Truncate、改 ID 或重寫歷史。
+
+此設計為 **Accepted — Architecture Approved**，但尚未實作；目前資料庫 schema 與 Migration history 均未因 AP-002 變動。
+
+AP-002 Amendment 不改變上述 Migration Design。`platform_roles`／`platform_role_assignments` 的最終 authority、Account／Person linking、Persona reference、re-auth 與 policy decision schema 必須由 AP-003 Identity／RBAC 核准；不得由 AP-002 先行建表。Event Catalog 也只定義 future contract，不建立 Outbox、Queue 或 Consumer table。
+
 ## avatars Storage bucket
 
 用途：保存使用者個人圖片。Bucket 設為 private，`profiles.avatar_url` 只保存伺服器產生的物件路徑，不保存永久公開網址。
@@ -181,6 +205,7 @@ Sprint 8 以 additive migration 擴充既有結構：`chapters.status` 使用 `d
 - 匯出與稽核：exports、audit_logs、content_provenance。
 - 商務：plans、subscriptions、usage_ledger、payment_events。
 - 未來教學：classes、students、assignments、attempts、responses、skill_profiles、parent_reports。
+- 未來治理（AP-002 Accepted Architecture，尚未實作）：platform role assignments、typed lifecycle state、lifecycle/deletion requests、retention policies/holds、recycle bin workflow、append-only audit events。
 
 實際欄位、constraint、index、保留策略與 RLS 必須在建立該表的 Sprint 中補齊並通過審查。
 
