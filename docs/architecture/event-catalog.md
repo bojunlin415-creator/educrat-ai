@@ -4,7 +4,7 @@
 - Architecture Package：AP-002 Amendment
 - 日期：2026-07-16
 
-AP-003A 的 Identity 事件為 **Approved contract extension — Not Implemented**。在 AP-002B/AP-004 實作前，不代表 event publisher、Audit writer、Outbox、Bus、Queue 或 Consumer 已存在。Role／Permission／re-auth／CASE事件留給尚未開始的 AP-003B。
+AP-003A 的 Identity 事件為 **Approved contract extension — Not Implemented**。AP-003B 的 Authorization 事件為 **Proposed contract extension — Awaiting Approval**。在 AP-002B/AP-004 實作前，不代表 event publisher、Audit writer、Outbox、Bus、Queue 或 Consumer 已存在。
 
 ## 1. 範圍
 
@@ -136,7 +136,20 @@ AP-003A 的 Identity 事件為 **Approved contract extension — Not Implemented
 
 Auth credential、token、provider subject、email、Profile、Guardian法律文件、未成年資料、合併衝突全文與業務內容不得進 Identity event payload。事件只能在 canonical transaction完成後發布；link／merge／relationship mutation仍需 AP-002B Audit與 AP-004 delivery基礎後才可實作。
 
-## 14. Consumer Responsibility
+## 14. AP-003B Authorization Events（Proposed Contract Extension — Not Implemented）
+
+| Event／Version                                 | Owner；Publisher → Consumers                                                     | Payload allowlist                                                                                                                                                                         | Org scope；Correlation／Idempotency                                    | PII／Audit                                            | Retry／Ordering／Failure                                            |
+| ---------------------------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------- |
+| `authorization.role_assignment_changed.v1`     | Permission；controlled assignment transaction → RLS projection、Workspace、Audit | `assignment_reference, subject_type, subject_reference, role_key, role_version, scope_type, scope_reference?, before, after, effective_at`                                                | tenant assignment必填；key=`role_assignment:ref:version`               | internal refs only；Audit required                    | strict assignment order；projection failure fail closed             |
+| `authorization.permission_set_published.v1`    | Permission；catalog publication → Policy evaluator、Role manager、Audit          | `catalog_version, catalog_digest, permission_count, effective_at, supersedes_version?`                                                                                                    | Platform scope；key=`permission_catalog:version:digest`                | 無 PII；Audit required                                | immutable version；consumer不支援版本時fail closed                  |
+| `authorization.delegation_changed.v1`          | Permission；delegation transaction → Policy evaluator、Workspace、Audit          | `delegation_reference, source_assignment_reference, recipient_reference, permission_set_reference, scope_type, scope_reference?, before, after, expires_at`                               | organization scope必填；key=`delegation:ref:state_version`             | internal refs only；Audit required                    | strict delegation order；expiry/revoke high priority                |
+| `authorization.case_access_changed.v1`         | Platform Governance；approved CASE workflow → Policy evaluator、Security、Audit  | `case_reference, grant_reference, actor_reference, organization_id, capability_set_reference, resource_allowlist_reference, masking_policy_version, before, after, starts_at, expires_at` | organization與case correlation必填；key=`case_grant:ref:state_version` | 不含理由全文／PII／case內容；HIGH_RISK Audit required | activation/revoke/expiry strict order；consumer failure fail closed |
+| `authorization.emergency_access_used.v1`       | Platform Governance；break-glass controller → Security、Post-review、Audit       | `access_reference, actor_reference, emergency_class, capability_set_reference, scope_reference, started_at, expires_at, review_due_at`                                                    | Platform/case scope；key=`emergency_access:ref:use`                    | 不含被查資料；CRITICAL Audit與即時告警                | at-least-once alert；未建Audit/alert時禁止production使用            |
+| `authorization.high_risk_decision_recorded.v1` | Permission；canonical policy decision → Audit、Security                          | `decision_reference, policy_version, action, subject_reference, scope_type, resource_type, resource_reference?, decision, reason_code, obligation_codes, decided_at`                      | tenant resource需organization；key=`authz_decision:ref:version`        | 不含完整policy graph/resource內容；依門檻Audit        | decision先落安全receipt；delivery failure不得改判定                 |
+
+一般 `DENY` 不逐筆長期發布；只有跨租戶、SoD、CASE、break-glass、高風險操作或安全門檻觸發事件／Audit。Payload 不含 Permission 全圖、JWT、Session、Token、Secret、PII、完整理由或資源內容。AP-002B 前不得啟用 assignment／CASE／delegation write；AP-004 前沒有 Outbox、Queue、retry worker或production break-glass delivery。
+
+## 15. Consumer Responsibility
 
 1. Consumer 保存處理 checkpoint／idempotency receipt；不得以「看過」但未提交 projection 的狀態標記成功。
 2. Consumer 若需要 payload 外資料，使用 owning Domain 的版本化 read contract，不要求 Publisher 擴大 PII payload。
@@ -144,6 +157,6 @@ Auth credential、token、provider subject、email、Profile、Guardian法律文
 4. Permission、Membership、Billing entitlement 等授權關鍵 consumer 失敗須告警並 fail closed；一般分析 consumer 失敗可延後，但不得阻擋原交易。
 5. Permanent deletion executor 在每個 checkpoint 重新查詢 authority、hold、dependency 與 approval，不得只依 `deletion_requested` event 執行。
 
-## 15. Deferred Infrastructure
+## 16. Deferred Infrastructure
 
 Outbox、Event Bus、Queue、dead-letter store、schema registry、consumer checkpoint、delivery monitoring 與 replay tooling 均尚未實作。正式實作前需獨立 Architecture Package 定義交易一致性、容量、資料區域、加密、觀測、成本與災難復原。

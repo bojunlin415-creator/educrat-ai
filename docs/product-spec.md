@@ -160,7 +160,7 @@ AP-002 目前狀態為 **Accepted — Architecture Approved**。核准只建立�
 
 目前仍未實作分校、成員邀請、細緻 RBAC、版本 2／發布稽核、AI 生成、題庫、試卷、品質檢查或匯出。Sprint 6 不開放任意加入機構或修改成員角色；這些能力保留給後續授權 Sprint。Production 未執行任何 Migration 或部署。Sprint 4 的 Google OAuth 已在 Development 完成人工成功驗收；密碼復原 session 綁定仍是正式商用前的高優先修正。
 
-AP-002 implementation Package 的正式順序為：AP-003A Identity Domain Model → AP-003B Role, Permission & Policy → AP-002B Immutable Audit Foundation → AP-002A Lifecycle Schema Foundation → AP-002C Dependency Protection → AP-004 Background Job, Event & Notification Foundation → AP-002D Organization Closing → AP-002E Account Privacy／Deletion → AP-002F Recycle Bin → AP-002G Platform Admin Console。AP-003A 已核准但尚未建立 runtime；AP-003B與所有後續 implementation Package及 Sprint 9均尚未開始。
+AP-002 implementation Package 的正式順序為：AP-003A Identity Domain Model → AP-003B Role, Permission & Policy → AP-002B Immutable Audit Foundation → AP-002A Lifecycle Schema Foundation → AP-002C Dependency Protection → AP-004 Background Job, Event & Notification Foundation → AP-002D Organization Closing → AP-002E Account Privacy／Deletion → AP-002F Recycle Bin → AP-002G Platform Admin Console。AP-003A 已核准但尚未建立 runtime；AP-003B 已完成文件提案、等待架構核准，所有後續 implementation Package 及 Sprint 9 均尚未開始。
 
 ## AP-003A Identity Domain 產品契約（Accepted — Not Implemented）
 
@@ -169,3 +169,11 @@ EduCraft AI 將 Authentication Account、Auth Identity、canonical Person、Prof
 Profile 只保存顯示與個人 UI 偏好，不授權；active organization 只屬 Workspace Preference，不代表 Membership。Persona 表示教育身份，不直接授權；Role、Permission、Scope、Policy Decision 與完整 RBAC 留給 AP-003B。Platform role 永遠不存入 Organization Membership，AI Agent 也不是 Account、Service Principal 或管理角色。
 
 AP-003A 只定義 Account settings、Organization／Persona switch、Student claim、Guardian link、Account linking 與 elevated identity 的文字 UX；本階段沒有新增頁面、API、Migration 或 runtime。完整設計見 `docs/architecture/ap-003a-identity-domain-model.md`。
+
+## AP-003B Authorization 產品契約（Proposed — Not Implemented）
+
+AP-003B 將 Identity authority 轉為明確授權決策：Role 是版本化 Permission 集合，Membership 是租戶關係，Persona 是教育業務身份，Scope 是作用範圍，Entitlement 是方案可用性，Business Rule 是 Domain 不變量；六者不能合併成單一 `role` 或管理員 Boolean。
+
+Permission 採受控 `resource.action` 格式，提案 catalog 共 224 個鍵。Policy 依序驗證 Identity、Membership、Persona、Role、Permission、Scope、租戶、Entitlement、Lifecycle、Business Rule、Separation of Duties 與必要 approval/re-auth，預設拒絕；UI 只改善體驗，Server/Domain/RLS 才是安全邊界。
+
+Platform Support 不具常駐跨租戶權限，只能使用有案件、最小 capability/resource allowlist、遮罩、到期與 Audit 的 `CASE` access。AI Assistant／Reviewer／Generator 是受控執行 profile，不是 Account、管理角色或 Service Principal，也不能核准、發布、變更權限或執行不可逆刪除。完整提案見 `docs/architecture/ap-003b-authorization-framework.md`。

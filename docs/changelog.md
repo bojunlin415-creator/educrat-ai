@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-07-17 — AP-003B：Authorization Architecture Baseline（Proposed）
+
+### Architecture
+
+- 建立人類 Platform／Organization／Academic／Student／Family role templates，並將 AI execution profiles 與 Service Principal workload roles隔離。
+- 建立 224 個受控 `resource.action` Permission Catalog，不使用 `isAdmin`、`isOwner` 或其他 Boolean permission。
+- 定義 Platform、Organization、Campus、School、Grade、Class、Course及教材／學生／報表等 Resource Scope ownership、inheritance與租戶隔離。
+- 定義 `Request → Identity → Membership → Persona → Role → Permission → Scope → Business Rule → Decision → Audit` 的 fail-closed Policy Decision 與 Allow／Deny／Conflict／Fallback規則。
+- 建立 least privilege、explicit grant、delegation、temporary access、re-auth、CASE、break-glass、AI authorization及 Entitlement boundary安全契約。
+- 提出 versioned hybrid、legacy role backfill、shadow evaluation、dual-write、RLS與 forward-only correction Migration Design；沒有建立 Migration 或 schema。
+
+### Documents and limits
+
+- 新增 AP-003B 與 ADR-010～013、Permission Catalog、Authorization Security Model及 Authorization Migration Design。
+- 更新 README、產品、系統、資料庫、測試、Capability Map、Event Catalog與Architecture Backlog。
+- 狀態為 **Proposed — Awaiting Architecture Approval**；沒有修改 Production code、UI、test、OAuth、Session、JWT、Database、RLS、API或Migration，未開始 AP-004或Sprint 9。
+
 ## 2026-07-17 — EP-001：Development E2E Test Isolation
 
 ### Testing

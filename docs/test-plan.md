@@ -236,3 +236,11 @@ AP-002 本身只修改文件，沒有 Governance 功能可執行 E2E。後續 im
 - Identity／link／claim endpoint使用 safe error，無 account/person/student enumeration；Audit payload符合 allowlist。
 
 Role／Permission／Scope、re-auth、CASE與 Permission Matrix的測試由 AP-003B定義。AP-002B Audit writer未完成前，link／merge／claim與高風險 identity write不可標記可上線；AP-004未完成前，不測或開放 production permanent deletion／irreversible anonymization。
+
+## AP-003B Authorization Architecture Validation（Proposed — Runtime Not Implemented）
+
+本 Package 只允許文件變更，因此現階段驗證文件範圍、224 個 `resource.action` key 唯一性、禁止 Boolean permission、ADR／Capability／Event 交叉連結，以及既有 Typecheck、Lint、Unit／Integration 與 Build 回歸；不存在可執行的 Policy Engine、RBAC、API、RLS 或 UI E2E。
+
+未來 implementation 至少必測：catalog typo/version/deprecation、role snapshot、default deny、assignment lifecycle、legacy parity、inactive Account／Membership／Persona、scope inheritance與跨租戶負向案例、last-owner、delegation subset/expiry、re-auth receipt binding/replay、SoD、CASE masking/expiry、Service Principal isolation、AI tool allowlist、entitlement separation、RLS獨立於 UI/API 決策，以及 decision/Audit correlation不洩漏敏感 payload。
+
+AP-002B Immutable Audit 完成前，不開放 role/CASE/delegation mutation；AP-004 完成前，不開放 production break-glass、永久刪除或其他不可逆 background operation。

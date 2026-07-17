@@ -59,3 +59,14 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 - AP-002B 提供 append-only Audit；AP-002A 建立 canonical lifecycle schema；AP-002C 驗證 Version／Chapter／Lesson與未來下游 dependency；AP-002F 實作 Recycle Bin／Restore／deadline／permanent-delete eligibility；AP-004 執行大型或不可逆 background deletion work。
 - AP-002B 與 AP-002C 完成前不得開放 Curriculum permanent deletion；AP-004 完成前不得執行大型或不可逆永久刪除。
 - 本 Backlog 不授權修改 Curriculum UI、API、service、RLS、grant、Migration、Chapter／Lesson delete RPC 或 Database。
+
+## AP-003B Handoff：Role、Permission、Scope and Policy Decision
+
+- 狀態：**Proposed — Awaiting Architecture Approval**；文件提案完成，runtime 尚未開始。
+- 文件：`ap-003b-authorization-framework.md`、ADR-010～013、Permission Catalog、Authorization Security Model、Authorization Migration Design。
+- Catalog：224 個唯一 `resource.action` keys；不使用 `isAdmin`／`isOwner` Boolean，也不把 Scope、Entitlement或Business Rule塞進Role。
+- Identity關係：AP-003A提供 Account／Person／Profile／Membership／Persona authority；AP-003B只定義 Role Definition／Assignment、Permission、Scope與Policy Decision，不重做Identity。
+- 相容性：`organization_members.role`仍是runtime authority；未來只採 additive backfill、shadow evaluation、受控 dual-write與feature-gated cutover，不修改Sprint 1–8 Migration。
+- 安全門檻：Platform Support只可有time-bound CASE access；AI profile不是Account、管理Role或Service Principal；Campus／School／Student／Guardian scope尚未存在時fail closed。
+- 核准後解鎖AP-002B Immutable Audit的實作設計，再依AP-002A、AP-002C、AP-004順序推進；本提案不授權直接開始任何後續Package。
+- AP-002B前不得啟用新的Role／Delegation／CASE write；AP-004前不得開放permanent deletion、irreversible anonymization、platform high-risk mutation或production break-glass。

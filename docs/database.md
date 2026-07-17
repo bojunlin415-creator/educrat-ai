@@ -310,4 +310,12 @@ AP-003A 不變更 schema 或 Migration history。推薦保留 `profiles.id = aut
 
 遷移只允許 additive phases：Person/link backfill → shadow dual-read → managed Persona → feature-gated dual-write → AP-003B policy/RLS cutover → forward hardening。Legacy `profiles`、Membership、單一 role、last-owner protection、active organization preference、Auth/Profile IDs 與 Sprint 7/8 行為保留，不 rename/drop。任何 identity link 歧義、cycle、跨租戶 projection 或 parity 差異阻擋 rollout。
 
+## AP-003B Authorization Migration Design（Proposed — Not Executed）
+
+AP-003B 沒有建立 Migration 或變更 schema。提案採 versioned hybrid：Permission keys 由受 code review 的版本化 catalog 定義並以 digest/version materialize；role definitions、role-permission versions、assignments、delegations、platform assignments、CASE grants、re-auth receipts、policy/approval metadata 才是未來 DB runtime state。
+
+現有 `organization_members.role` 繼續是 authority；`organization_owner`、`organization_admin`、`teacher`、`reviewer` 未來採 deterministic backfill，先 shadow evaluate，再在 Audit、RLS、last-owner與 parity gate 通過後進入 atomic dual-write。active organization 仍只是 workspace preference，不能用作權限證據。未知 legacy role、Campus／Student／Guardian reserved role 或對應不明時 fail closed。
+
+所有候選 table 必須 additive、`ENABLE/FORCE RLS`、最小 grant、受控 fixed-search-path RPC、不可由 client 指定 actor/role/tenant authority；不 rename/drop 舊欄位，不修改歷史 Migration。完整候選 entity、index、constraint、forward correction 與 rollout gate 見 `docs/data/authorization-migration-design.md`。
+
 新 public table 必須 ENABLE/FORCE RLS、最小 grants；link／merge mutation 預設走 fixed-search-path 受控 flow，以 `auth.uid()` resolve Account，不接受 caller 自稱 Account／Person／Organization authority。現有 `profiles` 與 Membership 的 Account cascade FK 使 hard delete 保持關閉，直到 forward-only identity/dependency hardening完成。完整方案見 `docs/data/identity-migration-design.md`。
