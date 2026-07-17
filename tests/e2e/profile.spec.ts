@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { createHash } from "node:crypto";
+import {
+  createE2ERunId,
+  createUniqueCurriculumName,
+  createUpdatedCurriculumName,
+} from "./helpers/test-data";
 
 const email = process.env.E2E_AUTH_EMAIL;
 const passwordCandidates = [
@@ -25,17 +30,22 @@ test.describe.configure({ timeout: 240_000 });
 
 test("authenticated user completes and manages their profile", async ({
   page,
-}) => {
+}, testInfo) => {
   const authAccount = requireConfiguredAuthAccount();
+  const runId = createE2ERunId(testInfo.workerIndex);
 
   const fixtureSlug = `e2e-${createHash("sha256")
     .update(authAccount.email)
     .digest("hex")
     .slice(0, 12)}`;
-  const curriculumFixtureName = `Sprint 7 教材 ${createHash("sha256")
-    .update(authAccount.email)
-    .digest("hex")
-    .slice(0, 8)}`;
+  const curriculumFixtureName = createUniqueCurriculumName(runId);
+  const updatedCurriculumFixtureName = createUpdatedCurriculumName(
+    curriculumFixtureName,
+  );
+  const conflictingCurriculumFixtureName = createUniqueCurriculumName(
+    runId,
+    "名稱衝突教材",
+  );
   const unauthenticatedCreateResponse = await page
     .context()
     .request.post("/api/organizations", {
@@ -155,31 +165,30 @@ test("authenticated user completes and manages their profile", async ({
 
   await page.goto("/curriculums");
   await expect(page.getByRole("heading", { name: "教材列表" })).toBeVisible();
-  const existingCurriculumLink = page.getByRole("link", {
-    exact: true,
-    name: curriculumFixtureName,
-  });
-  if ((await existingCurriculumLink.count()) === 0) {
-    await page
-      .getByRole("link", { name: /建立.*教材/ })
-      .first()
-      .click();
-    await expect(page).toHaveURL(/\/curriculums\/new$/);
-    await page.getByLabel("教材名稱").fill(curriculumFixtureName);
-    await page.getByLabel("科目").selectOption({ label: "數學" });
-    await page.getByLabel("年級").selectOption({ label: "四年級" });
-    await page
-      .getByLabel("教材進度架構")
-      .selectOption({ label: "教學進度模板 2" });
-    await page.getByLabel("學年度").fill("115");
-    await page.getByLabel("學期").selectOption("1");
-    await page.getByLabel("狀態").selectOption("draft");
-    await page.getByLabel("初始版本備註（選填）").fill("E2E 初始版本");
-    await page.getByRole("button", { name: "建立教材" }).click();
-    await expect(page).toHaveURL(/\/curriculums\/[0-9a-f-]+$/);
-  } else {
-    await existingCurriculumLink.click();
-  }
+  await page
+    .getByRole("link", { name: /建立.*教材/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/curriculums\/new$/);
+  await page.getByLabel("教材名稱").fill(curriculumFixtureName);
+  await page.getByLabel("科目").selectOption({ label: "數學" });
+  await page.getByLabel("年級").selectOption({ label: "四年級" });
+  await page
+    .getByLabel("教材進度架構")
+    .selectOption({ label: "教學進度模板 2" });
+  await page.getByLabel("學年度").fill("115");
+  await page.getByLabel("學期").selectOption("1");
+  await page.getByLabel("狀態").selectOption("draft");
+  await page.getByLabel("初始版本備註（選填）").fill("E2E 初始版本");
+  const createCurriculumResponsePromise = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === "/api/curriculums" &&
+      response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "建立教材" }).click();
+  const createCurriculumResponse = await createCurriculumResponsePromise;
+  expect(createCurriculumResponse.ok()).toBe(true);
+  await expect(page).toHaveURL(/\/curriculums\/[0-9a-f-]+$/);
 
   await expect(
     page.getByRole("heading", { name: curriculumFixtureName }),
@@ -215,12 +224,12 @@ test("authenticated user completes and manages their profile", async ({
     });
   expect(invalidCurriculumResponse.status()).toBe(422);
 
-  const duplicateCurriculumResponse = await page
+  const conflictingCurriculumResponse = await page
     .context()
     .request.post("/api/curriculums", {
       data: {
         gradeId: curriculumDetailPayload.curriculum.grade_id,
-        name: curriculumFixtureName,
+        name: conflictingCurriculumFixtureName,
         publisherId: curriculumDetailPayload.curriculum.publisher_id,
         schoolYear: 115,
         semester: 1,
@@ -229,15 +238,48 @@ test("authenticated user completes and manages their profile", async ({
         versionRemark: "",
       },
     });
-  expect(duplicateCurriculumResponse.status()).toBe(409);
+  expect(conflictingCurriculumResponse.status()).toBe(201);
+
+  const duplicateCurriculumUpdateResponse = await page
+    .context()
+    .request.patch(`/api/curriculums/${curriculumId}`, {
+      data: {
+        curriculumReferenceId: curriculumDetailPayload.curriculum.publisher_id,
+        gradeId: curriculumDetailPayload.curriculum.grade_id,
+        name: conflictingCurriculumFixtureName,
+        schoolYear: 115,
+        semester: 1,
+        status: "draft",
+        subjectId: curriculumDetailPayload.curriculum.subject_id,
+      },
+    });
+  expect(duplicateCurriculumUpdateResponse.status()).toBe(409);
+  await expect(duplicateCurriculumUpdateResponse.json()).resolves.toMatchObject(
+    {
+      message: "目前機構已有相同名稱的教材，請更換名稱。",
+      success: false,
+    },
+  );
 
   await page.getByRole("link", { name: "編輯基本資料" }).click();
-  await page.getByLabel("教材名稱").fill(`${curriculumFixtureName} 已更新`);
+  await page.getByLabel("教材名稱").fill(updatedCurriculumFixtureName);
   await page.getByLabel("學期").selectOption("2");
+  const updateCurriculumResponsePromise = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === `/api/curriculums/${curriculumId}` &&
+      response.request().method() === "PATCH",
+  );
   await page.getByRole("button", { name: "儲存教材" }).click();
+  const updateCurriculumResponse = await updateCurriculumResponsePromise;
+  expect(updateCurriculumResponse.ok()).toBe(true);
   await expect(page).toHaveURL(new RegExp(`/curriculums/${curriculumId}$`));
   await expect(
-    page.getByRole("heading", { name: `${curriculumFixtureName} 已更新` }),
+    page.getByRole("heading", { name: updatedCurriculumFixtureName }),
+  ).toBeVisible();
+
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: updatedCurriculumFixtureName }),
   ).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });

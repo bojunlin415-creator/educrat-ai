@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-17 — EP-001：Development E2E Test Isolation
+
+### Testing
+
+- Curriculum E2E 改用 timestamp、worker、process 與 Node `randomUUID()` 組成的 run-scoped identifier，不再重用固定 Email 衍生的教材名稱。
+- 重複名稱案例由當次測試自行建立兩份教材並驗證正式 HTTP 409；正常更新另使用唯一名稱，且重新整理後資料仍存在。
+- 採「唯一命名、不清理」策略；未使用 Service Role、bypass RLS、資料庫清空、真實資料刪除或 timeout 放寬。
+- Final validation：Curriculum 單項 1/1、完整 Playwright 連續兩次 4/4、單執行緒 Unit／Integration 182 項，以及 Typecheck、Lint、Build、Prettier、安全與 Migration 檢查均通過。
+
 ## 2026-07-16 — AP-002 Final Architecture Approval & Git Seal
 
 ### Approval
