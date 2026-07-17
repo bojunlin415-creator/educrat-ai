@@ -43,7 +43,7 @@
 
 平台治理角色與 Organization Membership 必須分離。AP-002 提議 `PLATFORM_SUPER_ADMIN`、`PLATFORM_ADMIN`、`PLATFORM_SUPPORT`、`PLATFORM_AUDITOR` 四種平台角色；這些角色不自動成為 Organization Owner，也不因職位取得跨租戶教材與學生資料的日常瀏覽權。跨租戶支援只能在具體案件、最小欄位、有效期限、理由、re-auth 與 Audit 下進行。完整 RBAC 尚未實作。
 
-Identity Concept 進一步區分 Authentication Account、Person Profile、Organization Membership、Teacher／Student／Parent／Reviewer Persona 與 Platform Role Assignment。同一人可加入多個 Organization、擁有不同角色，並在同一 Organization 擁有多個 Persona；登入、Profile、租戶關係、業務身分與平台權限不得合併成單一全域 role。完整 authority 與 RACI 見 ADR-007，正式 Identity／RBAC 實作屬 AP-003。
+Identity Concept 進一步區分 Authentication Account、Auth Identity、Person、Profile、Organization Membership、Teacher／Student／Parent／Reviewer Persona 與 Platform Role Assignment。同一人可加入多個 Organization、擁有不同角色，並在同一 Organization 擁有多個 Persona；登入、Profile、租戶關係、業務身分與平台權限不得合併成單一全域 role。完整 authority 與 RACI 見 ADR-007；AP-003A 只設計 Identity Domain，Role／Permission／Policy 留給 AP-003B。
 
 ## 核心原則
 
@@ -160,4 +160,12 @@ AP-002 目前狀態為 **Accepted — Architecture Approved**。核准只建立�
 
 目前仍未實作分校、成員邀請、細緻 RBAC、版本 2／發布稽核、AI 生成、題庫、試卷、品質檢查或匯出。Sprint 6 不開放任意加入機構或修改成員角色；這些能力保留給後續授權 Sprint。Production 未執行任何 Migration 或部署。Sprint 4 的 Google OAuth 已在 Development 完成人工成功驗收；密碼復原 session 綁定仍是正式商用前的高優先修正。
 
-AP-002 implementation Package 的正式順序為：AP-003 Identity, RBAC & Permission Framework → AP-002B Immutable Audit Foundation → AP-002A Lifecycle Schema Foundation → AP-002C Dependency Protection → AP-004 Background Job, Event & Notification Foundation → AP-002D Organization Closing → AP-002E Account Privacy／Deletion → AP-002F Recycle Bin → AP-002G Platform Admin Console。所有 Package 與 Sprint 9 均尚未開始。
+AP-002 implementation Package 的正式順序為：AP-003A Identity Domain Model → AP-003B Role, Permission & Policy → AP-002B Immutable Audit Foundation → AP-002A Lifecycle Schema Foundation → AP-002C Dependency Protection → AP-004 Background Job, Event & Notification Foundation → AP-002D Organization Closing → AP-002E Account Privacy／Deletion → AP-002F Recycle Bin → AP-002G Platform Admin Console。AP-003A 已核准但尚未建立 runtime；AP-003B與所有後續 implementation Package及 Sprint 9均尚未開始。
+
+## AP-003A Identity Domain 產品契約（Accepted — Not Implemented）
+
+EduCraft AI 將 Authentication Account、Auth Identity、canonical Person、Profile、Organization Membership、Teacher／Reviewer／Student／Parent Persona、Guardian Relationship、Platform Role Assignment 與 Service Principal 分離。一般情況一個 Account 對應一個 Person；Managed Student／Guardian 可以先有 Person／Persona 而沒有 Account，後續以受控 linking 連到既有歷史。
+
+Profile 只保存顯示與個人 UI 偏好，不授權；active organization 只屬 Workspace Preference，不代表 Membership。Persona 表示教育身份，不直接授權；Role、Permission、Scope、Policy Decision 與完整 RBAC 留給 AP-003B。Platform role 永遠不存入 Organization Membership，AI Agent 也不是 Account、Service Principal 或管理角色。
+
+AP-003A 只定義 Account settings、Organization／Persona switch、Student claim、Guardian link、Account linking 與 elevated identity 的文字 UX；本階段沒有新增頁面、API、Migration 或 runtime。完整設計見 `docs/architecture/ap-003a-identity-domain-model.md`。

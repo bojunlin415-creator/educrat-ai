@@ -9,6 +9,33 @@
 - 採「唯一命名、不清理」策略；未使用 Service Role、bypass RLS、資料庫清空、真實資料刪除或 timeout 放寬。
 - Final validation：Curriculum 單項 1/1、完整 Playwright 連續兩次 4/4、單執行緒 Unit／Integration 182 項，以及 Typecheck、Lint、Build、Prettier、安全與 Migration 檢查均通過。
 
+## 2026-07-16 — AP-003A Final Architecture Approval & Git Seal
+
+### Approval
+
+- AP-003A 狀態更新為 **Accepted — Architecture Approved**；ADR-008 與 ADR-009 更新為 **Accepted**。
+- Identity Security、Privacy、Migration Design 與 UX 成為 **Approved Architecture Baseline — Not Implemented**。
+- 核准 Account／Person／Profile／Membership／Persona分離、受控 linking／merge、Managed Student／Guardian無 Account、Platform/Organization authority隔離與 additive migration策略。
+
+### Architecture
+
+- 定義 Authentication Account、Auth Identity、canonical Person、Profile、Organization Membership、Domain Persona、Guardian Relationship、Platform Role Assignment 與 Service Principal 邊界。
+- 推薦預設一 Account 對一 Person、例外受控 linking／merge；Email 不作 Person ID，Managed Student／Guardian 可以沒有 Account。
+- 定義 Account／Person／Profile／Membership／Persona／Auth Identity lifecycle、匿名化、tombstone、資料 ownership、未成年與跨機構隱私規則。
+- 建立 Identity API／Service contract、Account／Persona／Student claim／Guardian／elevated identity wireframe，以及 additive/backfill/dual-read/dual-write Migration Design。
+- Account hard delete保持關閉是正式安全政策；Person link、dependency inventory、tombstone、Audit、Retention/Hold、ownership reassignment、anonymization與background job均為前置門檻。
+- Curriculum Delete確認尚未實作；其 Role/Permission、Audit、Lifecycle、Dependency、Recycle Bin與background deletion分別交由 AP-003B、AP-002B/A/C/F與AP-004。
+
+### 文件
+
+- 新增 AP-003A、ADR-008～009、Identity Security、Identity Privacy、Identity UX 與 Identity Migration Design。
+- 更新 README、產品、系統、資料庫、測試、Capability Map、Event Catalog 與 Architecture Backlog，標示核准但未實作的邊界。
+
+### 限制
+
+- 沒有修改程式、UI、測試、OAuth、Database schema 或 Migration；沒有建立 Person／Persona／Account Link runtime、RLS／RPC／API、Invite、Student／Parent、RBAC／Permission、Audit writer、Event Bus、Queue、Platform Console、AI 或 Knowledge Graph。
+- 本次 Git seal 不包含程式、UI、測試、Database或Migration；未 deploy、merge main、建立 PR、開始 AP-003B、AP-002A/B/C、AP-004或Sprint 9。
+
 ## 2026-07-16 — AP-002 Final Architecture Approval & Git Seal
 
 ### Approval

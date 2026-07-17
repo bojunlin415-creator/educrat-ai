@@ -4,6 +4,8 @@
 - Architecture Package：AP-002 Amendment
 - 日期：2026-07-16
 
+AP-003A 的 Identity 事件為 **Approved contract extension — Not Implemented**。在 AP-002B/AP-004 實作前，不代表 event publisher、Audit writer、Outbox、Bus、Queue 或 Consumer 已存在。Role／Permission／re-auth／CASE事件留給尚未開始的 AP-003B。
+
 ## 1. 範圍
 
 本文件定義 future event contract，不代表 Event Bus、Queue、Outbox、Consumer、Notification 或 Background Job 已實作。此處的 **Publisher** 指事件發布元件，與 legacy textbook Publisher 完全無關。
@@ -122,7 +124,19 @@
 | `billing.invoice_issued.v1`              | Billing；Invoice transaction → Communication、Analytics、Audit                                 | `invoice_id, organization_id, invoice_number_reference, currency, amount_summary, issued_at, due_at, retention_policy_version`     | 必填；invoice correlation，key=`invoice:id:issued`             | 不含 tax/address 明細；Audit required          | immutable issue；delivery failure 不刪 invoice                    |
 | `billing.payment_status_changed.v1`      | Billing；Verified webhook/ledger transaction → Subscription、Analytics、Communication、Audit   | `payment_reference, organization_id, invoice_id?, before, after, amount_summary, currency, effective_at, provider_event_reference` | 必填；provider correlation，key=`provider:event:version`       | 不含 card/bank/customer secret；Audit required | webhook 去重；ledger order；failure 進 reconciliation，不信任前端 |
 
-## 13. Consumer Responsibility
+## 13. AP-003A Identity Events（Approved Contract Extension — Not Implemented）
+
+| Event／Version                              | Owner；Publisher → Consumers                                                          | Payload allowlist                                                                                                                            | Org scope；Correlation／Idempotency                                     | PII／Audit                                                | Retry／Ordering／Failure                                               |
+| ------------------------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `identity.account_person_link_changed.v1`   | Identity；verified link transaction → Membership、Workspace、Audit                    | `person_reference, account_reference, change_type, link_version, effective_at`                                                               | Platform scope；correlation 必填，key=`account_person_link:ref:version` | internal refs only；Audit required                        | strict link order；identity projection failure fail closed             |
+| `identity.person_merged.v1`                 | Identity；approved merge workflow → Membership、Persona owners、Audit                 | `source_person_reference, canonical_person_reference, merge_reference, effective_at, merge_version`                                          | Platform scope；merge correlation，key=`person_merge:reference:version` | 不含姓名、email或 conflict 明細；HIGH_RISK Audit required | single canonical result；partial failure rollback／checkpoint recovery |
+| `identity.auth_identity_status_changed.v1`  | Identity/Auth adapter；verified provider change → Security、Workspace、Audit          | `account_reference, provider_type, before, after, identity_version, effective_at`                                                            | Platform scope；key=`auth_identity:account:provider:version`            | 不含 provider subject/token/email；security Audit         | strict account/provider order；compromised/revoked high priority       |
+| `identity.persona_status_changed.v1`        | Persona owning Domain；persona transition → Membership、Workspace、Audit              | `persona_reference, persona_type, organization_id?, before, after, state_version, effective_at`                                              | tenant Persona 必填 organization；key=`persona:reference:state_version` | 不含姓名／domain record payload；Audit required           | strict persona order；stale reject；access projection fail closed      |
+| `identity.guardian_relationship_changed.v1` | Learning/Identity；verified relationship transition → Workspace、Communication、Audit | `relationship_reference, guardian_persona_reference, student_persona_reference, organization_id, before, after, scope_version, effective_at` | 必填；relationship correlation，key=`guardian_relation:ref:version`     | internal refs與 scope version only；不含 minor PII        | strict relation order；Communication重查 consent；failure fail closed  |
+
+Auth credential、token、provider subject、email、Profile、Guardian法律文件、未成年資料、合併衝突全文與業務內容不得進 Identity event payload。事件只能在 canonical transaction完成後發布；link／merge／relationship mutation仍需 AP-002B Audit與 AP-004 delivery基礎後才可實作。
+
+## 14. Consumer Responsibility
 
 1. Consumer 保存處理 checkpoint／idempotency receipt；不得以「看過」但未提交 projection 的狀態標記成功。
 2. Consumer 若需要 payload 外資料，使用 owning Domain 的版本化 read contract，不要求 Publisher 擴大 PII payload。
@@ -130,6 +144,6 @@
 4. Permission、Membership、Billing entitlement 等授權關鍵 consumer 失敗須告警並 fail closed；一般分析 consumer 失敗可延後，但不得阻擋原交易。
 5. Permanent deletion executor 在每個 checkpoint 重新查詢 authority、hold、dependency 與 approval，不得只依 `deletion_requested` event 執行。
 
-## 14. Deferred Infrastructure
+## 15. Deferred Infrastructure
 
 Outbox、Event Bus、Queue、dead-letter store、schema registry、consumer checkpoint、delivery monitoring 與 replay tooling 均尚未實作。正式實作前需獨立 Architecture Package 定義交易一致性、容量、資料區域、加密、觀測、成本與災難復原。

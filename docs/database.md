@@ -167,7 +167,7 @@ Backfill 只從已知 legacy 狀態建立 canonical state；unknown value 停止
 
 此設計為 **Accepted — Architecture Approved**，但尚未實作；目前資料庫 schema 與 Migration history 均未因 AP-002 變動。
 
-AP-002 Amendment 不改變上述 Migration Design。`platform_roles`／`platform_role_assignments` 的最終 authority、Account／Person linking、Persona reference、re-auth 與 policy decision schema 必須由 AP-003 Identity／RBAC 核准；不得由 AP-002 先行建表。Event Catalog 也只定義 future contract，不建立 Outbox、Queue 或 Consumer table。
+AP-002 Amendment 不改變上述 Migration Design。Account／Person linking、Persona reference 與 identity lifecycle 已由 AP-003A 核准為架構基線；`platform_roles`／`platform_role_assignments`、re-auth 與 policy decision schema 再由 AP-003B 核准，不得由 AP-002 先行建表。Event Catalog 也只定義 future contract，不建立 Outbox、Queue 或 Consumer table。
 
 ## avatars Storage bucket
 
@@ -301,3 +301,13 @@ AP-002 Amendment 不改變上述 Migration Design。`platform_roles`／`platform
 - 一般使用者實測 own upload／read／delete 成功，第二帳號跨資料夾讀寫與匿名讀取均遭拒絕。
 - Storage 實測拒絕錯誤 MIME 與超過 2 MB 的物件；測試物件已清除。
 - Profile API 使用既有欄位級 grant 的分離 insert／update，不放寬為整表 UPDATE，也不修改已套用的 Sprint 3 Migration。
+
+## AP-003A Identity Migration Design（Approved Architecture Baseline — Not Executed）
+
+AP-003A 不變更 schema 或 Migration history。推薦保留 `profiles.id = auth.users.id` 作 Account-linked compatibility，未來以 additive `persons` + `account_person_links` 建立 canonical Person；正常情況維持一對一，受控 linking／merge 才允許一 Person 連多 Account。Managed Student／Guardian 可先有 Person／Persona 而沒有 Account，Email 不作 Person ID。
+
+候選 entity 包含 `persons`、`account_person_links`、`personas`、`guardian_relationships`、`identity_merge_records`；`auth_identity_metadata`、`person_profiles` 與 `service_principals` 只有在具體 authority／query 需求核准後才建立。AP-003A 不提前建立完整 Role／Permission table，該部分由 AP-003B 決定。
+
+遷移只允許 additive phases：Person/link backfill → shadow dual-read → managed Persona → feature-gated dual-write → AP-003B policy/RLS cutover → forward hardening。Legacy `profiles`、Membership、單一 role、last-owner protection、active organization preference、Auth/Profile IDs 與 Sprint 7/8 行為保留，不 rename/drop。任何 identity link 歧義、cycle、跨租戶 projection 或 parity 差異阻擋 rollout。
+
+新 public table 必須 ENABLE/FORCE RLS、最小 grants；link／merge mutation 預設走 fixed-search-path 受控 flow，以 `auth.uid()` resolve Account，不接受 caller 自稱 Account／Person／Organization authority。現有 `profiles` 與 Membership 的 Account cascade FK 使 hard delete 保持關閉，直到 forward-only identity/dependency hardening完成。完整方案見 `docs/data/identity-migration-design.md`。

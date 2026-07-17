@@ -185,7 +185,26 @@ AP-002 推薦 Hybrid data design：Domain/typed companion 保存 canonical curre
 
 現有 Sprint 8 Chapter/Lesson delete RPC 保留相容，但不得延伸到有 Teaching/Learning dependency 的未來資料。Lifecycle v2 切換完成後，應以新的 forward-only Migration 撤銷 authenticated execute；不修改歷史 Migration，也不直接 cascade delete 教材或歷程。
 
-Domain ownership、allowed/forbidden dependency、RACI 與 published contract 見 ADR-007。產品能力與 North Star 見 `docs/product/capability-map.md`；future Domain Events 見 `docs/architecture/event-catalog.md`。事件文件不表示 Event Bus、Queue、Outbox、Consumer 或 replay infrastructure 已存在。正式執行順序為 AP-003 → AP-002B Audit → AP-002A Lifecycle Schema → AP-002C Dependency Protection → AP-004 Background Job/Event/Notification → AP-002D Organization Closing → AP-002E Account Privacy/Deletion → AP-002F Recycle Bin → AP-002G Platform Admin Console。所有項目均尚未開始。
+Domain ownership、allowed/forbidden dependency、RACI 與 published contract 見 ADR-007。產品能力與 North Star 見 `docs/product/capability-map.md`；future Domain Events 見 `docs/architecture/event-catalog.md`。事件文件不表示 Event Bus、Queue、Outbox、Consumer 或 replay infrastructure 已存在。正式執行順序為 AP-003A Identity Domain → AP-003B Role/Permission/Policy → AP-002B Audit → AP-002A Lifecycle Schema → AP-002C Dependency Protection → AP-004 Background Job/Event/Notification → AP-002D Organization Closing → AP-002E Account Privacy/Deletion → AP-002F Recycle Bin → AP-002G Platform Admin Console。AP-003A 已核准但未實作，其餘項目均尚未開始。
+
+### AP-003A Identity Domain Boundary（Accepted — Not Implemented）
+
+```text
+Authentication Account ──▶ Auth Identities
+          │
+          ├───────────────▶ Legacy Account Profile
+          └───────────────▶ Account–Person Link ──▶ Canonical Person
+                                                        ├─▶ Organization Membership
+                                                        ├─▶ Domain Personas
+                                                        ├─▶ Guardian Relationships
+                                                        └─▶ Platform Role Assignment boundary
+
+Managed Person / Persona ── may exist without Authentication Account
+```
+
+AP-003A 推薦預設一 Account 對一 Person、例外使用受控 linking／merge；Email 不作 Person ID。Profile 只保存顯示與個人偏好，active organization 只屬 workspace preference；Persona、Membership 與 Role 分離，Managed Student／Guardian 可以沒有 Account。Platform Role Assignment 與 Organization Membership 完全分離，AI Agent 不能成為 Account、Service Principal 或管理角色。
+
+Role、Permission、Scope、Policy Decision、re-auth、CASE access 與 Permission Matrix 由 AP-003B 定義。AP-003A 沒有新增 table、RLS、RPC、API 或 UI；Legacy `profiles.id = auth.users.id` 與 `organization_members.role` 在 additive cutover 前維持 authority，不修改 Sprint 1–8 Migration。現有 Account-linked cascade FK 使 hard delete 保持關閉，直到 forward-only identity／dependency治理完成。
 
 ### 既有決策
 

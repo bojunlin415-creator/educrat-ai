@@ -194,7 +194,7 @@ Sprint 6、Sprint 7 與 Sprint 8 的自動化整合驗收已完成。以下項�
 
 ## AP-002 未來治理驗證契約（Accepted Architecture — Not Implemented）
 
-AP-002 本身只修改文件，沒有 Governance 功能可執行 E2E。後續 implementation packages 依 AP-003 → AP-002B → AP-002A → AP-002C → AP-004 → AP-002D → AP-002E → AP-002F → AP-002G 順序，至少需要：
+AP-002 本身只修改文件，沒有 Governance 功能可執行 E2E。後續 implementation packages 依 AP-003A → AP-003B → AP-002B → AP-002A → AP-002C → AP-004 → AP-002D → AP-002E → AP-002F → AP-002G 順序，至少需要：
 
 - Organization、Account、Membership、Curriculum 的每一合法／非法 state transition。
 - 最後一位 active owner suspend/downgrade/remove/leave 全部拒絕，ownership transfer 全 transaction 成功或 rollback。
@@ -217,3 +217,22 @@ AP-002 本身只修改文件，沒有 Governance 功能可執行 E2E。後續 im
 - Unit Test 與 Playwright 必須在沒有平行 build／test 的乾淨執行環境依序執行。
 - 不得為通過 Amendment 驗證而調高 test timeout、修改 Sprint 8 程式／測試或跳過案例。
 - 若相同測試再次逾時，停止重跑並記錄命令、spec、案例、失敗步驟、預期／實際、timeout、worker、環境與 artifact 路徑，另開修正工作。
+
+## AP-003A Identity Architecture Validation（Accepted — Runtime Not Implemented）
+
+本 Package 只有文件，沒有新增 runtime 測試。文件封板前仍需完整回歸 typecheck、lint、單執行緒 Unit/Integration、Playwright、build、Prettier、diff、敏感資訊、Migration history 與 Git scope；若既有測試失敗，不得修改程式、測試或 timeout 掩蓋。
+
+未來 AP-003A implementation 至少必測：
+
+- Account／Auth Identity／Profile／Person／Membership／Persona authority 不混用，`auth.uid()` 只解析 Account。
+- 每個現有 Account backfill 唯一 active Person link；無 cycle、孤兒、重複 active link或 email自動 merge。
+- Managed Student／Guardian無 Account仍有穩定 Persona；後續 claim連到既有 Persona且不複製 Learning History。
+- Account link要求雙方驗證；Ownership、Guardian、Student、Platform或 Membership conflict進 review，不部分成功。
+- Person merge保留 alias／tombstone與歷史 actor reference；同 Person多 Account不能繞過 SoD。
+- Organization A不能看見同 Person在 Organization B的 Membership、Persona、role或 Guardian relationship。
+- Profile更新不改 Account／Person link／Membership／Persona；active organization preference不授權。
+- Guardian relationship未驗證、過期或 scope不足時拒絕，且不暴露其他 Guardian PII。
+- Account suspension／deletion不 cascade教材、教學、學習、評量、Review或 Audit；legacy cascade blocker gate生效。
+- Identity／link／claim endpoint使用 safe error，無 account/person/student enumeration；Audit payload符合 allowlist。
+
+Role／Permission／Scope、re-auth、CASE與 Permission Matrix的測試由 AP-003B定義。AP-002B Audit writer未完成前，link／merge／claim與高風險 identity write不可標記可上線；AP-004未完成前，不測或開放 production permanent deletion／irreversible anonymization。

@@ -1,6 +1,6 @@
 # EduCraft AI（Education Intelligence Platform）
 
-為台灣國小補教業者與教師打造的教育智慧平台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構、章節／課次編輯器，以及 Curriculum Reference 相容層；AI 功能尚未串接。AP-002 的平台治理、Identity Concept、Domain Boundary、生命週期、刪除、保留、事件與稽核架構已核准並完成 Git 封板準備，但相關治理功能尚未實作。
+為台灣國小補教業者與教師打造的教育智慧平台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構、章節／課次編輯器，以及 Curriculum Reference 相容層；AI 功能尚未串接。AP-002 的平台治理架構與 AP-003A 的 Account、Person、Profile、Membership、Persona 身分架構皆已核准；相關 Identity runtime 仍未實作。
 
 ## 技術堆疊
 
@@ -135,6 +135,13 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - [ADR-005](docs/architecture/adr-005-platform-vs-organization-admin.md)：已核准的 Platform 與 Organization 管理邊界
 - [ADR-006](docs/architecture/adr-006-deletion-retention-audit.md)：已核准的刪除、保留與不可變稽核架構
 - [ADR-007](docs/architecture/adr-007-domain-boundaries.md)：已核准的 Identity Concept、Domain authority、RACI 與 cross-domain contract
+- [AP-003A Identity Domain](docs/architecture/ap-003a-identity-domain-model.md)：已核准的 Account、Person、Profile、Membership、Persona 與 linking 邊界（尚未實作）
+- [ADR-008](docs/architecture/adr-008-account-person-profile-separation.md)：已核准的 Account／Person／Profile 分離與受控連結決策
+- [ADR-009](docs/architecture/adr-009-persona-membership-boundary.md)：已核准的 Persona／Membership／Role 責任邊界
+- [Identity Security](docs/security/identity-security-model.md)：已核准的 Identity trust、link／merge 與未成年安全基線
+- [Identity Privacy](docs/privacy/identity-and-minor-data.md)：已核准的個資、Guardian 與未成年資料基線
+- [Identity Migration Design](docs/data/identity-migration-design.md)：已核准但未執行的 additive、backfill、dual-read／dual-write 設計
+- [Identity UX](docs/product/identity-ux.md)：已核准但未實作的 Account、Persona switch、Student claim 與 elevated identity wireframe
 - [Capability Map](docs/product/capability-map.md)：Approved Product Capability Baseline
 - [Event Catalog](docs/architecture/event-catalog.md)：Approved Contract Baseline — Not Implemented
 - [Lifecycle UX Guidelines](docs/product/lifecycle-ux-guidelines.md)：已核准的 Danger Zone、關閉精靈與回收桶 wireframe
@@ -169,4 +176,5 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - Sprint 8：Curriculum Editor、章節／課次 CRUD、受控排序、Dashboard 統計、API、四角色 RLS 與真實 Playwright E2E 已完成自動化驗收；人工 UI／鍵盤／手機版驗收仍待產品負責人確認。
 - AR-001：ADR-003、AI／Legal Reference Policy 與非破壞性 Display Adapter 已獲有條件核准並完成命名修正；資料庫 Migration 僅完成設計，尚未建立或套用。
 - AP-002：Platform Governance Foundation 與 Amendment 已取得 Final Architecture Approval；Identity Concept、ADR-004～007、Capability Map 與 Event Catalog 已成為核准基線。未建立 Migration、API、UI、Identity Framework、RBAC、Event Bus、Queue、Notification、Audit table、生命週期寫入、Platform Admin Console 或刪除功能。
-- 下一步正式順序：AP-003 → AP-002B → AP-002A → AP-002C → AP-004 → AP-002D → AP-002E → AP-002F → AP-002G。這些 Package 與 Sprint 9 均尚未開始；本階段不串接 AI、題庫或試卷。
+- AP-003A：Identity Domain Model 已取得 **Accepted — Architecture Approved**。尚未建立 Person／Persona／Account Link table、Migration、RLS、RPC、API、UI、Invite、Student／Guardian runtime、Platform role 或完整 RBAC；Account hard delete依正式安全政策維持關閉。
+- 下一個獨立 Package 為 AP-003B Role／Permission／Policy；AP-002B → AP-002A → AP-002C → AP-004 → AP-002D → AP-002E → AP-002F → AP-002G 均尚未開始。Sprint 9 尚未開始，本階段不串接 AI、題庫或試卷。
