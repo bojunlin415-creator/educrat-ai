@@ -237,10 +237,22 @@ AP-002 本身只修改文件，沒有 Governance 功能可執行 E2E。後續 im
 
 Role／Permission／Scope、re-auth、CASE與 Permission Matrix的測試由 AP-003B定義。AP-002B Audit writer未完成前，link／merge／claim與高風險 identity write不可標記可上線；AP-004未完成前，不測或開放 production permanent deletion／irreversible anonymization。
 
-## AP-003B Authorization Architecture Validation（Proposed — Runtime Not Implemented）
+## AP-003B Authorization Architecture Validation（Accepted — Runtime Enforcement Not Implemented）
 
 本 Package 只允許文件變更，因此現階段驗證文件範圍、224 個 `resource.action` key 唯一性、禁止 Boolean permission、ADR／Capability／Event 交叉連結，以及既有 Typecheck、Lint、Unit／Integration 與 Build 回歸；不存在可執行的 Policy Engine、RBAC、API、RLS 或 UI E2E。
 
 未來 implementation 至少必測：catalog typo/version/deprecation、role snapshot、default deny、assignment lifecycle、legacy parity、inactive Account／Membership／Persona、scope inheritance與跨租戶負向案例、last-owner、delegation subset/expiry、re-auth receipt binding/replay、SoD、CASE masking/expiry、Service Principal isolation、AI tool allowlist、entitlement separation、RLS獨立於 UI/API 決策，以及 decision/Audit correlation不洩漏敏感 payload。
 
 AP-002B Immutable Audit 完成前，不開放 role/CASE/delegation mutation；AP-004 完成前，不開放 production break-glass、永久刪除或其他不可逆 background operation。
+
+## AP-004A Authorization Runtime Foundation Validation
+
+AP-004A 只測 framework-neutral contracts，不測尚未實作的 Permission Catalog、Policy Engine、Scope Resolver、API／middleware enforcement、Audit writer 或 RLS 變更：
+
+- `PermissionKey`：合法 `resource.action`、非法 Boolean/magic string、大小寫、缺段、多段與長度邊界。
+- Decision model：`ALLOW`／`DENY` 與 machine-readable `DecisionReason` vocabulary 穩定。
+- Resource Scope：17 個核准 scope type 完整且未提前建立 resolver。
+- Provider：保留 Identity／Membership／Persona／Role／Permission／Scope references、輸出不可變 context、caller 後續 mutation 不污染結果。
+- Resolver isolation：context 組裝不呼叫 PermissionResolver／PolicyResolver，也不產生授權 decision。
+- Architecture boundary：禁止 React、Next.js、`app/`、`components/`、Supabase 與產品 feature import；驗證 `shared → domain → interfaces → application` 方向與無循環依賴。
+- 完整回歸仍執行 Typecheck、Lint、Unit／Integration、Build、Prettier、diff 與敏感資訊檢查。因沒有 UI、API、OAuth、Database 或 user flow 變更，本 Package 不新增 Playwright 案例。

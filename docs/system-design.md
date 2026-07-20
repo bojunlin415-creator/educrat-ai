@@ -206,7 +206,7 @@ AP-003A 推薦預設一 Account 對一 Person、例外使用受控 linking／mer
 
 Role、Permission、Scope、Policy Decision、re-auth、CASE access 與 Permission Matrix 由 AP-003B 定義。AP-003A 沒有新增 table、RLS、RPC、API 或 UI；Legacy `profiles.id = auth.users.id` 與 `organization_members.role` 在 additive cutover 前維持 authority，不修改 Sprint 1–8 Migration。現有 Account-linked cascade FK 使 hard delete 保持關閉，直到 forward-only identity／dependency治理完成。
 
-### AP-003B Authorization Boundary（Proposed — Not Implemented）
+### AP-003B Authorization Boundary（Accepted — Runtime Enforcement Not Implemented）
 
 AP-003B 提案將授權拆成 Role Definition／Version、224 個 `resource.action` Permission Catalog、Assignment、Scope Binding、Policy Decision 與 obligations。現有 `organization_members.role` 仍是 runtime authority；提案沒有修改 middleware、JWT、Session、RLS、RPC、API、UI 或資料庫。
 
@@ -215,6 +215,24 @@ Canonical decision flow 為 `Request → Identity → Membership → Persona →
 Role 分成人類 Platform／Organization／Academic／Student／Family templates、AI execution profiles 與 Service Principal workload roles。Platform Owner 是既有 `PLATFORM_SUPER_ADMIN` 的產品相容顯示，不創造第二個最高權限；AI profile 不可被指派給 Person，也不持有 Session 或管理權。Campus／School／Grade／Class／Course 等未來 scope 未建立前不得退化為全 Organization grant。
 
 Database 只提出 versioned hybrid 與 additive rollout：Permission catalog 受版本化 artifact 管理，role/assignment/runtime grant 未來保存於 DB；先由 AP-002B 提供 Audit，再 shadow evaluation、必要時 dual-write、feature-flag cutover。詳細文件見 AP-003B、ADR-010～013、Authorization Security 與 Authorization Migration Design。
+
+### AP-004A Authorization Runtime Foundation
+
+AP-004A 依現有 modular-monolith 慣例在 `lib/authorization/` 建立 framework-neutral contracts；沒有新增資料庫、Migration、API、UI、middleware、RLS、JWT、Session 或 OAuth 行為。
+
+```mermaid
+flowchart LR
+    Composition["Future composition root"] --> Provider["AuthorizationProvider"]
+    Provider --> Context["Immutable AuthorizationContext"]
+    Provider -. injected port .-> PermissionResolver["PermissionResolver interface"]
+    Provider -. injected port .-> PolicyResolver["PolicyResolver interface"]
+    PermissionResolver -. implementation deferred .-> AP004B["AP-004B+"]
+    PolicyResolver -. implementation deferred .-> FuturePolicy["Future Policy Engine"]
+```
+
+Provider 只把 caller 提供的 Identity、Membership、Persona、Role、Permission 與 Scope reference 組成不可變 context，不呼叫 resolver、不讀資料、不計算 ALLOW／DENY。`AuthorizationDecision` 只保存方向，`DecisionReason` 保存 `NOT_FOUND`、`OUT_OF_SCOPE`、`INSUFFICIENT_PERMISSION`、`EXPLICIT_DENY`、`SYSTEM_ERROR` 等機器可讀原因。`PermissionKey` 僅驗證 `resource.action` 結構，不內嵌 224-key Catalog。
+
+依賴固定為 `shared → domain → interfaces → application`。授權模組禁止 import React、Next.js、`app/`、`components/`、Supabase 或產品 feature service，並由架構測試檢查 import boundary 與循環依賴。完整契約見 `docs/architecture/ap-004a-authorization-runtime-foundation.md`。
 
 ### 既有決策
 
@@ -231,7 +249,8 @@ Database 只提出 versioned hybrid 與 additive rollout：Permission catalog �
 - `components/ui/`：不含領域邏輯的可重用元件。
 - `components/forms/`：表單狀態與互動。
 - `lib/validation/`：client/server 共用的 Zod schema。
-- `lib/auth/`、`lib/permissions/`：session、角色與授權邏輯。
+- `lib/auth/`：session 與登入相關 server helpers。
+- `lib/authorization/`：framework-neutral authorization context、decision、scope、resolver ports 與 provider boundary；目前不執行 enforcement。
 - `lib/supabase/`：browser、server 與 middleware client。
 - `lib/ai/`：AI provider、工作、Prompt 與 schema。
 - `lib/exports/`：列印、PDF、DOCX provider。

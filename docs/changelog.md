@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-07-17 — AP-004A：Authorization Runtime Foundation（Accepted）
+
+### Runtime contracts
+
+- 新增 framework-neutral `lib/authorization/`，包含 AuthorizationContext、machine-readable Decision／Reason／Result／Error、branded `resource.action` PermissionKey 與 17 類 ResourceScope vocabulary。
+- 新增 PermissionResolver／PolicyResolver interfaces 及 constructor-injected AuthorizationProvider；provider 只建立不可變 context，不查資料、不呼叫 resolver，也不判斷 ALLOW／DENY。
+- 新增單元與架構測試，驗證 permission 格式、decision vocabulary、scope 清單、context isolation、禁止依賴與循環依賴。
+
+### Boundaries
+
+- AP-003B 已是核准的 Architecture baseline；AP-004A 不內建 224-key Catalog，不建立 role assignment、Policy Engine、Scope Resolver、API／middleware enforcement、Audit runtime、Database、Migration、RLS、UI、JWT、Session 或 OAuth 變更。
+- 現有 server authorization 與 RLS 繼續生效；AP-004B 未開始，Production 未操作。
+
 ## 2026-07-17 — AP-003B：Authorization Architecture Baseline（Proposed）
 
 ### Architecture

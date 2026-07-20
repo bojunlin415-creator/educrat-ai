@@ -22,7 +22,7 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 正式 implementation 順序如下；每一項仍須獨立核准，不能合併成單一 Sprint，也不得自動視為 Sprint 9：
 
 1. AP-003A Identity Domain Model
-2. AP-003B Role, Permission & Policy Framework
+2. AP-003B Role, Permission & Policy Framework（Accepted；architecture only）
 3. AP-002B Immutable Audit Foundation
 4. AP-002A Lifecycle Schema Foundation
 5. AP-002C Dependency Protection
@@ -62,7 +62,7 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 
 ## AP-003B Handoff：Role、Permission、Scope and Policy Decision
 
-- 狀態：**Proposed — Awaiting Architecture Approval**；文件提案完成，runtime 尚未開始。
+- 狀態：**Accepted — Architecture Approved**；文件已 Git Sealed。AP-004A 已建立 runtime contracts，但 catalog、policy、scope 與 enforcement runtime 尚未開始。
 - 文件：`ap-003b-authorization-framework.md`、ADR-010～013、Permission Catalog、Authorization Security Model、Authorization Migration Design。
 - Catalog：224 個唯一 `resource.action` keys；不使用 `isAdmin`／`isOwner` Boolean，也不把 Scope、Entitlement或Business Rule塞進Role。
 - Identity關係：AP-003A提供 Account／Person／Profile／Membership／Persona authority；AP-003B只定義 Role Definition／Assignment、Permission、Scope與Policy Decision，不重做Identity。
@@ -70,3 +70,11 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 - 安全門檻：Platform Support只可有time-bound CASE access；AI profile不是Account、管理Role或Service Principal；Campus／School／Student／Guardian scope尚未存在時fail closed。
 - 核准後解鎖AP-002B Immutable Audit的實作設計，再依AP-002A、AP-002C、AP-004順序推進；本提案不授權直接開始任何後續Package。
 - AP-002B前不得啟用新的Role／Delegation／CASE write；AP-004前不得開放permanent deletion、irreversible anonymization、platform high-risk mutation或production break-glass。
+
+## AP-004A Handoff：Authorization Runtime Foundation
+
+- 狀態：**Accepted and Git Sealed**；runtime foundation 已建立，AP-004B 尚未開始。
+- 已建立：AuthorizationContext、Decision／Reason／Result／Error、branded PermissionKey、ResourceScope vocabulary、PermissionResolver／PolicyResolver interfaces、AuthorizationProvider DI boundary 與 architecture tests。
+- 明確未建立：Permission Catalog runtime、role/persona/membership adapter、permission/policy/scope resolver implementation、API／middleware guard、resource enforcement、Audit writer、Database／Migration／RLS、JWT／Session／OAuth 或 UI。
+- 現有 `organization_members.role`、server checks 與 RLS 仍是現行 authority；AP-004A 不得被用來宣稱完整 RBAC 或 Policy Engine 已上線。
+- AP-004B 必須取得獨立核准，並先定義 catalog version/deprecation、legacy parity、fail-closed resolver、shadow evaluation 與 Audit handoff，不能由本 Package 自動開始。

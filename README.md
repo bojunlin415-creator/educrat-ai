@@ -1,6 +1,6 @@
 # EduCraft AI（Education Intelligence Platform）
 
-為台灣國小補教業者與教師打造的教育智慧平台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構、章節／課次編輯器，以及 Curriculum Reference 相容層；AI 功能尚未串接。AP-002 的平台治理架構與 AP-003A 的 Account、Person、Profile、Membership、Persona 身分架構皆已核准；AP-003B 的 Role、Permission、Scope 與 Policy Decision 架構目前為提案，相關 runtime 皆未實作。
+為台灣國小補教業者與教師打造的教育智慧平台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構、章節／課次編輯器，以及 Curriculum Reference 相容層；AI 功能尚未串接。AP-002、AP-003A 與 AP-003B 架構皆已核准。AP-004A 只建立 framework-neutral 的 Authorization Runtime contracts 與 dependency-injection boundary；Permission Catalog runtime、Policy Engine、Scope Resolver 與任何 API／middleware／RLS enforcement 尚未開始。
 
 ## 技術堆疊
 
@@ -68,6 +68,7 @@ components/forms/    功能表單
 components/ui/       共用 UI 元件
 docs/                產品與工程文件
 lib/validation/      共用 Zod schema
+lib/authorization/   無框架授權 context、decision、scope 與 resolver contracts
 tests/e2e/           Playwright 測試
 supabase/migrations/ 經審查後才能套用的 Supabase CLI Migration
 public/              靜態資源
@@ -142,10 +143,11 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - [Identity Privacy](docs/privacy/identity-and-minor-data.md)：已核准的個資、Guardian 與未成年資料基線
 - [Identity Migration Design](docs/data/identity-migration-design.md)：已核准但未執行的 additive、backfill、dual-read／dual-write 設計
 - [Identity UX](docs/product/identity-ux.md)：已核准但未實作的 Account、Persona switch、Student claim 與 elevated identity wireframe
-- [AP-003B Authorization Framework](docs/architecture/ap-003b-authorization-framework.md)：提案中的 Role、Permission、Scope、Policy Decision 與授權邊界（尚未實作）
-- [Permission Catalog](docs/security/permission-catalog.md)：提案中的 224 個 `resource.action` 權限鍵與版本規則
-- [Authorization Security](docs/security/authorization-security-model.md)：提案中的 trust boundary、delegation、re-auth、CASE、Service Principal 與 AI 授權限制
-- [Authorization Migration Design](docs/data/authorization-migration-design.md)：提案中的 versioned hybrid、legacy role backfill 與 additive rollout
+- [AP-003B Authorization Framework](docs/architecture/ap-003b-authorization-framework.md)：已核准的 Role、Permission、Scope、Policy Decision 與授權邊界（runtime enforcement 尚未實作）
+- [AP-004A Authorization Runtime Foundation](docs/architecture/ap-004a-authorization-runtime-foundation.md)：已建立的 context、decision、scope、resolver interface 與 import boundary
+- [Permission Catalog](docs/security/permission-catalog.md)：已核准但尚未 runtime 化的 224 個 `resource.action` 權限鍵與版本規則
+- [Authorization Security](docs/security/authorization-security-model.md)：已核准的 trust boundary、delegation、re-auth、CASE、Service Principal 與 AI 授權限制
+- [Authorization Migration Design](docs/data/authorization-migration-design.md)：已核准但未執行的 versioned hybrid、legacy role backfill 與 additive rollout
 - [Capability Map](docs/product/capability-map.md)：Approved Product Capability Baseline
 - [Event Catalog](docs/architecture/event-catalog.md)：Approved Contract Baseline — Not Implemented
 - [Lifecycle UX Guidelines](docs/product/lifecycle-ux-guidelines.md)：已核准的 Danger Zone、關閉精靈與回收桶 wireframe
@@ -181,5 +183,6 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - AR-001：ADR-003、AI／Legal Reference Policy 與非破壞性 Display Adapter 已獲有條件核准並完成命名修正；資料庫 Migration 僅完成設計，尚未建立或套用。
 - AP-002：Platform Governance Foundation 與 Amendment 已取得 Final Architecture Approval；Identity Concept、ADR-004～007、Capability Map 與 Event Catalog 已成為核准基線。未建立 Migration、API、UI、Identity Framework、RBAC、Event Bus、Queue、Notification、Audit table、生命週期寫入、Platform Admin Console 或刪除功能。
 - AP-003A：Identity Domain Model 已取得 **Accepted — Architecture Approved**。尚未建立 Person／Persona／Account Link table、Migration、RLS、RPC、API、UI、Invite、Student／Guardian runtime、Platform role 或完整 RBAC；Account hard delete依正式安全政策維持關閉。
-- AP-003B：Role Model、224 個 Permission Catalog、Scope Model、Policy Decision 與授權安全／Migration Design 已完成文件提案，狀態為 **Proposed — Awaiting Architecture Approval**；沒有建立 runtime、Migration、RLS、API、UI、JWT 或 Session 變更。
-- AP-002B → AP-002A → AP-002C → AP-004 → AP-002D → AP-002E → AP-002F → AP-002G 均尚未開始。Sprint 9 尚未開始，本階段不串接 AI、題庫或試卷。
+- AP-003B：Role Model、224 個 Permission Catalog、Scope Model、Policy Decision 與授權安全／Migration Design 已取得 **Accepted — Architecture Approved**；尚未建立 catalog／policy runtime、Migration、RLS、API、UI、JWT 或 Session 變更。
+- AP-004A：**Accepted — Runtime Foundation Approved**；已建立 AuthorizationContext、machine-readable decision/result/error、branded PermissionKey、ResourceScope vocabulary、resolver interfaces、provider DI boundary 與架構測試；不執行 permission／policy 判斷，也不取代既有 Server／RLS 授權。
+- AP-004B、AP-002B → AP-002A → AP-002C 及其餘 Governance implementation 均尚未開始。Sprint 9 尚未開始，本階段不串接 AI、題庫或試卷。
