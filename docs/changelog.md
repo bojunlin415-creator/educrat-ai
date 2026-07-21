@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-07-20 — AP-004B：Permission Resolver & Policy Engine（Accepted and Git Sealed）
+
+### Runtime implementation
+
+- 新增純函式 Permission Resolver、17 類 Scope Compatibility Evaluator、immutable Policy／Condition model、Policy Resolver 與 Authorization Decision Engine。
+- 正式 PermissionKey 與 224-key Catalog 不變；`resource.*`／`*` 僅為獨立 runtime policy expression，且不能在缺少 exact context grant 時自行授權。
+- 實作 active tenant Membership、organization isolation、explicit lineage、Person／Profile／Persona／Own／Managed relationship evidence、default deny、fail closed 與 deterministic DENY override。
+- Condition 僅允許 equals／notEquals／includes／exists／all／any；不執行 JavaScript、SQL、網路、檔案或任何動態程式。
+
+### Boundaries
+
+- 未新增 Catalog adapter、Membership／Role／Persona query、API／middleware／Server Action／UI guard、Audit persistence、Database、Migration、Supabase、RLS、JWT、Session 或 OAuth 整合。
+- 既有 Server authorization 與 RLS 仍是現行 authority；AP-004B 已完成架構核准與 Git Seal，未 deploy、操作 Production 或開始 AP-004C。
+
 ## 2026-07-17 — AP-004A：Authorization Runtime Foundation（Accepted）
 
 ### Runtime contracts

@@ -126,4 +126,26 @@ describe("authorization architecture boundary", () => {
     for (const file of sourceFiles) visit(file);
     expect(visited.size).toBe(sourceFiles.length);
   });
+
+  it("keeps production evaluation deterministic and side-effect free", () => {
+    const forbiddenSourcePatterns = [
+      /Date\.now\s*\(/,
+      /Math\.random\s*\(/,
+      /process\.env/,
+      /\bfetch\s*\(/,
+      /\beval\s*\(/,
+      /new\s+Function\b/,
+      /setTimeout\s*\(/,
+    ];
+
+    for (const file of sourceFiles) {
+      const source = readFileSync(file, "utf8");
+      for (const pattern of forbiddenSourcePatterns) {
+        expect(
+          pattern.test(source),
+          `${path.relative(process.cwd(), file)} contains ${pattern.source}`,
+        ).toBe(false);
+      }
+    }
+  });
 });

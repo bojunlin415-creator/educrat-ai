@@ -13,7 +13,14 @@ describe("DefaultAuthorizationProvider", () => {
   it("assembles an immutable context without invoking either resolver", () => {
     const permission = parsePermissionKey("curriculum.read");
     const permissionResolver: PermissionResolver = {
-      resolve: vi.fn(async () => authorizationSuccess([permission])),
+      resolve: vi.fn(async () =>
+        authorizationSuccess({
+          decision: "ALLOW",
+          permission,
+          reason: "PERMISSION_MATCH",
+          requestedPermission: permission,
+        } as const),
+      ),
     };
     const policyResolver: PolicyResolver = {
       resolve: vi.fn(async () =>

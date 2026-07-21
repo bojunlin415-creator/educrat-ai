@@ -1,9 +1,16 @@
-import type { PermissionResolutionContext } from "@/lib/authorization/domain/context";
-import type { PermissionKey } from "@/lib/authorization/domain/permission";
+import type { ScopeEvaluationAttributes } from "@/lib/authorization/domain/scope";
+import type { DecisionResult } from "@/lib/authorization/domain/decision";
 import type { AuthorizationResult } from "@/lib/authorization/domain/result";
+
+export interface PermissionResolutionRequest {
+  readonly context: unknown;
+  readonly permission: unknown;
+  readonly resourceAttributes?: ScopeEvaluationAttributes;
+  readonly scope: unknown;
+}
 
 export interface PermissionResolver {
   resolve(
-    context: PermissionResolutionContext,
-  ): Promise<AuthorizationResult<readonly PermissionKey[]>>;
+    request: PermissionResolutionRequest,
+  ): Promise<AuthorizationResult<DecisionResult>>;
 }

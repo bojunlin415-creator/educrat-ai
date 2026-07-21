@@ -78,3 +78,12 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 - 明確未建立：Permission Catalog runtime、role/persona/membership adapter、permission/policy/scope resolver implementation、API／middleware guard、resource enforcement、Audit writer、Database／Migration／RLS、JWT／Session／OAuth 或 UI。
 - 現有 `organization_members.role`、server checks 與 RLS 仍是現行 authority；AP-004A 不得被用來宣稱完整 RBAC 或 Policy Engine 已上線。
 - AP-004B 必須取得獨立核准，並先定義 catalog version/deprecation、legacy parity、fail-closed resolver、shadow evaluation 與 Audit handoff，不能由本 Package 自動開始。
+
+## AP-004B Handoff：Permission Resolver & Policy Engine
+
+- 狀態：**Accepted and Git Sealed**；純函式 runtime core 已核准，產品 enforcement 尚未開始。
+- 已完成：exact Permission grant、獨立 wildcard policy expression、17 類 Scope 驗證、explicit lineage、關係證據、immutable Policy、safe Condition、deterministic ordering、default deny、explicit DENY override、Decision Engine 與單元／安全／架構測試。
+- Catalog 邊界：AP-003B 的 224 permission baseline 未變；本 Package 不建立 Catalog persistence/runtime，unknown key 只能在 exact context grant 缺少時 fail closed。
+- Scope 邊界：Membership／Person／Profile／Persona／Own／Managed 是 relation evidence，不新增與 AP-004A 重複的 Scope vocabulary；caller 必須在未來 trusted adapter 提供可驗證資料。
+- 明確未完成：Identity／Membership／Persona／Role query adapter、catalog version/deprecation gate、legacy parity/shadow evaluation、API／middleware／Server Action／UI enforcement、Audit persistence、Database／Migration／Supabase／RLS／Session／JWT／OAuth 整合。
+- AP-004C 只有技術前置條件，未獲開始授權；必須另行核准 trusted adapters、Audit handoff、resource lineage acquisition、production rollout 與現行授權 parity。
