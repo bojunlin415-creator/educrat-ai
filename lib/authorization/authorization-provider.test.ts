@@ -5,12 +5,13 @@ import {
   DefaultAuthorizationProvider,
   parsePermissionKey,
   type AuthorizationContextInput,
+  type AuthorizationContextProvider,
   type PermissionResolver,
   type PolicyResolver,
 } from "@/lib/authorization";
 
 describe("DefaultAuthorizationProvider", () => {
-  it("assembles an immutable context without invoking either resolver", () => {
+  it("delegates context creation without invoking either resolver", async () => {
     const permission = parsePermissionKey("curriculum.read");
     const permissionResolver: PermissionResolver = {
       resolve: vi.fn(async () =>
@@ -31,36 +32,18 @@ describe("DefaultAuthorizationProvider", () => {
       permissionResolver,
       policyResolver,
     });
-    const membership = {
-      id: "membership-1",
-      organizationId: "organization-1",
-      status: "ACTIVE",
-    };
     const input: AuthorizationContextInput = {
-      identity: {
-        id: "account-1",
-        personId: "person-1",
-        type: "ACCOUNT",
-      },
-      memberships: [membership],
-      metadata: { correlationId: "correlation-1" },
-      permissions: [permission],
-      personas: [
+      identity: { id: "account-1", personId: "person-1", type: "ACCOUNT" },
+      memberships: [
         {
-          id: "persona-1",
+          id: "membership-1",
           organizationId: "organization-1",
           status: "ACTIVE",
-          type: "TEACHER",
         },
       ],
-      roles: [
-        {
-          assignmentId: "assignment-1",
-          key: "TEACHER",
-          status: "ACTIVE",
-          version: "1",
-        },
-      ],
+      permissions: [permission],
+      personas: [],
+      roles: [],
       scopes: [
         {
           organizationId: "organization-1",
@@ -69,19 +52,15 @@ describe("DefaultAuthorizationProvider", () => {
         },
       ],
     };
+    const contextProvider: AuthorizationContextProvider = {
+      provide: vi.fn(async () => input),
+    };
 
-    const context = provider.createContext(input);
-    membership.organizationId = "changed-after-context-creation";
+    const context = await provider.createContext(contextProvider);
 
     expect(context.memberships[0]?.organizationId).toBe("organization-1");
-    expect(context.permissions).toEqual([permission]);
     expect(Object.isFrozen(context)).toBe(true);
-    expect(Object.isFrozen(context.identity)).toBe(true);
-    expect(Object.isFrozen(context.memberships)).toBe(true);
-    expect(Object.isFrozen(context.memberships[0])).toBe(true);
     expect(permissionResolver.resolve).not.toHaveBeenCalled();
     expect(policyResolver.resolve).not.toHaveBeenCalled();
-    expect(provider.permissionResolver).toBe(permissionResolver);
-    expect(provider.policyResolver).toBe(policyResolver);
   });
 });

@@ -4,6 +4,28 @@ export {
   type AuthorizationEngineDependencies,
   type AuthorizationEvaluationRequest,
 } from "@/lib/authorization/application/authorization-engine";
+export {
+  authorizeApiRequest,
+  type ApiAuthorizationResult,
+} from "@/lib/authorization/application/adapter/api-authorization";
+export { authorizeServerAction } from "@/lib/authorization/application/adapter/server-action-authorization";
+export {
+  DefaultAuthorizationContextFactory,
+  type AuthorizationContextFactory,
+} from "@/lib/authorization/application/context/authorization-context-factory";
+export type { AuthorizationContextProvider } from "@/lib/authorization/application/context/authorization-context-provider";
+export {
+  authorizationErrorFromDecision,
+  ForbiddenError,
+  InvalidAuthorizationContextError,
+  UnauthenticatedError,
+} from "@/lib/authorization/application/errors/application-authorization-errors";
+export {
+  authorize,
+  type AuthorizationDecisionEvaluator,
+  type AuthorizeDependencies,
+  type AuthorizeRequest,
+} from "@/lib/authorization/application/services/authorize";
 export { DefaultPermissionResolver } from "@/lib/authorization/application/default-permission-resolver";
 export { DefaultPolicyResolver } from "@/lib/authorization/application/default-policy-resolver";
 export {
