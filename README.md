@@ -1,6 +1,6 @@
 # EduCraft AI（Education Intelligence Platform）
 
-為台灣國小補教業者與教師打造的教育智慧平台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構、章節／課次編輯器，以及 Curriculum Reference 相容層；AI 功能尚未串接。AP-002、AP-003A 與 AP-003B 架構皆已核准。AP-004A 已建立 framework-neutral 的 Authorization Runtime contracts；AP-004B 已核准並完成純函式 Permission／Scope／Policy decision core，尚未接入 API、middleware、Session、Supabase 或 RLS enforcement。
+為台灣國小補教業者與教師打造的教育智慧平台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構、章節／課次編輯器，以及 Curriculum Reference 相容層；AI 功能尚未串接。AP-002、AP-003A 與 AP-003B 架構皆已核准。AP-004A／B、AP-004C-A／B 與 AP-002B 均已 Accepted and Git Sealed；Authorization 尚未接入產品 API、middleware、Session、Supabase 或 RLS enforcement，Audit 尚無資料庫 persistence 或產品 write integration。
 
 ## 技術堆疊
 
@@ -146,6 +146,9 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - [AP-003B Authorization Framework](docs/architecture/ap-003b-authorization-framework.md)：已核准的 Role、Permission、Scope、Policy Decision 與授權邊界（runtime enforcement 尚未實作）
 - [AP-004A Authorization Runtime Foundation](docs/architecture/ap-004a-authorization-runtime-foundation.md)：已建立的 context、decision、scope、resolver interface 與 import boundary
 - [AP-004B Permission Resolver & Policy Engine](docs/architecture/ap-004b-permission-resolver-policy-engine.md)：已核准並 Git Sealed 的純函式 permission／scope／condition／policy decision core（尚未整合產品 enforcement）
+- [AP-004C-A Minimal Authorization Adapter](docs/architecture/ap-004c-a-minimal-authorization-adapter.md)：已核准並 Git Sealed 的 `authorize()`、Context Factory 與 framework-neutral Server／API helper
+- [AP-004C-B Trusted Authorization Context](docs/architecture/ap-004c-b-trusted-authorization-context.md)：已核准並 Git Sealed 的 trusted authority ports、cross-source validation 與 provider-issued context boundary
+- [AP-002B Immutable Audit Foundation](docs/architecture/ap-002b-immutable-audit-foundation.md)：已核准並 Git Sealed 的不可變 Event、Receipt、Writer、canonical serialization 與 persistence ports（無 Database implementation）
 - [Permission Catalog](docs/security/permission-catalog.md)：已核准但尚未 runtime 化的 224 個 `resource.action` 權限鍵與版本規則
 - [Authorization Security](docs/security/authorization-security-model.md)：已核准的 trust boundary、delegation、re-auth、CASE、Service Principal 與 AI 授權限制
 - [Authorization Migration Design](docs/data/authorization-migration-design.md)：已核准但未執行的 versioned hybrid、legacy role backfill 與 additive rollout
@@ -187,4 +190,7 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - AP-003B：Role Model、224 個 Permission Catalog、Scope Model、Policy Decision 與授權安全／Migration Design 已取得 **Accepted — Architecture Approved**；尚未建立 catalog／policy runtime、Migration、RLS、API、UI、JWT 或 Session 變更。
 - AP-004A：**Accepted — Runtime Foundation Approved**；已建立 AuthorizationContext、machine-readable decision/result/error、branded PermissionKey、ResourceScope vocabulary、resolver interfaces、provider DI boundary 與架構測試；不執行 permission／policy 判斷，也不取代既有 Server／RLS 授權。
 - AP-004B：**Accepted and Git Sealed**；已建立純函式 Permission Resolver、Scope Evaluator、Policy／Condition Resolver 與 Authorization Engine，但未接入 trusted adapter、Catalog runtime、API、middleware、Session、Supabase、RLS、Audit 或 Production enforcement。
-- AP-004C、AP-002B → AP-002A → AP-002C 及其餘 Governance implementation 均尚未開始。Sprint 9 尚未開始，本階段不串接 AI、題庫或試卷。
+- AP-004C-A：**Accepted and Git Sealed**；已建立唯一 `authorize()` 入口、不可變 Context Factory、Server Action／API application helpers 與 machine-readable errors。
+- AP-004C-B：**Accepted and Git Sealed**；呼叫端不再提供 AuthorizationContext，改由 interface-only trusted authorities、cross-source validation、provider-issued envelope 與 whitelist copy 組成 immutable context；尚無 concrete Session／Supabase adapter或產品 enforcement。
+- AP-002B：**Accepted and Git Sealed**；已建立不可變 Audit Event／Receipt、fail-closed validation、canonical serializer、Hash Chain／Repository ports 與 Audit Writer，尚無 Database、Migration、RLS、API、UI 或產品 lifecycle integration。
+- AP-004C 後續整合、AP-002A → AP-002C 及其餘 Governance implementation 均尚未開始。Sprint 9 尚未開始，本階段不串接 AI、題庫或試卷。

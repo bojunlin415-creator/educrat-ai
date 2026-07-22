@@ -1,5 +1,49 @@
 # Changelog
 
+## 2026-07-22 — AP-002B：Immutable Audit Foundation（Accepted and Git Sealed）
+
+### Audit runtime foundation
+
+- 新增framework-neutral `lib/audit/`，包含immutable Audit Event／Receipt、machine-readable error、metadata allowlist、fail-closed validation與canonical serializer。
+- 新增interface-only Clock、Event ID、Hash Chain與Audit Repository ports；沒有Database、Supabase或external storage implementation。
+- 新增Audit Writer，固定執行validation、chain-head verification、canonical hash material、hash validation、frozen event、atomic append expectation與minimal receipt。
+- Repository append contract要求expected previous hash，以便未來persistence adapter用compare-and-set阻止parallel chain fork。
+- 新增hash determinism、receipt、validation、serialization、immutability、writer failure、architecture/import boundary與circular dependency tests。
+
+### Boundaries
+
+- 未新增Database schema、Migration、RLS、API、UI、Server Action、Middleware、Curriculum/Lesson功能或任何Archive／Delete／Restore產品流程。
+- 未建立production crypto/persistence adapter、transaction/outbox、Retention、Legal Hold、external archive或Audit Console；BF-003仍未開始。
+- 架構已核准並完成Git Seal；未deploy或操作Production。
+
+## 2026-07-21 — AP-004C-B：Trusted Authorization Context Adapter（Accepted and Git Sealed）
+
+### Trusted context boundary
+
+- 移除 `AuthorizeRequest.context`，`authorize()`、Server helper 與 API helper 改由必要的 `AuthorizationContextProvider` 取得 context。
+- 新增 interface-only Identity、Membership、Persona、Role 與 Permission Grant authority ports；沒有 Session、Supabase 或 Database concrete adapter。
+- 新增 cross-source validation、provider-issued trusted envelope、whitelist copy 與 immutable context，拒絕 caller 直接注入 role、permission、organization 或 grant scope。
+- 新增 forged Identity／Membership／Organization／Permission／Permission authority／Scope、missing Identity／Membership 及 forged envelope fail-closed 測試。
+
+### Boundaries
+
+- 未新增 Database schema、Migration、RLS、API route、middleware、React hook、UI、Audit、Lifecycle 或產品 business rule；未操作 Production。
+- 架構已核准並完成Git Seal；未deploy、操作Production或開始Curriculum lifecycle。
+
+## 2026-07-21 — AP-004C-A：Minimal Authorization Adapter（Accepted and Git Sealed）
+
+### Application integration
+
+- 新增唯一 `authorize()` Application entry，委派既有 AP-004B engine，不重複 Permission／Scope／Policy decision logic。
+- 新增 AuthorizationContext Factory 與既有 Provider 共用的 immutable context assembly；其 caller-supplied contract 已由 AP-004C-B 收斂為 trusted provider contract。
+- 新增 framework-neutral `authorizeServerAction()` 與 `authorizeApiRequest()`，以及 machine-readable Forbidden／Unauthenticated／Invalid Context errors。
+- 新增 Unit／Integration／Architecture tests，驗證 allow／deny、context 錯誤、evaluator 單次呼叫、import boundary、layer direction、無循環依賴及 Adapter 不繞過 `authorize()`。
+
+### Boundaries
+
+- 未建立真正 Server Action、API Route、middleware、React hook、Session／Cookie adapter、Supabase／Database query、RLS integration、Audit、Catalog adapter、產品 business rule 或 Curriculum Delete。
+- 沒有 Database schema 或 Migration 變更，未操作 Production；架構已核准並完成Git Seal，未開始BF-003。
+
 ## 2026-07-20 — AP-004B：Permission Resolver & Policy Engine（Accepted and Git Sealed）
 
 ### Runtime implementation

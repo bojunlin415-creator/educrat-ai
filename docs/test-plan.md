@@ -235,7 +235,7 @@ AP-002 本身只修改文件，沒有 Governance 功能可執行 E2E。後續 im
 - Account suspension／deletion不 cascade教材、教學、學習、評量、Review或 Audit；legacy cascade blocker gate生效。
 - Identity／link／claim endpoint使用 safe error，無 account/person/student enumeration；Audit payload符合 allowlist。
 
-Role／Permission／Scope、re-auth、CASE與 Permission Matrix的測試由 AP-003B定義。AP-002B Audit writer未完成前，link／merge／claim與高風險 identity write不可標記可上線；AP-004未完成前，不測或開放 production permanent deletion／irreversible anonymization。
+Role／Permission／Scope、re-auth、CASE與 Permission Matrix的測試由 AP-003B定義。AP-002B foundation雖已提供Audit Writer，但append-only persistence、transaction integration與架構核准完成前，link／merge／claim及高風險 identity write仍不可標記可上線；AP-004未完成前，不測或開放 production permanent deletion／irreversible anonymization。
 
 ## AP-003B Authorization Architecture Validation（Accepted — Runtime Enforcement Not Implemented）
 
@@ -243,7 +243,7 @@ Role／Permission／Scope、re-auth、CASE與 Permission Matrix的測試由 AP-0
 
 未來 implementation 至少必測：catalog typo/version/deprecation、role snapshot、default deny、assignment lifecycle、legacy parity、inactive Account／Membership／Persona、scope inheritance與跨租戶負向案例、last-owner、delegation subset/expiry、re-auth receipt binding/replay、SoD、CASE masking/expiry、Service Principal isolation、AI tool allowlist、entitlement separation、RLS獨立於 UI/API 決策，以及 decision/Audit correlation不洩漏敏感 payload。
 
-AP-002B Immutable Audit 完成前，不開放 role/CASE/delegation mutation；AP-004 完成前，不開放 production break-glass、永久刪除或其他不可逆 background operation。
+AP-002B Immutable Audit 的append-only persistence與產品transaction integration完成前，不開放 role/CASE/delegation mutation；AP-004 完成前，不開放 production break-glass、永久刪除或其他不可逆 background operation。
 
 ## AP-004A Authorization Runtime Foundation Validation
 
@@ -252,7 +252,42 @@ AP-004A 只測 framework-neutral contracts，不測尚未實作的 Permission Ca
 - `PermissionKey`：合法 `resource.action`、非法 Boolean/magic string、大小寫、缺段、多段與長度邊界。
 - Decision model：`ALLOW`／`DENY` 與 machine-readable `DecisionReason` vocabulary 穩定。
 - Resource Scope：17 個核准 scope type 完整且未提前建立 resolver。
-- Provider：保留 Identity／Membership／Persona／Role／Permission／Scope references、輸出不可變 context、caller 後續 mutation 不污染結果。
+- Provider：原始 immutable context contract 由 AP-004C-B 的 trusted authority boundary 延伸；caller 後續 mutation 不污染結果。
 - Resolver isolation：context 組裝不呼叫 PermissionResolver／PolicyResolver，也不產生授權 decision。
 - Architecture boundary：禁止 React、Next.js、`app/`、`components/`、Supabase 與產品 feature import；驗證 `shared → domain → interfaces → application` 方向與無循環依賴。
 - 完整回歸仍執行 Typecheck、Lint、Unit／Integration、Build、Prettier、diff 與敏感資訊檢查。因沒有 UI、API、OAuth、Database 或 user flow 變更，本 Package 不新增 Playwright 案例。
+
+## AP-004C-A Minimal Authorization Adapter Validation
+
+AP-004C-A 只測 Application Layer integration，不測尚未接入的 Session、Supabase、Route Handler、Server Action、middleware、UI、Audit、RLS 或產品 business rule：
+
+- `authorize()`：唯一 Application entry，委派既有 AP-004B evaluator，ALLOW／DENY 保持原始 `DecisionResult`，注入 evaluator 只呼叫一次。
+- Context Factory：只接受 provider-issued envelope；合法 Identity／Membership／Persona／Role／Permission／Scope 可建立不可變 context，未簽發 envelope fail closed。
+- Server helper：ALLOW 回傳 typed allow decision；missing Identity、invalid trusted sources、DENY 分別產生 unauthenticated、invalid-context、forbidden error。
+- API helper：不建立 HTTP Response，回傳 framework-neutral discriminated result；拒絕時不重跑 evaluator。
+- Import/Application boundary：Helper 必須經 `authorize()`，不能直接呼叫 engine；整個 authorization module 不能 import React、Next.js、Supabase、App Route 或產品 service，且不得循環依賴。
+- 完整回歸執行 Typecheck、Lint、Unit／Integration、Build、Prettier、diff 與敏感資訊掃描。沒有 UI／user flow 變更，因此不新增 AP-004C-A Playwright case。
+
+## AP-004C-B Trusted Authorization Context Validation
+
+AP-004C-B 驗證 trust boundary，不連接 production Session、Supabase 或產品 Route：
+
+- Provider ports：Identity、Membership、Persona、Role、Permission Grant 皆為 interface，沒有 concrete infrastructure implementation。
+- Cross-source validation：Identity、active Membership、Organization、Persona、Role、Permission authority 與 Scope 必須一致；只保留 active Organization 的有效資料。
+- Forgery：forged Identity、Membership、Organization、Permission、Permission source、Scope、會擴張權限的稀疏 permission-scope matrix 與未簽發 envelope 一律在 evaluator 前 fail closed。
+- Missing authority：missing Identity 對應 unauthenticated；missing Membership 對應 invalid authorization context。
+- Application integration：`AuthorizeRequest` 不含 context，`authorize()`、Server helper 與 API helper 均必須取得 `AuthorizationContextProvider`。
+- Architecture：source ports interface-only，raw immutable assembler 不公開，禁止 React、Next.js、Supabase、JWT、Session、Cookie、Database 與產品 feature import，且無 circular dependency。
+- 完整回歸執行 Typecheck、Lint、Unit／Integration、Build、Prettier、diff 與敏感資訊掃描；無 UI／user flow，因此不新增 Playwright。
+
+## AP-002B Immutable Audit Foundation Validation
+
+AP-002B 只驗證 framework-neutral Audit Domain/Application foundation，不測尚未存在的 Database、Migration、RLS、Supabase repository、API、UI或 lifecycle product flow：
+
+- Event validation：Organization／Platform scope互斥、Actor／Resource／Action／Reason／Result、canonical timestamp、version及64字元lowercase hash均fail closed。
+- Metadata：只接受allowlist code/reference與非負整數，拒絕未知欄位、email-like PII、任意巢狀payload與非法型別。
+- Serialization：遞迴key排序、Unicode NFC、number normalization與array order deterministic；cycle、accessor、Date/custom prototype、symbol、undefined及non-finite number拒絕。
+- Writer：validate先於hash、head重新驗證、previous hash納入material、append帶expected previous hash、failure不回receipt。
+- Immutability／minimization：Event、metadata及Receipt frozen；Receipt不含actor、reason、resource detail或metadata。
+- Architecture：Repository／Hash Chain只有interface且無update/delete；禁止React、Next.js、Supabase、Database、Authorization或產品Domain import；驗證依賴方向、無循環及無runtime side effect。
+- 完整回歸執行Typecheck、Lint、Unit／Integration、Build、Prettier、diff與敏感資訊掃描。沒有UI、API、OAuth、Database或user flow變更，因此不新增AP-002B Playwright case。

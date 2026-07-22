@@ -23,7 +23,7 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 
 1. AP-003A Identity Domain Model
 2. AP-003B Role, Permission & Policy Framework（Accepted；architecture only）
-3. AP-002B Immutable Audit Foundation
+3. AP-002B Immutable Audit Foundation（Accepted and Git Sealed；runtime foundation only）
 4. AP-002A Lifecycle Schema Foundation
 5. AP-002C Dependency Protection
 6. AP-004 Background Job, Event & Notification Foundation
@@ -43,7 +43,7 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 - 核心決策：預設 Account–Person 一對一、受控 linking／merge、Persona／Membership／Role分離、Managed Persona可無 Account、Email不作 Person ID。
 - 未實作：table、Migration、RLS、RPC、API、UI、Invite、Student/Parent runtime、RBAC/Permission、Platform role、Audit writer、Event Bus、Queue。
 - AP-003B 接手：Role Model、Permission Catalog、Scope、Policy Decision、Persona與 Role關係、legacy role相容、re-auth與 CASE access。
-- AP-003A 與 AP-003B 核准後才能解鎖 AP-002B → AP-002A → AP-002C；permanent deletion、irreversible anonymization、Platform high-risk mutation與 production break-glass仍等 AP-004。
+- AP-003A 與 AP-003B 已核准並解鎖 AP-002B；AP-002B runtime foundation 已完成、等待架構審查，後續仍依 AP-002A → AP-002C 推進。Permanent deletion、irreversible anonymization、Platform high-risk mutation與 production break-glass仍等 AP-004。
 
 ### Account hard delete formal blocker
 
@@ -56,7 +56,7 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 - 現況：**Delete Feature Not Implemented**。教材詳細頁沒有 delete action；也沒有 Curriculum delete dialog、validation、Domain service、DELETE API、RLS/grant、Dependency Protection、Recycle Bin／Restore 或 permanent deletion workflow。
 - `archived` 是既有更新流程可設定的狀態，不等於完整 Lifecycle／Trash／Restore／Delete。
 - AP-003 family（AP-003B 權限層）定義 archive／restore／trash／delete request 的 Role、Permission、Scope 與 re-auth。
-- AP-002B 提供 append-only Audit；AP-002A 建立 canonical lifecycle schema；AP-002C 驗證 Version／Chapter／Lesson與未來下游 dependency；AP-002F 實作 Recycle Bin／Restore／deadline／permanent-delete eligibility；AP-004 執行大型或不可逆 background deletion work。
+- AP-002B foundation 定義不可變 Event／Writer與append-only persistence contract；後續 Database adapter才會實現真正append-only儲存。AP-002A 建立 canonical lifecycle schema；AP-002C 驗證 Version／Chapter／Lesson與未來下游 dependency；AP-002F 實作 Recycle Bin／Restore／deadline／permanent-delete eligibility；AP-004 執行大型或不可逆 background deletion work。
 - AP-002B 與 AP-002C 完成前不得開放 Curriculum permanent deletion；AP-004 完成前不得執行大型或不可逆永久刪除。
 - 本 Backlog 不授權修改 Curriculum UI、API、service、RLS、grant、Migration、Chapter／Lesson delete RPC 或 Database。
 
@@ -68,8 +68,8 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 - Identity關係：AP-003A提供 Account／Person／Profile／Membership／Persona authority；AP-003B只定義 Role Definition／Assignment、Permission、Scope與Policy Decision，不重做Identity。
 - 相容性：`organization_members.role`仍是runtime authority；未來只採 additive backfill、shadow evaluation、受控 dual-write與feature-gated cutover，不修改Sprint 1–8 Migration。
 - 安全門檻：Platform Support只可有time-bound CASE access；AI profile不是Account、管理Role或Service Principal；Campus／School／Student／Guardian scope尚未存在時fail closed。
-- 核准後解鎖AP-002B Immutable Audit的實作設計，再依AP-002A、AP-002C、AP-004順序推進；本提案不授權直接開始任何後續Package。
-- AP-002B前不得啟用新的Role／Delegation／CASE write；AP-004前不得開放permanent deletion、irreversible anonymization、platform high-risk mutation或production break-glass。
+- AP-003B核准後已由獨立指令解鎖AP-002B foundation；AP-002B目前完成實作並等待架構審查，再依AP-002A、AP-002C、AP-004順序推進。
+- AP-002B append-only persistence與產品整合完成前不得啟用新的Role／Delegation／CASE write；AP-004前不得開放permanent deletion、irreversible anonymization、platform high-risk mutation或production break-glass。
 
 ## AP-004A Handoff：Authorization Runtime Foundation
 
@@ -87,3 +87,30 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 - Scope 邊界：Membership／Person／Profile／Persona／Own／Managed 是 relation evidence，不新增與 AP-004A 重複的 Scope vocabulary；caller 必須在未來 trusted adapter 提供可驗證資料。
 - 明確未完成：Identity／Membership／Persona／Role query adapter、catalog version/deprecation gate、legacy parity/shadow evaluation、API／middleware／Server Action／UI enforcement、Audit persistence、Database／Migration／Supabase／RLS／Session／JWT／OAuth 整合。
 - AP-004C 只有技術前置條件，未獲開始授權；必須另行核准 trusted adapters、Audit handoff、resource lineage acquisition、production rollout 與現行授權 parity。
+
+## AP-004C-A Handoff：Minimal Authorization Adapter
+
+- 狀態：**Accepted and Git Sealed**；不得視為 Product enforcement 上線。
+- 已完成：唯一 `authorize()` application entry、AuthorizationContext Factory、framework-neutral Server Action／API helper、typed Authorization／Forbidden／Unauthenticated／Invalid Context error 與單元／架構測試。
+- 原始 caller-supplied context contract 已由 AP-004C-B 取代；Session、Catalog persistence 與 lineage 的 concrete資料取得仍未實作。
+- Helper 不是真正 Server Action／Route Handler，沒有 Next.js、Cookie、Database、Supabase、RLS、Audit、middleware、UI 或產品 business rule integration。
+- 後續必須獨立核准 trusted adapter、現行授權 parity／shadow evaluation、AP-002B Audit handoff、resource lineage acquisition 與產品逐路徑 rollout。
+- 本 Package 不授權 Curriculum Delete、BF-003、AP-002B、RLS integration 或 Sprint 9。
+
+## AP-004C-B Handoff：Trusted Authorization Context Adapter
+
+- 狀態：**Accepted and Git Sealed**；尚未產品上線。
+- 已完成：interface-only Identity／Membership／Persona／Role／Permission Grant authority ports、trusted provider orchestrator、cross-source validation、provider-issued envelope、immutable whitelist copy，以及 `authorize()`／Server／API helper integration。
+- Fail closed：forged Identity、Membership、active Organization、Permission、Permission authority、Scope、未簽發 envelope，以及 missing Identity／Membership 均有自動測試。
+- 明確未完成：production Session／Supabase／Database concrete adapters、Catalog version authority、resource lineage acquisition、legacy parity／shadow evaluation、Audit、RLS、middleware、產品 API／Server Action／UI enforcement。
+- PLATFORM／CASE／break-glass context 暫不開放；目前 trusted provider 要求 active Organization membership。
+- 不授權 Audit、Lifecycle、Curriculum Delete／Archive、Migration、middleware、React hook 或任何 Product business rule。
+
+## AP-002B Handoff：Immutable Audit Foundation
+
+- 狀態：**Accepted and Git Sealed**；尚未接入產品寫入。
+- 已完成：immutable Audit Event／Receipt、metadata allowlist、fail-closed validation、canonical serializer、Hash Chain／Repository／Clock／ID ports，以及以 expected previous hash 進行 atomic append 的 Audit Writer contract。
+- Security boundary：禁止 arbitrary metadata、PII／Secret payload、Event mutation、Repository update/delete與 framework／Database／產品 Domain import；append失敗或 chain conflict 不回傳 Receipt。
+- 明確未完成：Audit table、Migration、Supabase repository、RLS／grant、production hash adapter、transaction/outbox、retention／hold、external archive、API／UI與產品 lifecycle integration。
+- AP-002A／C不得把此 foundation 誤當 persistence 已完成；任何 lifecycle write上線前仍需 append-only storage、transaction consistency、Authorization、RLS、Dependency Protection及完整負向測試。
+- BF-003、Curriculum Archive／Delete／Restore、Recycle Bin與permanent deletion未獲解鎖；本 Package不授權開始下一項。

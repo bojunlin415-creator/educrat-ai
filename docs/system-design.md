@@ -185,7 +185,7 @@ AP-002 推薦 Hybrid data design：Domain/typed companion 保存 canonical curre
 
 現有 Sprint 8 Chapter/Lesson delete RPC 保留相容，但不得延伸到有 Teaching/Learning dependency 的未來資料。Lifecycle v2 切換完成後，應以新的 forward-only Migration 撤銷 authenticated execute；不修改歷史 Migration，也不直接 cascade delete 教材或歷程。
 
-Domain ownership、allowed/forbidden dependency、RACI 與 published contract 見 ADR-007。產品能力與 North Star 見 `docs/product/capability-map.md`；future Domain Events 見 `docs/architecture/event-catalog.md`。事件文件不表示 Event Bus、Queue、Outbox、Consumer 或 replay infrastructure 已存在。正式執行順序為 AP-003A Identity Domain → AP-003B Role/Permission/Policy → AP-002B Audit → AP-002A Lifecycle Schema → AP-002C Dependency Protection → AP-004 Background Job/Event/Notification → AP-002D Organization Closing → AP-002E Account Privacy/Deletion → AP-002F Recycle Bin → AP-002G Platform Admin Console。AP-003A 已核准但未實作，其餘項目均尚未開始。
+Domain ownership、allowed/forbidden dependency、RACI 與 published contract 見 ADR-007。產品能力與 North Star 見 `docs/product/capability-map.md`；future Domain Events 見 `docs/architecture/event-catalog.md`。事件文件不表示 Event Bus、Queue、Outbox、Consumer 或 replay infrastructure 已存在。正式執行順序為 AP-003A Identity Domain → AP-003B Role/Permission/Policy → AP-002B Audit → AP-002A Lifecycle Schema → AP-002C Dependency Protection → AP-004 Background Job/Event/Notification → AP-002D Organization Closing → AP-002E Account Privacy/Deletion → AP-002F Recycle Bin → AP-002G Platform Admin Console。AP-003A／B、AP-004A／B、AP-004C-A／B與AP-002B foundation皆已核准並Git Sealed；AP-002A／C及後續治理功能仍未開始。
 
 ### AP-003A Identity Domain Boundary（Accepted — Not Implemented）
 
@@ -230,9 +230,46 @@ flowchart LR
     PolicyResolver -. implementation deferred .-> FuturePolicy["Future Policy Engine"]
 ```
 
-Provider 只把 caller 提供的 Identity、Membership、Persona、Role、Permission 與 Scope reference 組成不可變 context，不呼叫 resolver、不讀資料、不計算 ALLOW／DENY。`AuthorizationDecision` 只保存方向，`DecisionReason` 保存 `NOT_FOUND`、`OUT_OF_SCOPE`、`INSUFFICIENT_PERMISSION`、`EXPLICIT_DENY`、`SYSTEM_ERROR` 等機器可讀原因。`PermissionKey` 僅驗證 `resource.action` 結構，不內嵌 224-key Catalog。
+AP-004A 原始 Provider contract 只負責組成不可變 context，不呼叫 resolver、不讀資料、不計算 ALLOW／DENY；AP-004C-B 已將 caller-supplied input 收斂為 trusted provider-issued input。`AuthorizationDecision` 只保存方向，`DecisionReason` 保存 `NOT_FOUND`、`OUT_OF_SCOPE`、`INSUFFICIENT_PERMISSION`、`EXPLICIT_DENY`、`SYSTEM_ERROR` 等機器可讀原因。`PermissionKey` 僅驗證 `resource.action` 結構，不內嵌 224-key Catalog。
 
 依賴固定為 `shared → domain → interfaces → application`。授權模組禁止 import React、Next.js、`app/`、`components/`、Supabase 或產品 feature service，並由架構測試檢查 import boundary 與循環依賴。完整契約見 `docs/architecture/ap-004a-authorization-runtime-foundation.md`。
+
+### AP-004B／AP-004C-A／AP-004C-B Authorization Application Boundary
+
+AP-004B 已提供純函式 Permission、Scope、Policy 與 Decision Engine。AP-004C-A 在 `application/services` 建立唯一 `authorize()` 入口與 framework-neutral Server Action／API helper。AP-004C-B 移除 request 內的 caller-supplied context，新增 Identity、Membership、Persona、Role、Permission Grant authority ports、cross-source validation、provider-issued envelope 與 whitelist-copy Factory。既有 `DefaultAuthorizationProvider` 也只能委派 trusted Provider 與同一 Factory。
+
+```mermaid
+flowchart LR
+    AuthorityPorts["Identity / Membership / Persona / Role / Grant ports"] --> TrustedProvider["Trusted Context Provider"]
+    TrustedProvider --> ContextFactory["AuthorizationContextFactory"]
+    ContextFactory --> Context["Immutable AuthorizationContext"]
+    FutureServer["Future Server/API composition root"] --> Helper["Server/API helper"]
+    Helper --> Authorize["authorize()"]
+    ContextFactory --> Authorize
+    Authorize --> Engine["AP-004B Decision Engine"]
+```
+
+五個 authority port 目前只有 interface，沒有 production concrete adapter。AP-004C 不讀 Cookie、Session、JWT、Supabase 或 Database，不建立 Route Handler、Server Action、middleware、UI hook、Audit 或 RLS integration。Helper 名稱表示未來用途，不代表已接入任何產品流程；現有 server checks 與 RLS 仍是 authority。完整契約見 `docs/architecture/ap-004c-a-minimal-authorization-adapter.md` 與 `docs/architecture/ap-004c-b-trusted-authorization-context.md`。
+
+### AP-002B Immutable Audit Foundation
+
+AP-002B 在 `lib/audit/` 建立 framework-neutral Clean Architecture foundation：`shared → domain／interfaces → application`。`AuditWriter` 接收 unknown command，執行 allowlist validation、取得並驗證 platform／organization chain head、canonical serialization、hash 計算、immutable Event 建立與 atomic append，成功後只回傳最小 immutable Receipt。
+
+```mermaid
+flowchart LR
+    Write["Future governed write"] --> Writer["AuditWriter"]
+    Writer --> Validate["Fail-closed validation"]
+    Validate --> Repository["AuditRepository port"]
+    Repository --> Head["Validated chain head"]
+    Head --> Serialize["Canonical serialization"]
+    Serialize --> Hash["AuditHashChain port"]
+    Hash --> Append["Append with expected previous hash"]
+    Append --> Receipt["Minimal AuditReceipt"]
+```
+
+Repository、Hash Chain、Clock 與 Event ID generator 只有 interfaces；沒有 Supabase、Database、Next.js 或 cryptographic concrete adapter。Repository append 必須以 expected previous hash 做原子 compare-and-set，避免 concurrent chain fork。Hash chain只提供 tamper-evidence，不取代 append-only grants、FORCE RLS、Retention、Legal Hold、backup或外部 archive。
+
+Metadata 僅接受不含自由文字／PII 的 allowlist codes與計數；Secret、Token、Password、完整學生作答、教材內容及任意 request payload均不得寫入。AP-002B尚未接入 Authorization、Curriculum或任何 Lifecycle write，也未解除BF-003、永久刪除或AP-002A／C／F的實作門檻。完整契約見 `docs/architecture/ap-002b-immutable-audit-foundation.md`。
 
 ### 既有決策
 
@@ -250,7 +287,8 @@ Provider 只把 caller 提供的 Identity、Membership、Persona、Role、Permis
 - `components/forms/`：表單狀態與互動。
 - `lib/validation/`：client/server 共用的 Zod schema。
 - `lib/auth/`：session 與登入相關 server helpers。
-- `lib/authorization/`：framework-neutral authorization context、decision、scope、resolver ports 與 provider boundary；目前不執行 enforcement。
+- `lib/authorization/`：framework-neutral authorization context、trusted authority ports、validation、decision、scope、resolver、engine 與 application adapter；目前未接入產品 enforcement。
+- `lib/audit/`：framework-neutral immutable Audit Event、Receipt、validation、canonical serializer、Writer 與 infrastructure ports；目前無 persistence 或產品 write integration。
 - `lib/supabase/`：browser、server 與 middleware client。
 - `lib/ai/`：AI provider、工作、Prompt 與 schema。
 - `lib/exports/`：列印、PDF、DOCX provider。
