@@ -24,7 +24,7 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 1. AP-003A Identity Domain Model
 2. AP-003B Role, Permission & Policy Framework（Accepted；architecture only）
 3. AP-002B Immutable Audit Foundation（Accepted and Git Sealed；runtime foundation only）
-4. AP-002A Lifecycle Schema Foundation
+4. AP-002A Lifecycle Schema Foundation（Accepted and Git Sealed；runtime foundation only）
 5. AP-002C Dependency Protection
 6. AP-004 Background Job, Event & Notification Foundation
 7. AP-002D Organization Closing
@@ -43,7 +43,7 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 - 核心決策：預設 Account–Person 一對一、受控 linking／merge、Persona／Membership／Role分離、Managed Persona可無 Account、Email不作 Person ID。
 - 未實作：table、Migration、RLS、RPC、API、UI、Invite、Student/Parent runtime、RBAC/Permission、Platform role、Audit writer、Event Bus、Queue。
 - AP-003B 接手：Role Model、Permission Catalog、Scope、Policy Decision、Persona與 Role關係、legacy role相容、re-auth與 CASE access。
-- AP-003A 與 AP-003B 已核准並解鎖 AP-002B；AP-002B runtime foundation 已完成、等待架構審查，後續仍依 AP-002A → AP-002C 推進。Permanent deletion、irreversible anonymization、Platform high-risk mutation與 production break-glass仍等 AP-004。
+- AP-003A 與 AP-003B 已核准並解鎖 AP-002B；AP-002B 與 AP-002A foundation 皆已核准並 Git Sealed，後續仍依 AP-002C → AP-004 推進。Permanent deletion、irreversible anonymization、Platform high-risk mutation與 production break-glass仍等 AP-004。
 
 ### Account hard delete formal blocker
 
@@ -68,7 +68,7 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 - Identity關係：AP-003A提供 Account／Person／Profile／Membership／Persona authority；AP-003B只定義 Role Definition／Assignment、Permission、Scope與Policy Decision，不重做Identity。
 - 相容性：`organization_members.role`仍是runtime authority；未來只採 additive backfill、shadow evaluation、受控 dual-write與feature-gated cutover，不修改Sprint 1–8 Migration。
 - 安全門檻：Platform Support只可有time-bound CASE access；AI profile不是Account、管理Role或Service Principal；Campus／School／Student／Guardian scope尚未存在時fail closed。
-- AP-003B核准後已由獨立指令解鎖AP-002B foundation；AP-002B目前完成實作並等待架構審查，再依AP-002A、AP-002C、AP-004順序推進。
+- AP-003B核准後已由獨立指令解鎖AP-002B foundation；AP-002B與AP-002A foundation皆已核准並Git Sealed，再依AP-002C、AP-004順序推進。
 - AP-002B append-only persistence與產品整合完成前不得啟用新的Role／Delegation／CASE write；AP-004前不得開放permanent deletion、irreversible anonymization、platform high-risk mutation或production break-glass。
 
 ## AP-004A Handoff：Authorization Runtime Foundation
@@ -114,3 +114,14 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 - 明確未完成：Audit table、Migration、Supabase repository、RLS／grant、production hash adapter、transaction/outbox、retention／hold、external archive、API／UI與產品 lifecycle integration。
 - AP-002A／C不得把此 foundation 誤當 persistence 已完成；任何 lifecycle write上線前仍需 append-only storage、transaction consistency、Authorization、RLS、Dependency Protection及完整負向測試。
 - BF-003、Curriculum Archive／Delete／Restore、Recycle Bin與permanent deletion未獲解鎖；本 Package不授權開始下一項。
+
+## AP-002A Handoff：Lifecycle Schema Foundation
+
+- 狀態：**Accepted and Git Sealed**；尚未接入產品 write flow。
+- 已完成：versioned State／Transition／Requirements／Definition、immutable ALLOWED／DENIED Decision、Definition Provider、construction-only Registry、pure Lifecycle Policy port、fail-closed Evaluator與canonical serialization。
+- Core vocabulary：Draft、Published、Archived、Trashed、Deleted；只允許六個顯式 transition，禁止wildcard、implicit jump、duplicate route與terminal outgoing。
+- Requirements只描述Audit、Authorization、Dependency、Re-authentication、Retention與Legal Hold門檻；本 Package不執行或驗證這些外部能力。
+- 明確未完成：Database schema、Migration、RLS、RPC、API、UI、Server Action、lifecycle request、state persistence、optimistic concurrency、legacy adapter、Archive／Restore／Delete、Recycle Bin與產品Domain policy。
+- Security boundary：不接受password、token、cookie、header、PII、教材／學生內容或任意request payload；unknown input、version、field、state、transition、intent與Policy result一律fail closed。
+- AP-002C仍需獨立核准；Audit persistence／transaction consistency、Authorization product integration及Dependency Protection完成前不得開任何lifecycle write。
+- BF-003、Curriculum Delete、permanent deletion、AP-002F與Sprint 9仍未解鎖。

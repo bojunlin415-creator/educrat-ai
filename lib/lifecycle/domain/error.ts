@@ -1,0 +1,27 @@
+export const LIFECYCLE_ERROR_CODES = [
+  "INVALID_LIFECYCLE_INPUT",
+  "UNKNOWN_LIFECYCLE_DEFINITION",
+  "DUPLICATE_LIFECYCLE_DEFINITION",
+  "UNKNOWN_LIFECYCLE_STATE",
+  "DUPLICATE_LIFECYCLE_STATE",
+  "UNKNOWN_LIFECYCLE_TRANSITION",
+  "DUPLICATE_LIFECYCLE_TRANSITION",
+  "UNKNOWN_LIFECYCLE_INTENT",
+  "ILLEGAL_LIFECYCLE_TRANSITION",
+  "TERMINAL_STATE_HAS_OUTGOING_TRANSITION",
+  "UNSUPPORTED_LIFECYCLE_VERSION",
+  "INVALID_LIFECYCLE_REQUIREMENTS",
+  "INVALID_LIFECYCLE_POLICY_RESULT",
+] as const;
+
+export type LifecycleErrorCode = (typeof LIFECYCLE_ERROR_CODES)[number];
+
+export class LifecycleError extends Error {
+  readonly code: LifecycleErrorCode;
+
+  constructor(code: LifecycleErrorCode) {
+    super(code);
+    this.name = "LifecycleError";
+    this.code = code;
+  }
+}

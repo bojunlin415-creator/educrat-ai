@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-07-22 — AP-002A：Lifecycle Schema Foundation（Accepted and Git Sealed）
+
+### Lifecycle runtime foundation
+
+- 新增framework-neutral `lib/lifecycle/`，包含versioned State、explicit Transition、Requirements、immutable Decision、Definition與machine-readable error。
+- 新增interface-only Lifecycle Definition Provider／Policy ports、immutable Static Provider snapshot、construction-only Registry與fail-closed Evaluator。
+- 建立Draft、Published、Archived、Trashed、Deleted核心vocabulary及六個顯式transition；禁止wildcard、implicit jump、duplicate route與terminal outgoing。
+- 新增exact-key validation與canonical Lifecycle Definition serializer；unknown field/state/transition/intent/version、invalid requirement／policy result與accessor一律fail closed。
+- 新增State、Transition、Registry、Decision、Validation、Serialization、Evaluator integration、immutability、architecture/import boundary與circular dependency tests。
+
+### Boundaries
+
+- Requirements只描述Audit、Authorization、Dependency、Re-authentication、Retention與Legal Hold門檻，不執行任何外部能力或產品write。
+- 未新增Database schema、Migration、RLS、RPC、API、UI、Server Action、Archive、Restore、Delete、Recycle Bin、Dependency Protection或產品Business Rule。
+- 未接入Audit persistence、Authorization product enforcement、Curriculum/Lesson或BF-003；未deploy或操作Production。
+- 狀態為 **Accepted and Git Sealed**；AP-002C、BF-003與後續Package未開始。
+
 ## 2026-07-22 — AP-002B：Immutable Audit Foundation（Accepted and Git Sealed）
 
 ### Audit runtime foundation
