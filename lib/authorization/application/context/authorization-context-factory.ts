@@ -1,9 +1,12 @@
-import { InvalidAuthorizationContextError } from "@/lib/authorization/application/errors/application-authorization-errors";
-import type { AuthorizationContextProvider } from "@/lib/authorization/application/context/authorization-context-provider";
 import {
   isAuthorizationContext,
   type AuthorizationContext,
 } from "@/lib/authorization/domain/context";
+import { InvalidAuthorizationContextError } from "@/lib/authorization/application/errors/application-authorization-errors";
+import {
+  isTrustedAuthorizationContextEnvelope,
+  type AuthorizationContextProvider,
+} from "@/lib/authorization/application/context/authorization-context-provider";
 
 export interface AuthorizationContextFactory {
   create(provider: AuthorizationContextProvider): Promise<AuthorizationContext>;
@@ -84,6 +87,10 @@ export class DefaultAuthorizationContextFactory implements AuthorizationContextF
   async create(
     provider: AuthorizationContextProvider,
   ): Promise<AuthorizationContext> {
-    return createImmutableAuthorizationContext(await provider.provide());
+    const envelope = await provider.provide();
+    if (!isTrustedAuthorizationContextEnvelope(envelope)) {
+      throw new InvalidAuthorizationContextError();
+    }
+    return createImmutableAuthorizationContext(envelope.context);
   }
 }

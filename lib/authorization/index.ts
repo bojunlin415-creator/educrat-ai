@@ -13,7 +13,12 @@ export {
   DefaultAuthorizationContextFactory,
   type AuthorizationContextFactory,
 } from "@/lib/authorization/application/context/authorization-context-factory";
-export type { AuthorizationContextProvider } from "@/lib/authorization/application/context/authorization-context-provider";
+export {
+  DefaultAuthorizationContextProvider,
+  type AuthorizationContextProvider,
+  type AuthorizationContextProviderDependencies,
+  type TrustedAuthorizationContextEnvelope,
+} from "@/lib/authorization/application/context/authorization-context-provider";
 export {
   authorizationErrorFromDecision,
   ForbiddenError,
@@ -115,6 +120,22 @@ export {
   type ScopeEvaluationResult,
   type ScopeLineage,
 } from "@/lib/authorization/domain/scope";
+export type {
+  IdentityProvider,
+  MembershipAuthoritySnapshot,
+  MembershipProvider,
+  PermissionAuthorityType,
+  PermissionGrant,
+  PermissionGrantAuthoritySnapshot,
+  PermissionGrantProvider,
+  PersonaAuthoritySnapshot,
+  PersonaProvider,
+  RoleAuthoritySnapshot,
+  RoleProvider,
+  ScopedAuthorizationRole,
+  TrustedPermissionAuthority,
+} from "@/lib/authorization/interfaces/authorization-context-sources";
+export { PERMISSION_AUTHORITY_TYPES } from "@/lib/authorization/interfaces/authorization-context-sources";
 export type {
   PermissionResolutionRequest,
   PermissionResolver,

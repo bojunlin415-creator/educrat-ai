@@ -30,7 +30,7 @@ flowchart LR
     PolicyPort -. no implementation in AP-004A .-> DeferredPolicy["Future Policy Engine"]
 ```
 
-`DefaultAuthorizationProvider.createContext()` 只複製並凍結 caller 已提供的 Identity、Membership、Persona、Role、Permission 與 Scope reference，不查資料、不解析角色、不呼叫 resolver，也不回傳 ALLOW／DENY。resolver 透過 constructor injection 暴露為 ports，實作留給後續獨立 Package。
+`DefaultAuthorizationProvider.createContext()` 的 AP-004A 原始 contract 只複製並凍結 caller 已提供的 Identity、Membership、Persona、Role、Permission 與 Scope reference，不查資料、不解析角色、不呼叫 resolver，也不回傳 ALLOW／DENY。AP-004C-B 已以 non-breaking application-layer evolution 將此入口收斂為 trusted provider-issued context；歷史 Migration、Database 與 decision contracts 未變。resolver 仍透過 constructor injection 暴露為 ports。
 
 ## Decision 與 Reason
 

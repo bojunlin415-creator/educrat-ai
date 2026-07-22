@@ -53,8 +53,11 @@ describe("authorization architecture boundary", () => {
     const forbiddenPrefixes = [
       "react",
       "next",
+      "jsonwebtoken",
       "@/app",
       "@/components",
+      "@/lib/auth",
+      "@/lib/database",
       "@/lib/supabase",
       "@/lib/curriculum",
       "@/lib/organization",
@@ -125,6 +128,98 @@ describe("authorization architecture boundary", () => {
 
     for (const file of sourceFiles) visit(file);
     expect(visited.size).toBe(sourceFiles.length);
+  });
+
+  it("keeps authorize as the only application adapter entry to the engine", () => {
+    const authorizeService = path.join(
+      authorizationRoot,
+      "application",
+      "services",
+      "authorize.ts",
+    );
+    const engineModule = "@/lib/authorization/application/authorization-engine";
+
+    for (const file of sourceFiles) {
+      if (
+        file === authorizeService ||
+        file.endsWith(path.join("application", "authorization-engine.ts")) ||
+        file.endsWith("index.ts")
+      ) {
+        continue;
+      }
+      expect(
+        readImports(file).includes(engineModule),
+        `${path.relative(process.cwd(), file)} bypasses authorize()`,
+      ).toBe(false);
+    }
+
+    for (const adapter of [
+      "api-authorization.ts",
+      "server-action-authorization.ts",
+    ]) {
+      const file = path.join(
+        authorizationRoot,
+        "application",
+        "adapter",
+        adapter,
+      );
+      expect(readImports(file)).toContain(
+        "@/lib/authorization/application/services/authorize",
+      );
+    }
+  });
+
+  it("requires provider-issued context and does not expose the raw context assembler", () => {
+    const authorizeSource = readFileSync(
+      path.join(authorizationRoot, "application", "services", "authorize.ts"),
+      "utf8",
+    );
+    const factorySource = readFileSync(
+      path.join(
+        authorizationRoot,
+        "application",
+        "context",
+        "authorization-context-factory.ts",
+      ),
+      "utf8",
+    );
+    const publicIndex = readFileSync(
+      path.join(authorizationRoot, "index.ts"),
+      "utf8",
+    );
+
+    expect(authorizeSource).toContain(
+      'Omit<AuthorizationEvaluationRequest, "context">',
+    );
+    expect(authorizeSource).toContain(
+      "readonly contextProvider: AuthorizationContextProvider",
+    );
+    expect(factorySource).toContain(
+      "isTrustedAuthorizationContextEnvelope(envelope)",
+    );
+    expect(publicIndex).not.toContain("createImmutableAuthorizationContext");
+  });
+
+  it("keeps trusted source ports interface-only", () => {
+    const source = readFileSync(
+      path.join(
+        authorizationRoot,
+        "interfaces",
+        "authorization-context-sources.ts",
+      ),
+      "utf8",
+    );
+
+    for (const provider of [
+      "IdentityProvider",
+      "MembershipProvider",
+      "PersonaProvider",
+      "RoleProvider",
+      "PermissionGrantProvider",
+    ]) {
+      expect(source).toContain(`export interface ${provider}`);
+      expect(source).not.toContain(`class ${provider}`);
+    }
   });
 
   it("keeps production evaluation deterministic and side-effect free", () => {
