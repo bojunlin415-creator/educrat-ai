@@ -1,0 +1,27 @@
+export const DEPENDENCY_ERROR_CODES = [
+  "INVALID_DEPENDENCY_INPUT",
+  "UNKNOWN_DEPENDENCY_RESOURCE",
+  "DUPLICATE_DEPENDENCY_RESOURCE_TYPE",
+  "UNKNOWN_DEPENDENCY_TYPE",
+  "DUPLICATE_DEPENDENCY_TYPE",
+  "UNKNOWN_DEPENDENCY_TRANSITION",
+  "DUPLICATE_DEPENDENCY_TRANSITION",
+  "DUPLICATE_DEPENDENCY_REFERENCE",
+  "CIRCULAR_DEPENDENCY",
+  "DISCONNECTED_DEPENDENCY_GRAPH",
+  "UNSUPPORTED_DEPENDENCY_VERSION",
+  "INVALID_DEPENDENCY_GRAPH_RESULT",
+  "INVALID_DEPENDENCY_POLICY_RESULT",
+] as const;
+
+export type DependencyErrorCode = (typeof DEPENDENCY_ERROR_CODES)[number];
+
+export class DependencyError extends Error {
+  readonly code: DependencyErrorCode;
+
+  constructor(code: DependencyErrorCode) {
+    super(code);
+    this.name = "DependencyError";
+    this.code = code;
+  }
+}

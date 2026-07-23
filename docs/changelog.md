@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-07-23 — AP-002C：Dependency Protection Foundation（Accepted and Git Sealed）
+
+### Dependency runtime foundation
+
+- 新增framework-neutral `lib/dependency/`，包含versioned vocabulary、immutable directed Dependency Reference、Check Request／Result／Evaluation與machine-readable error。
+- 新增construction-only Registry、interface-only async Dependency Graph／pure Policy ports，以及固定執行validation → graph → policy → decision的fail-closed Evaluator。
+- 新增unknown resource/dependency/transition/version／field、duplicate normalized edge、direct/indirect cycle、disconnected fragment與invalid provider output驗證。
+- 新增依有向edge穩定排序的canonical Dependency Snapshot serializer；不計算hash、不保存payload。
+- 新增Model、Registry、Validation、Serialization、Evaluator integration、immutability、architecture/import boundary與module circular dependency tests。
+
+### Boundaries
+
+- 未新增產品vocabulary／policy、concrete Graph adapter、Database schema、Migration、RLS、API、UI、Server Action、Archive、Restore、Delete、Recycle Bin、Audit write或產品Business Rule。
+- ALLOWED只代表Dependency Policy通過，不代表Lifecycle、Authorization、Audit、Retention、Legal Hold、Re-auth、Approval、transaction或write門檻已完成。
+- 狀態為 **Accepted and Git Sealed**；未deploy、操作Production、開始BF-003或任何下一個Package。
+
 ## 2026-07-22 — AP-002A：Lifecycle Schema Foundation（Accepted and Git Sealed）
 
 ### Lifecycle runtime foundation

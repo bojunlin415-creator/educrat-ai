@@ -185,7 +185,7 @@ AP-002 推薦 Hybrid data design：Domain/typed companion 保存 canonical curre
 
 現有 Sprint 8 Chapter/Lesson delete RPC 保留相容，但不得延伸到有 Teaching/Learning dependency 的未來資料。Lifecycle v2 切換完成後，應以新的 forward-only Migration 撤銷 authenticated execute；不修改歷史 Migration，也不直接 cascade delete 教材或歷程。
 
-Domain ownership、allowed/forbidden dependency、RACI 與 published contract 見 ADR-007。產品能力與 North Star 見 `docs/product/capability-map.md`；future Domain Events 見 `docs/architecture/event-catalog.md`。事件文件不表示 Event Bus、Queue、Outbox、Consumer 或 replay infrastructure 已存在。正式執行順序為 AP-003A Identity Domain → AP-003B Role/Permission/Policy → AP-002B Audit → AP-002A Lifecycle Schema → AP-002C Dependency Protection → AP-004 Background Job/Event/Notification → AP-002D Organization Closing → AP-002E Account Privacy/Deletion → AP-002F Recycle Bin → AP-002G Platform Admin Console。AP-003A／B、AP-004A／B、AP-004C-A／B、AP-002B與AP-002A foundation皆已核准並Git Sealed；AP-002C及後續治理功能仍未開始。
+Domain ownership、allowed/forbidden dependency、RACI 與 published contract 見 ADR-007。產品能力與 North Star 見 `docs/product/capability-map.md`；future Domain Events 見 `docs/architecture/event-catalog.md`。事件文件不表示 Event Bus、Queue、Outbox、Consumer 或 replay infrastructure 已存在。正式執行順序為 AP-003A Identity Domain → AP-003B Role/Permission/Policy → AP-002B Audit → AP-002A Lifecycle Schema → AP-002C Dependency Protection → AP-004 Background Job/Event/Notification → AP-002D Organization Closing → AP-002E Account Privacy/Deletion → AP-002F Recycle Bin → AP-002G Platform Admin Console。AP-003A／B、AP-004A／B、AP-004C-A／B、AP-002B、AP-002A與AP-002C foundation皆已核准並Git Sealed；後續治理功能仍未開始。
 
 ### AP-003A Identity Domain Boundary（Accepted — Not Implemented）
 
@@ -288,6 +288,24 @@ Core definition 提供 Draft、Published、Archived、Trashed、Deleted 與六�
 
 Lifecycle production source 維持 `shared → domain/interfaces → application`，禁止依賴 React、Next.js、Supabase、Database、Audit 或產品 Domain。AP-002A 沒有新增 Database schema、Migration、API、UI、Archive／Restore／Delete 或 Recycle Bin；任何 lifecycle write 仍受 Audit persistence、Authorization integration、AP-002C Dependency Protection、transaction/outbox 與後續產品 Package 阻擋。完整契約見 `docs/architecture/ap-002a-lifecycle-schema-foundation.md`。
 
+### AP-002C Dependency Protection Foundation（Accepted and Git Sealed）
+
+AP-002C 在 `lib/dependency/` 建立 framework-neutral dependency core：versioned vocabulary、immutable directed Reference、Request／Result、construction-only Registry、async Graph port、pure Policy port、fail-closed topology validation／Evaluator 與 canonical serializer。
+
+```mermaid
+flowchart LR
+    Request["Validated request"] --> Graph["DependencyGraph port"]
+    Registry["Immutable vocabulary registry"] --> Request
+    Graph --> Topology["Reference / duplicate / cycle / connectivity validation"]
+    Registry --> Topology
+    Topology --> Policy["Pure DependencyPolicy port"]
+    Policy --> Result["Immutable ALLOWED / DENIED result"]
+```
+
+Graph output仍視為不可信資料。Validator拒絕unknown resource/dependency/transition/version、unknown field、duplicate normalized edge、direct/indirect cycle與disconnected fragment；Evaluator對Graph／Policy exception一律fail closed。Canonical serializer依normalized directed edge排序，使相同snapshot不受provider回傳順序影響。
+
+Dependency production source維持 `shared → domain/interfaces → application`，禁止依賴React、Next.js、Supabase、Database、Audit、Authorization、Lifecycle或產品Domain。AP-002C沒有concrete Graph adapter、產品Policy、Migration、API、UI或任何Archive／Restore／Delete write；ALLOWED只代表dependency policy通過，不代表整體lifecycle write可執行。完整契約見 `docs/architecture/ap-002c-dependency-protection-foundation.md`。
+
 ### 既有決策
 
 - 採模組化單體作為早期商用架構，以明確介面隔離領域；有實際規模需求前不拆微服務。
@@ -307,6 +325,7 @@ Lifecycle production source 維持 `shared → domain/interfaces → application
 - `lib/authorization/`：framework-neutral authorization context、trusted authority ports、validation、decision、scope、resolver、engine 與 application adapter；目前未接入產品 enforcement。
 - `lib/audit/`：framework-neutral immutable Audit Event、Receipt、validation、canonical serializer、Writer 與 infrastructure ports；目前無 persistence 或產品 write integration。
 - `lib/lifecycle/`：framework-neutral lifecycle State、Transition、Requirements、Definition Registry、Policy port、Evaluator 與 canonical serializer；目前無 persistence 或產品 write integration。
+- `lib/dependency/`：framework-neutral Dependency Reference、Vocabulary Registry、Graph／Policy ports、topology validation、Evaluator 與 canonical serializer；目前無 concrete graph adapter或產品 write integration。
 - `lib/supabase/`：browser、server 與 middleware client。
 - `lib/ai/`：AI provider、工作、Prompt 與 schema。
 - `lib/exports/`：列印、PDF、DOCX provider。

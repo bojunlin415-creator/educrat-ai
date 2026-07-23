@@ -25,7 +25,7 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 2. AP-003B Role, Permission & Policy Framework（Accepted；architecture only）
 3. AP-002B Immutable Audit Foundation（Accepted and Git Sealed；runtime foundation only）
 4. AP-002A Lifecycle Schema Foundation（Accepted and Git Sealed；runtime foundation only）
-5. AP-002C Dependency Protection
+5. AP-002C Dependency Protection（Accepted and Git Sealed；runtime foundation only）
 6. AP-004 Background Job, Event & Notification Foundation
 7. AP-002D Organization Closing
 8. AP-002E Account Privacy／Deletion
@@ -123,5 +123,15 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 - Requirements只描述Audit、Authorization、Dependency、Re-authentication、Retention與Legal Hold門檻；本 Package不執行或驗證這些外部能力。
 - 明確未完成：Database schema、Migration、RLS、RPC、API、UI、Server Action、lifecycle request、state persistence、optimistic concurrency、legacy adapter、Archive／Restore／Delete、Recycle Bin與產品Domain policy。
 - Security boundary：不接受password、token、cookie、header、PII、教材／學生內容或任意request payload；unknown input、version、field、state、transition、intent與Policy result一律fail closed。
-- AP-002C仍需獨立核准；Audit persistence／transaction consistency、Authorization product integration及Dependency Protection完成前不得開任何lifecycle write。
+- AP-002C已獨立核准並Git Sealed；Audit persistence／transaction consistency、Authorization product integration及產品Dependency adapter完成前不得開任何lifecycle write。
 - BF-003、Curriculum Delete、permanent deletion、AP-002F與Sprint 9仍未解鎖。
+
+## AP-002C Handoff：Dependency Protection Foundation
+
+- 狀態：**Accepted and Git Sealed**；尚未接入產品流程。
+- 已完成：versioned Dependency vocabulary、immutable directed Reference、Check Request／Result、construction-only Registry、interface-only async Graph與pure Policy ports、fail-closed Evaluator、topology validation與canonical serializer。
+- Validation：unknown resource／dependency／transition／field／version、duplicate normalized edge、direct／indirect cycle、disconnected fragment、Graph／Policy exception與無效output均fail closed。
+- Security boundary：只接受受控technical identifiers，不接受Password、Token、Cookie、PII、HTTP payload、教材內容或學生資料；Production source不依賴framework、Database、Supabase、Audit、Authorization、Lifecycle或產品Domain。
+- 明確未完成：Curriculum／Lesson等產品vocabulary與policy、concrete Graph adapter、Database query／Migration／RLS、impact UI、API、Lifecycle／Audit orchestration、transaction/outbox與background job。
+- AP-002C ALLOWED不等於允許Archive／Delete；AP-002B persisted Audit、AP-004 trusted product authorization、AP-002A write orchestration、Retention／Legal Hold／Re-auth與transaction consistency完成前，所有lifecycle write仍維持關閉。
+- BF-003、Curriculum lifecycle、AP-002F、permanent deletion與Sprint 9仍未解鎖；下一個Package不得由本次自動開始。
