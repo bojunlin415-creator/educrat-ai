@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-07-23 — AP-002D：Retention & Legal Hold Foundation（Accepted and Git Sealed）
+
+### Retention runtime foundation
+
+- 新增framework-neutral `lib/retention/`，包含versioned Retention Definition／Rule、bounded Period、safe Metadata、Legal Hold Reference、Check Request／Decision與machine-readable error。
+- 新增construction-only Registry、interface-only pure Retention Policy port，以及固定執行validation → rule resolution → legal hold gate → policy → decision的fail-closed Evaluator。
+- Active Legal Hold在Policy前直接拒絕；新增unknown resource/category/transition/version/field、invalid rule/period/metadata/hold/policy output、duplicate vocabulary/resource/hold與cross-resource hold驗證。
+- 新增依Rule、metadata與Hold穩定排序的canonical Retention Snapshot serializer；不計算hash、不保存payload。
+- 新增Model、Registry、Validation、Serialization、Evaluator integration、immutability、architecture/import boundary與module circular dependency tests。
+
+### Boundaries
+
+- 未新增法定期限、jurisdiction／plan／產品Retention Rule、Clock／retention anchor、Legal Hold repository、Database schema、Migration、RLS、API、UI、Purge、Archive、Restore、Delete、Recycle Bin、Audit write或產品Business Rule。
+- ALLOWED只代表Retention／Hold Policy通過，不代表期間已屆滿、Lifecycle write已授權，或Authorization／Dependency／Audit／Re-auth／Approval／transaction門檻已完成。
+- 狀態為 **Accepted and Git Sealed**；已建立 Git Seal commit 並 push 至 `origin/develop`。未deploy、操作Production、開始BF-003或任何後續產品Package。
+
 ## 2026-07-23 — AP-002C：Dependency Protection Foundation（Accepted and Git Sealed）
 
 ### Dependency runtime foundation

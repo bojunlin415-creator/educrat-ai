@@ -26,11 +26,14 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 3. AP-002B Immutable Audit Foundation（Accepted and Git Sealed；runtime foundation only）
 4. AP-002A Lifecycle Schema Foundation（Accepted and Git Sealed；runtime foundation only）
 5. AP-002C Dependency Protection（Accepted and Git Sealed；runtime foundation only）
-6. AP-004 Background Job, Event & Notification Foundation
-7. AP-002D Organization Closing
-8. AP-002E Account Privacy／Deletion
-9. AP-002F Recycle Bin
-10. AP-002G Platform Admin Console
+6. AP-002D Retention & Legal Hold Foundation（Accepted and Git Sealed）
+7. AP-004 Background Job, Event & Notification Foundation
+8. Organization Closing product Package（識別碼待後續架構核准，未開始）
+9. AP-002E Account Privacy／Deletion
+10. AP-002F Recycle Bin
+11. AP-002G Platform Admin Console
+
+> AP-002 原始 roadmap 曾以 AP-002D 指稱 Organization Closing。2026-07-23 的獨立 Package 指令將 AP-002D 用於 Retention & Legal Hold Foundation；本文件保留 Organization Closing 產品範圍但不沿用衝突識別碼，也不宣稱該產品流程已開始。
 
 ## AP-003A Handoff：Identity Domain Model
 
@@ -133,5 +136,16 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 - Validation：unknown resource／dependency／transition／field／version、duplicate normalized edge、direct／indirect cycle、disconnected fragment、Graph／Policy exception與無效output均fail closed。
 - Security boundary：只接受受控technical identifiers，不接受Password、Token、Cookie、PII、HTTP payload、教材內容或學生資料；Production source不依賴framework、Database、Supabase、Audit、Authorization、Lifecycle或產品Domain。
 - 明確未完成：Curriculum／Lesson等產品vocabulary與policy、concrete Graph adapter、Database query／Migration／RLS、impact UI、API、Lifecycle／Audit orchestration、transaction/outbox與background job。
-- AP-002C ALLOWED不等於允許Archive／Delete；AP-002B persisted Audit、AP-004 trusted product authorization、AP-002A write orchestration、Retention／Legal Hold／Re-auth與transaction consistency完成前，所有lifecycle write仍維持關閉。
+- AP-002C ALLOWED不等於允許Archive／Delete；AP-002B persisted Audit、AP-004 trusted product authorization、AP-002A write orchestration、AP-002D產品Retention／Legal Hold adapter、Re-auth與transaction consistency完成前，所有lifecycle write仍維持關閉。
 - BF-003、Curriculum lifecycle、AP-002F、permanent deletion與Sprint 9仍未解鎖；下一個Package不得由本次自動開始。
+
+## AP-002D Handoff：Retention & Legal Hold Foundation
+
+- 狀態：**Accepted and Git Sealed**；尚未接入產品流程。
+- 已完成：versioned Retention Definition／Rule、bounded Period、safe Metadata、Legal Hold Reference、Check Request／Decision、construction-only Registry、pure Policy port、fail-closed validation／Evaluator與canonical serializer。
+- Evaluator順序：validation → rule resolution → legal hold gate → policy → immutable decision；active legal hold在Policy前直接拒絕，Policy不能override。
+- Validation：unknown resource／category／transition／field／version、duplicate vocabulary／resource／hold、invalid rule／period／metadata／hold／policy output、cross-resource hold、unsupported hold與PII-shaped identifier均fail closed。
+- Security boundary：只接受technical identifiers、受控codes、有界數字與boolean；不接受Password、Token、Cookie、Header、HTTP payload、PII、教材內容、學生資料或legal case自由文字。
+- 明確未完成：法定期限、jurisdiction／plan／Organization／Curriculum產品rule、Clock／retention anchor、Policy Resolver、Legal Hold repository與apply/release workflow、Database、Migration、RLS、API、UI、Audit/Dependency/Lifecycle orchestration、transaction/outbox或background job。
+- AP-002D ALLOWED不等於期間已屆滿或允許Archive／Delete／Purge；產品write仍須AP-004 trusted Authorization、AP-002B persisted Audit、AP-002A Lifecycle、AP-002C Dependency、authoritative Retention/Hold adapter、Re-auth／Approval與transaction consistency。
+- Organization Closing、Account Privacy／Deletion、Recycle Bin、BF-003、permanent deletion與Sprint 9均未因本Foundation自動解鎖。

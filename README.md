@@ -1,6 +1,6 @@
 # EduCraft AI（Education Intelligence Platform）
 
-為台灣國小補教業者與教師打造的教育智慧平台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構、章節／課次編輯器，以及 Curriculum Reference 相容層；AI 功能尚未串接。AP-002、AP-003A 與 AP-003B 架構皆已核准。AP-004A／B、AP-004C-A／B、AP-002B、AP-002A 與 AP-002C 均已 Accepted and Git Sealed。Authorization、Audit、Lifecycle 與 Dependency Foundation 尚未接入產品 API、Database persistence、RLS enforcement 或任何產品 write flow。
+為台灣國小補教業者與教師打造的教育智慧平台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構、章節／課次編輯器，以及 Curriculum Reference 相容層；AI 功能尚未串接。AP-002、AP-003A 與 AP-003B 架構皆已核准。AP-004A／B、AP-004C-A／B、AP-002B、AP-002A、AP-002C 與 AP-002D 均已 Accepted and Git Sealed。Authorization、Audit、Lifecycle、Dependency 與 Retention Foundation 尚未接入產品 API、Database persistence、RLS enforcement 或任何產品 write flow。
 
 ## 技術堆疊
 
@@ -72,6 +72,7 @@ lib/authorization/   無框架授權 context、permission、scope、policy 與 d
 lib/audit/           無框架不可變 Audit event、receipt、writer 與 persistence ports
 lib/lifecycle/       無框架 lifecycle definition、registry、policy 與 decision core
 lib/dependency/      無框架 dependency graph、policy、validation 與 decision core
+lib/retention/       無框架 retention rule、legal hold、policy 與 decision core
 tests/e2e/           Playwright 測試
 supabase/migrations/ 經審查後才能套用的 Supabase CLI Migration
 public/              靜態資源
@@ -154,6 +155,7 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - [AP-002B Immutable Audit Foundation](docs/architecture/ap-002b-immutable-audit-foundation.md)：已核准並 Git Sealed 的不可變 Event、Receipt、Writer、canonical serialization 與 persistence ports（無 Database implementation）
 - [AP-002A Lifecycle Schema Foundation](docs/architecture/ap-002a-lifecycle-schema-foundation.md)：已核准並 Git Sealed 的 State、Transition、Requirements、Registry、Policy port、Evaluator 與 canonical serialization（無 Database schema）
 - [AP-002C Dependency Protection Foundation](docs/architecture/ap-002c-dependency-protection-foundation.md)：已核准並 Git Sealed 的 Dependency Reference、Graph／Policy ports、fail-closed Evaluator 與 canonical serialization（無產品規則或 Database adapter）
+- [AP-002D Retention & Legal Hold Foundation](docs/architecture/ap-002d-retention-legal-hold-foundation.md)：已核准並 Git Sealed 的 Retention Rule、Legal Hold gate、pure Policy port、fail-closed Evaluator 與 canonical serialization（無產品規則或 Database adapter）
 - [Permission Catalog](docs/security/permission-catalog.md)：已核准但尚未 runtime 化的 224 個 `resource.action` 權限鍵與版本規則
 - [Authorization Security](docs/security/authorization-security-model.md)：已核准的 trust boundary、delegation、re-auth、CASE、Service Principal 與 AI 授權限制
 - [Authorization Migration Design](docs/data/authorization-migration-design.md)：已核准但未執行的 versioned hybrid、legacy role backfill 與 additive rollout
@@ -200,4 +202,5 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - AP-002B：**Accepted and Git Sealed**；已建立不可變 Audit Event／Receipt、fail-closed validation、canonical serializer、Hash Chain／Repository ports 與 Audit Writer，尚無 Database、Migration、RLS、API、UI 或產品 lifecycle integration。
 - AP-002A：**Accepted and Git Sealed**；已建立 framework-neutral State／Transition／Requirements／Decision、Definition Provider、immutable Registry、pure Policy port、Evaluator 與 canonical serializer；尚無 Database schema、Migration、產品 lifecycle write 或 AP-002C dependency integration。
 - AP-002C：**Accepted and Git Sealed**；已建立 framework-neutral Dependency Reference、Vocabulary Registry、Graph／Policy ports、fail-closed validation／Evaluator 與 canonical serializer；尚無 concrete graph adapter、產品 policy、Database、Migration 或 lifecycle write integration。
+- AP-002D：**Accepted and Git Sealed**；已建立 framework-neutral Retention Definition／Rule、Legal Hold Reference、Registry、pure Policy port、fail-closed Evaluator 與 canonical serializer；尚無法定期限／產品 policy、Clock、Database、Migration、Hold workflow 或 lifecycle write integration。
 - AP-004C 後續產品整合與其餘 Governance implementation 均尚未開始。Sprint 9 尚未開始，本階段不串接 AI、題庫或試卷。
