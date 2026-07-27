@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-07-23 — AP-002E：Re-authentication Boundary Foundation（Awaiting Architecture Review）
+
+### Re-authentication boundary foundation
+
+- 新增framework-neutral `lib/re-authentication/`，包含versioned Re-authentication Requirement、Risk Level、Challenge Reference、Check Request／Decision與machine-readable error。
+- 新增construction-only Registry、interface-only pure Re-authentication Policy port，以及固定執行validation → requirement resolution → challenge validation → policy → decision的fail-closed Evaluator。
+- Missing required challenge只回傳machine-readable `challengeRequired`；Foundation不驗證credential、不讀session、不刷新session。
+- 新增unknown action/challenge type/version/field、invalid requirement/risk level/metadata/challenge/policy output、duplicate vocabulary/requirement、wrong challenge type與credential-shaped payload驗證。
+- 新增依object key穩定排序的canonical Re-authentication serializer；不計算hash、不保存payload。
+- 新增Model、Registry、Validation、Serialization、Evaluator integration、immutability、architecture/import boundary與module circular dependency tests。
+
+### Boundaries
+
+- 未新增Login、MFA、OTP、Password verification、WebAuthn、Session refresh、Credential verifier、Clock、receipt repository、Database schema、Migration、RLS、API、UI、Server Action、Purge、Archive、Restore、Delete、Recycle Bin、Audit write或產品Business Rule。
+- ALLOWED只代表Re-authentication Boundary Policy通過，不代表credential已驗證、freshness window已滿足、Lifecycle write已授權，或Authorization／Dependency／Retention／Legal Hold／Audit／Approval／transaction門檻已完成。
+- 狀態為 **Implementation Completed — Awaiting Architecture Review**；未commit、push、deploy、操作Production、開始BF-003或任何後續產品Package。
+
 ## 2026-07-23 — AP-002D：Retention & Legal Hold Foundation（Accepted and Git Sealed）
 
 ### Retention runtime foundation

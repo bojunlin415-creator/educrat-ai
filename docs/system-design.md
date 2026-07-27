@@ -185,7 +185,7 @@ AP-002 推薦 Hybrid data design：Domain/typed companion 保存 canonical curre
 
 現有 Sprint 8 Chapter/Lesson delete RPC 保留相容，但不得延伸到有 Teaching/Learning dependency 的未來資料。Lifecycle v2 切換完成後，應以新的 forward-only Migration 撤銷 authenticated execute；不修改歷史 Migration，也不直接 cascade delete 教材或歷程。
 
-Domain ownership、allowed/forbidden dependency、RACI 與 published contract 見 ADR-007。產品能力與 North Star 見 `docs/product/capability-map.md`；future Domain Events 見 `docs/architecture/event-catalog.md`。事件文件不表示 Event Bus、Queue、Outbox、Consumer 或 replay infrastructure 已存在。Foundation 執行順序已完成 AP-003A Identity Domain → AP-003B Role/Permission/Policy → AP-002B Audit → AP-002A Lifecycle Schema → AP-002C Dependency Protection → AP-002D Retention & Legal Hold Foundation；AP-004 Background Job/Event/Notification 與 Organization Closing、Account Privacy/Deletion、Recycle Bin、Platform Admin Console 等產品 Package 均未開始。AP-002 原始 roadmap 的 `AP-002D Organization Closing` 識別碼已與本次 Foundation 指令衝突，因此 Organization Closing 的後續 Package 識別碼必須另行核准，不得視為已啟動。
+Domain ownership、allowed/forbidden dependency、RACI 與 published contract 見 ADR-007。產品能力與 North Star 見 `docs/product/capability-map.md`；future Domain Events 見 `docs/architecture/event-catalog.md`。事件文件不表示 Event Bus、Queue、Outbox、Consumer 或 replay infrastructure 已存在。Foundation 執行順序已完成 AP-003A Identity Domain → AP-003B Role/Permission/Policy → AP-002B Audit → AP-002A Lifecycle Schema → AP-002C Dependency Protection → AP-002D Retention & Legal Hold Foundation，現進入 AP-002E Re-authentication Boundary 的架構審查；AP-004 Background Job/Event/Notification 與 Organization Closing、Account Privacy/Deletion、Recycle Bin、Platform Admin Console 等產品 Package 均未開始。AP-002 原始 roadmap 的 `AP-002D Organization Closing` 與後續 `AP-002E Account Privacy／Deletion` 識別碼已與 Foundation 指令衝突，因此相關產品 Package 識別碼必須另行核准，不得視為已啟動。
 
 ### AP-003A Identity Domain Boundary（Accepted — Not Implemented）
 
@@ -324,6 +324,23 @@ Evaluator 固定依序執行 validation → rule resolution → legal hold gate 
 
 Retention production source維持 `shared → domain/interfaces → application`，禁止依賴React、Next.js、Supabase、Database、Audit、Authorization、Lifecycle、Dependency或產品Domain。AP-002D沒有Clock、Legal Hold repository、Database、Migration、RLS、API、UI、Purge、Archive／Restore／Delete或Organization Closing；完整契約見 `docs/architecture/ap-002d-retention-legal-hold-foundation.md`。
 
+### AP-002E Re-authentication Boundary Foundation（Awaiting Architecture Review）
+
+AP-002E 在 `lib/re-authentication/` 建立 framework-neutral re-authentication boundary core：versioned Requirement、Risk Level、safe Metadata、Challenge Reference、Request／Decision、construction-only Registry、pure Policy port、fail-closed Evaluator 與 canonical serializer。
+
+```mermaid
+flowchart LR
+    Input["Unknown Re-auth Request"] --> Validate["Request / Requirement / Challenge validation"]
+    Registry["Immutable Requirement Registry"] --> Validate
+    Validate --> Requirement["Resolved Requirement"]
+    Requirement --> Policy["Pure ReAuthenticationPolicy port"]
+    Policy --> Decision["Immutable ALLOWED / DENIED"]
+```
+
+Evaluator 固定依序執行 validation → requirement resolution → challenge validation → policy → decision；missing required challenge 只回傳 `challengeRequired`，不驗證任何 credential。Action Type、Challenge Type 與 Risk Level vocabulary 由未來 composition root 提供，Foundation 不內建 Login、MFA、OTP、Password、WebAuthn、Session、Platform、Curriculum、Account 或 Delete 產品規則。ALLOWED 只代表 re-auth boundary policy 通過，不代表已完成 Authorization、Lifecycle、Dependency、Retention、Legal Hold、Audit、Approval、transaction 或 write。
+
+Re-authentication production source維持 `shared → domain/interfaces → application`，禁止依賴React、Next.js、Supabase、Database、Audit、Authorization、Lifecycle、Dependency、Retention或產品Domain。AP-002E沒有credential verifier、Clock、receipt repository、Database、Migration、RLS、API、UI、Login、MFA、OTP、Password verification、WebAuthn、Session refresh或產品re-auth flow；完整契約見 `docs/architecture/ap-002e-re-authentication-boundary.md`。
+
 ### 既有決策
 
 - 採模組化單體作為早期商用架構，以明確介面隔離領域；有實際規模需求前不拆微服務。
@@ -345,6 +362,7 @@ Retention production source維持 `shared → domain/interfaces → application`
 - `lib/lifecycle/`：framework-neutral lifecycle State、Transition、Requirements、Definition Registry、Policy port、Evaluator 與 canonical serializer；目前無 persistence 或產品 write integration。
 - `lib/dependency/`：framework-neutral Dependency Reference、Vocabulary Registry、Graph／Policy ports、topology validation、Evaluator 與 canonical serializer；目前無 concrete graph adapter或產品 write integration。
 - `lib/retention/`：framework-neutral Retention Definition／Rule、Legal Hold、Registry、Policy port、validation、Evaluator 與 canonical serializer；目前無產品 rule、Clock、persistence 或 lifecycle write integration。
+- `lib/re-authentication/`：framework-neutral Re-auth Requirement、Challenge Reference、Registry、Policy port、validation、Evaluator 與 canonical serializer；目前無 Login、MFA、credential verification、Session 或產品 write integration。
 - `lib/supabase/`：browser、server 與 middleware client。
 - `lib/ai/`：AI provider、工作、Prompt 與 schema。
 - `lib/exports/`：列印、PDF、DOCX provider。

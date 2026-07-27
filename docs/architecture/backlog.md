@@ -27,13 +27,15 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 4. AP-002A Lifecycle Schema Foundation（Accepted and Git Sealed；runtime foundation only）
 5. AP-002C Dependency Protection（Accepted and Git Sealed；runtime foundation only）
 6. AP-002D Retention & Legal Hold Foundation（Accepted and Git Sealed）
-7. AP-004 Background Job, Event & Notification Foundation
-8. Organization Closing product Package（識別碼待後續架構核准，未開始）
-9. AP-002E Account Privacy／Deletion
-10. AP-002F Recycle Bin
-11. AP-002G Platform Admin Console
+7. AP-002E Re-authentication Boundary Foundation（Implementation Completed；等待架構審查）
+8. AP-004 Background Job, Event & Notification Foundation
+9. Organization Closing product Package（識別碼待後續架構核准，未開始）
+10. Account Privacy／Deletion product Package（識別碼待後續架構核准，未開始）
+11. AP-002F Recycle Bin
+12. AP-002G Platform Admin Console
 
 > AP-002 原始 roadmap 曾以 AP-002D 指稱 Organization Closing。2026-07-23 的獨立 Package 指令將 AP-002D 用於 Retention & Legal Hold Foundation；本文件保留 Organization Closing 產品範圍但不沿用衝突識別碼，也不宣稱該產品流程已開始。
+> 同理，2026-07-23 的獨立 Package 指令將 AP-002E 用於 Re-authentication Boundary Foundation；原先 Account Privacy／Deletion 產品範圍保留，但不得沿用衝突識別碼或視為已開始。
 
 ## AP-003A Handoff：Identity Domain Model
 
@@ -148,4 +150,15 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 - Security boundary：只接受technical identifiers、受控codes、有界數字與boolean；不接受Password、Token、Cookie、Header、HTTP payload、PII、教材內容、學生資料或legal case自由文字。
 - 明確未完成：法定期限、jurisdiction／plan／Organization／Curriculum產品rule、Clock／retention anchor、Policy Resolver、Legal Hold repository與apply/release workflow、Database、Migration、RLS、API、UI、Audit/Dependency/Lifecycle orchestration、transaction/outbox或background job。
 - AP-002D ALLOWED不等於期間已屆滿或允許Archive／Delete／Purge；產品write仍須AP-004 trusted Authorization、AP-002B persisted Audit、AP-002A Lifecycle、AP-002C Dependency、authoritative Retention/Hold adapter、Re-auth／Approval與transaction consistency。
+- Organization Closing、Account Privacy／Deletion、Recycle Bin、BF-003、permanent deletion與Sprint 9均未因本Foundation自動解鎖。
+
+## AP-002E Handoff：Re-authentication Boundary Foundation
+
+- 狀態：**Implementation Completed — Awaiting Architecture Review**；尚未接入產品流程。
+- 已完成：versioned Re-auth Requirement、Risk Level、Challenge Reference、Check Request／Decision、construction-only Registry、pure Policy port、fail-closed validation／Evaluator與canonical serializer。
+- Evaluator順序：validation → requirement resolution → challenge validation → policy → immutable decision；missing required challenge只回傳`challengeRequired`，不驗證credential。
+- Validation：unknown action／challenge type／field／version、duplicate vocabulary／requirement、invalid requirement／risk level／metadata／challenge／policy output、wrong challenge type與credential-shaped payload均fail closed。
+- Security boundary：只接受technical identifiers、受控codes、有界數字、boolean與ISO instant；不接受Password、OTP Code、MFA Secret、Token、Cookie、Header、HTTP payload、PII、教材內容或學生資料。
+- 明確未完成：Login、OAuth re-auth flow、MFA、OTP、Password verification、WebAuthn、Session refresh、Clock／freshness window、receipt repository、credential verifier、Database、Migration、RLS、API、UI、Audit/Dependency/Lifecycle/Retention orchestration、transaction/outbox或background job。
+- AP-002E ALLOWED不等於允許Role mutation、Export、Archive、Delete、Purge或break-glass；產品write仍須AP-004 trusted Authorization、AP-002B persisted Audit、AP-002A Lifecycle、AP-002C Dependency、AP-002D Retention/Hold、authoritative Re-auth adapter、Approval與transaction consistency。
 - Organization Closing、Account Privacy／Deletion、Recycle Bin、BF-003、permanent deletion與Sprint 9均未因本Foundation自動解鎖。

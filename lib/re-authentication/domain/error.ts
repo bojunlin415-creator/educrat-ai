@@ -1,0 +1,25 @@
+export const REAUTHENTICATION_ERROR_CODES = [
+  "DUPLICATE_REAUTHENTICATION_ACTION",
+  "DUPLICATE_REAUTHENTICATION_CHALLENGE_TYPE",
+  "DUPLICATE_REAUTHENTICATION_REQUIREMENT",
+  "INVALID_REAUTHENTICATION_CHALLENGE",
+  "INVALID_REAUTHENTICATION_INPUT",
+  "INVALID_REAUTHENTICATION_POLICY_RESULT",
+  "INVALID_REAUTHENTICATION_REQUIREMENT",
+  "UNKNOWN_REAUTHENTICATION_ACTION",
+  "UNKNOWN_REAUTHENTICATION_CHALLENGE_TYPE",
+  "UNSUPPORTED_REAUTHENTICATION_VERSION",
+] as const;
+
+export type ReAuthenticationErrorCode =
+  (typeof REAUTHENTICATION_ERROR_CODES)[number];
+
+export class ReAuthenticationError extends Error {
+  readonly code: ReAuthenticationErrorCode;
+
+  constructor(code: ReAuthenticationErrorCode) {
+    super(code);
+    this.name = "ReAuthenticationError";
+    this.code = code;
+  }
+}
