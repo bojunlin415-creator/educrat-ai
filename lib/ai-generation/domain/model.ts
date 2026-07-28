@@ -16,11 +16,15 @@ export interface GenerationKnowledgePoint {
 }
 
 export interface GenerationContext {
-  readonly curriculumReference: string;
+  readonly competencyIndicators: readonly string[];
+  readonly curriculumTopic: string;
   readonly difficulty: AiGenerationDifficulty;
   readonly grade: number;
   readonly includeExplanations: boolean;
   readonly knowledgePoints: readonly GenerationKnowledgePoint[];
+  readonly learningObjectives: readonly string[];
+  readonly learningStage: string;
+  readonly purpose: string;
   readonly questionCount: number;
   readonly subject: string;
   readonly unit: string;
@@ -91,11 +95,15 @@ export function createGenerationRequest(
     ...input,
     context: Object.freeze({
       ...input.context,
+      competencyIndicators: Object.freeze([
+        ...input.context.competencyIndicators,
+      ]),
       knowledgePoints: Object.freeze(
         input.context.knowledgePoints.map((knowledgePoint) =>
           Object.freeze({ ...knowledgePoint }),
         ),
       ),
+      learningObjectives: Object.freeze([...input.context.learningObjectives]),
     }),
     version: input.version ?? AI_GENERATION_CONTRACT_VERSION,
   });

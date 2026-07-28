@@ -14,28 +14,22 @@ EduCraft AI 的 AI 能力以「原創教材生成」為核心，而不是單純 
 
 `CurriculumGenerationInput` 包含：
 
+- `learningStage`：學習階段。
 - `grade`：國小 1–6 年級。
 - `subject`：科目文字。
-- `legacyPublisherReference`：legacy compatibility input，只能被轉換成中性 Curriculum Reference label。
-- `book`：冊次。
+- `curriculumTopic`：學習主題。
 - `unit`：單元。
+- `competencyIndicators`：能力指標。
+- `learningObjectives`：教學目標。
+- `purpose`：教材用途。
 - `knowledgePoints`：至少一個 Knowledge Point。
 - `difficulty`：`EASY`／`MEDIUM`／`HARD`。
 - `questionCount`：1–50 題。
 - `includeExplanations`：是否要求解析。
 
-## Curriculum Reference Boundary
+## Original Curriculum Boundary
 
-使用者可能仍以既有「教材版本」語言輸入需求，但 BF-001 不將出版社身份交給 AI context。
-
-Legacy input 只在 application boundary 轉成：
-
-- 課綱通用版
-- 教學進度模板 1
-- 教學進度模板 2
-- 教學進度模板 3
-
-Prompt Builder 不輸出出版社名稱、代碼或可辨識 mapping details，符合 AR-001 與 AI Reference Policy。
+BF-003 起，AI 產品 foundation 不再接收任何教材版本、出版社、課本章節、Lesson Code 或 Unit Mapping。教材生成只依據學習階段、年級、科目、學習主題、知識點、能力指標、教學目標、教材用途、題數、難易度與是否附解析。
 
 ## Knowledge Point Model
 
@@ -56,7 +50,7 @@ Prompt Builder 不輸出出版社名稱、代碼或可辨識 mapping details，�
 系統訊息明確要求：
 
 - 原創生成。
-- 不複製、改寫、引用或重製出版社內容。
+- 不引用、改寫、翻譯、重製或摘要任何出版社教材。
 - 不使用 OCR。
 - 不使用教師手冊、題庫、插圖、答案或解析。
 - 依據公開課綱、能力指標與知識點生成。

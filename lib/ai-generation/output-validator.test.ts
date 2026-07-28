@@ -4,7 +4,8 @@ import { validateCurriculumOutput } from "@/lib/ai-generation";
 import type { GenerationContext } from "@/lib/ai-generation";
 
 const context: GenerationContext = {
-  curriculumReference: "課綱通用版",
+  competencyIndicators: ["能描述水的三態。"],
+  curriculumTopic: "水的三態",
   difficulty: "EASY",
   grade: 3,
   includeExplanations: true,
@@ -15,6 +16,9 @@ const context: GenerationContext = {
       title: "水的三態",
     },
   ],
+  learningObjectives: ["學生能辨認水的三態變化。"],
+  learningStage: "MIDDLE_ELEMENTARY",
+  purpose: "課堂練習",
   questionCount: 2,
   subject: "自然",
   unit: "水",

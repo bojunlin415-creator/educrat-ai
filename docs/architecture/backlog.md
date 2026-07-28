@@ -19,6 +19,15 @@
 - 明確未完成：concrete OpenAI adapter、API key、HTTP call、streaming、real retry executor、Database、Migration、API、Server Action、UI、generation persistence、Audit、Authorization product integration、quota/cost persistence、background job。
 - 後續產品化：需獨立核准 concrete provider adapter、server composition root、Authorization／Audit integration、generation persistence、cost/quota tracking、Teacher Review Workflow 與 Export Pipeline。
 
+## BF-003：Original Curriculum Generation Handoff
+
+- 狀態：**Implementation Completed — Awaiting Product Review**；產品 foundation 已建立，尚未 Git Seal。
+- 已完成：BF-001／BF-002 input 與 prompt 語意移除教材版本、出版社進度參考、冊次、Lesson Mapping 與 Unit Mapping；新增 Curriculum Topic、Competency Indicator、Learning Objective、Topic Hierarchy 與教材用途語意。
+- 新入口：`generateOriginalCurriculum()`；`generateCurriculum` 僅保留為 compatibility alias，產品語意以 original curriculum generation 為準。
+- Copyright Safety：新增 publisher keyword、lesson mapping、prompt safety 與 forbidden vocabulary validation；偵測到出版社名稱、教師手冊、題庫、課文引用、課本章節或 mapping 語意時 fail closed。
+- 明確未完成：出版社 mapping、教材比對、OCR、課本章節、Lesson Code、Unit Mapping、真實 AI provider call、API、UI、Database、Migration、Audit、Authorization product integration。
+- 後續產品化：需獨立核准 concrete provider adapter、server composition root、Teacher Review Workflow、Copyright Safety reporting、Audit／Authorization integration 與 generation persistence。
+
 ## AR-002：Data Lifecycle & Audit Architecture（由 AP-002 提案承接）
 
 - 狀態：AP-002 Accepted — Architecture Approved；尚未實作

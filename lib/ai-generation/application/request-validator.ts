@@ -17,7 +17,9 @@ export function validateGenerationRequest(request: GenerationRequest): boolean {
     !AI_GENERATION_DIFFICULTIES.includes(request.context.difficulty) ||
     isBlank(request.context.subject) ||
     isBlank(request.context.unit) ||
-    isBlank(request.context.curriculumReference)
+    isBlank(request.context.curriculumTopic) ||
+    isBlank(request.context.learningStage) ||
+    isBlank(request.context.purpose)
   ) {
     return false;
   }
@@ -29,6 +31,12 @@ export function validateGenerationRequest(request: GenerationRequest): boolean {
     return false;
   }
   if (request.context.knowledgePoints.length === 0) return false;
+  if (
+    request.context.competencyIndicators.length === 0 ||
+    request.context.learningObjectives.length === 0
+  ) {
+    return false;
+  }
   return request.context.knowledgePoints.every(
     (knowledgePoint) =>
       !isBlank(knowledgePoint.id) &&

@@ -12,7 +12,6 @@ export interface CurriculumPromptMessage {
 }
 
 export interface PromptBuildContext {
-  readonly curriculumReferenceLabel: string;
   readonly input: CurriculumGenerationInput;
 }
 

@@ -27,7 +27,7 @@ export function createCurriculumTemplate(
 ): CurriculumTemplate {
   return Object.freeze({
     sections: REQUIRED_SECTIONS,
-    title: `${input.grade}年級 ${input.subject}｜${input.unit}`,
+    title: `${input.grade}年級 ${input.subject}｜${input.curriculumTopic}`,
     version: input.version,
   });
 }

@@ -10,7 +10,8 @@ describe("AI curriculum prompt builder", () => {
   it("builds a structured prompt with originality rules and neutral reference display", () => {
     const prompt = buildCurriculumPrompt(
       createCurriculumGenerationInput({
-        book: "第 7 冊",
+        competencyIndicators: ["能辨識段落重點。"],
+        curriculumTopic: "閱讀理解",
         difficulty: "HARD",
         grade: 4,
         includeExplanations: true,
@@ -23,7 +24,9 @@ describe("AI curriculum prompt builder", () => {
             title: "段落大意",
           }),
         ],
-        legacyPublisherReference: "NAN_YI",
+        learningObjectives: ["學生能提取段落主要訊息。"],
+        learningStage: "MIDDLE_ELEMENTARY",
+        purpose: "閱讀理解課堂練習",
         questionCount: 3,
         subject: "國語",
         unit: "閱讀理解",
@@ -32,8 +35,8 @@ describe("AI curriculum prompt builder", () => {
     const serializedPrompt = JSON.stringify(prompt);
 
     expect(serializedPrompt).toContain("原創教材");
-    expect(serializedPrompt).toContain("不得複製");
-    expect(serializedPrompt).toContain("教學進度模板 1");
+    expect(serializedPrompt).toContain("完全原創教材");
+    expect(serializedPrompt).toContain("學習主題：閱讀理解");
     expect(serializedPrompt).toContain("kp-reading-main-idea");
     expect(serializedPrompt).not.toContain("南一");
     expect(serializedPrompt).not.toContain("康軒");

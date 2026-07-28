@@ -19,12 +19,15 @@ const knowledgePoint = createKnowledgePoint({
 describe("AI curriculum model", () => {
   it("creates immutable generation input and generated curriculum", () => {
     const input = createCurriculumGenerationInput({
-      book: "第 7 冊",
+      competencyIndicators: ["理解同分母分數的大小比較。"],
+      curriculumTopic: "分數大小比較",
       difficulty: "MEDIUM",
       grade: 4,
       includeExplanations: true,
       knowledgePoints: [knowledgePoint],
-      legacyPublisherReference: "KANG_HSUAN",
+      learningObjectives: ["學生能比較同分母分數大小。"],
+      learningStage: "MIDDLE_ELEMENTARY",
+      purpose: "課堂練習",
       questionCount: 2,
       subject: "數學",
       unit: "分數",

@@ -19,11 +19,15 @@ const knowledgePoint = createKnowledgePoint({
 
 function createValidInput() {
   return createCurriculumGenerationInput({
-    book: "第 5 冊",
+    competencyIndicators: ["認識水的三態變化。"],
+    curriculumTopic: "水的三態",
     difficulty: "EASY",
     grade: 3,
     includeExplanations: true,
     knowledgePoints: [knowledgePoint],
+    learningObjectives: ["學生能舉例說明水的三態變化。"],
+    learningStage: "MIDDLE_ELEMENTARY",
+    purpose: "課堂形成性評量",
     questionCount: 2,
     subject: "自然",
     unit: "水",
@@ -87,11 +91,15 @@ describe("AI curriculum validator", () => {
 
   it("rejects invalid input and unmapped questions", () => {
     const invalidInput = createCurriculumGenerationInput({
-      book: "",
+      competencyIndicators: [],
+      curriculumTopic: "",
       difficulty: "MEDIUM",
       grade: 4,
       includeExplanations: false,
       knowledgePoints: [],
+      learningObjectives: [],
+      learningStage: "MIDDLE_ELEMENTARY",
+      purpose: "",
       questionCount: 0,
       subject: "",
       unit: "",

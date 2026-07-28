@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-07-28 — BF-003：Original Curriculum Generation（Awaiting Product Review）
+
+### Original curriculum direction
+
+- AI 產品 foundation 正式移除教材版本、出版社進度參考、冊次、Lesson Mapping 與 Unit Mapping 語意。
+- BF-001 generation input 改為 learning stage、grade、subject、curriculum topic、unit、competency indicators、learning objectives、purpose、knowledge points、difficulty、question count與include explanations。
+- BF-002 generation context 與 prompt pipeline 改用 Curriculum Topic、Knowledge Point、Competency Indicator、Learning Objective 與教材用途。
+- 新增 Curriculum Topic／Competency Indicator／Learning Objective／Topic Hierarchy domain model。
+- 新增 `generateOriginalCurriculum()` 語意入口，並在 provider call 前執行 prompt copyright safety validation。
+- 新增 Copyright Safety Validation，偵測出版社名稱、教師手冊、題庫、課文引用、課本章節或 mapping 語意時 fail closed。
+
+### Boundaries
+
+- 未新增出版社 mapping、教材比對、OCR、課本章節、Lesson Code、Unit Mapping、真實 AI provider call、API、UI、Database、Migration、Audit 或 Authorization product integration。
+- 狀態為 **Implementation Completed — Awaiting Product Review**；未 commit、push、deploy 或操作 Production。
+
 ## 2026-07-28 — BF-002：AI Generation Engine（Awaiting Product Review）
 
 ### AI generation foundation

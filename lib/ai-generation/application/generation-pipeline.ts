@@ -10,8 +10,9 @@ import type { AIProvider } from "@/lib/ai-generation/interfaces/ai-provider";
 import { assemblePrompt } from "@/lib/ai-generation/application/prompt-builder";
 import { validateGenerationRequest } from "@/lib/ai-generation/application/request-validator";
 import { validateCurriculumOutput } from "@/lib/ai-generation/application/output-validator";
+import { validatePromptCopyrightSafety } from "@/lib/ai-generation/application/copyright-safety-validator";
 
-export async function generateCurriculum(
+export async function generateOriginalCurriculum(
   request: GenerationRequest,
   provider: AIProvider,
 ): Promise<GenerationResult<CurriculumGenerationOutput>> {
@@ -25,6 +26,9 @@ export async function generateCurriculum(
   }
 
   const prompt = assemblePrompt(request);
+  if (!validatePromptCopyrightSafety(prompt).safe) {
+    return createGenerationFailure({ code: "PROMPT_BUILD_FAILED" });
+  }
   try {
     const providerResult = await provider.generate({
       prompt,
@@ -53,3 +57,5 @@ export async function generateCurriculum(
     return createGenerationFailure({ code: "PROVIDER_ERROR" });
   }
 }
+
+export const generateCurriculum = generateOriginalCurriculum;

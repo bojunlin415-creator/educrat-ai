@@ -360,11 +360,11 @@ Recycle Bin production source維持 `shared → domain/interfaces → applicatio
 
 ### BF-002 AI Generation Engine（Awaiting Product Review）
 
-BF-002 在 `lib/ai-generation/` 建立第一個可測試的 AI 教材生成 engine foundation。它包含 GenerationRequest／Context／Result／Metadata／Usage、`AIProvider` interface、OpenAI adapter boundary、固定 JSON Structured Output schema、Prompt Pipeline、Generation Pipeline、Output／Knowledge Mapping Validator、Retry Decision 與 canonical serialization。
+BF-002／BF-003 在 `lib/ai-generation/` 建立第一個可測試的 AI 教材生成 engine foundation。它包含 GenerationRequest／Context／Result／Metadata／Usage、`AIProvider` interface、OpenAI adapter boundary、固定 JSON Structured Output schema、Prompt Pipeline、Generation Pipeline、Output／Knowledge Mapping Validator、Copyright Safety Validator、Retry Decision 與 canonical serialization。
 
-Generation Pipeline 固定順序為 `Input Validation → Prompt Build → Provider Health → Provider Generate → Structured Validation → Knowledge Mapping Validation → Domain Result`。任何 invalid request、provider unavailable、provider exception、invalid structured output 或 invalid knowledge mapping 均 fail closed 並回傳 machine-readable error。
+Generation Pipeline 固定順序為 `Input Validation → Prompt Build → Copyright Safety Validation → Provider Health → Provider Generate → Structured Validation → Knowledge Mapping Validation → Domain Result`。任何 invalid request、forbidden source vocabulary、provider unavailable、provider exception、invalid structured output 或 invalid knowledge mapping 均 fail closed 並回傳 machine-readable error。
 
-OpenAI 目前只是 adapter boundary，不是 runtime integration。BF-002 不匯入 OpenAI SDK、不建立 API key、不做 HTTP call、不串流、不重試、不保存 generation，也不接 UI、API、Server Action、Database、Supabase、RLS、Audit 或 Authorization product enforcement。完整契約見 `docs/product/bf-002-ai-generation-engine.md`。
+BF-003 起，AI 產品 foundation 不再接收教材版本、出版社進度參考、冊次、Lesson Code 或 Unit Mapping；只根據學習階段、年級、科目、學習主題、知識點、能力指標、教學目標、教材用途、題數、難易度與是否附解析生成完全原創教材。OpenAI 目前只是 adapter boundary，不是 runtime integration。BF-002／BF-003 不匯入 OpenAI SDK、不建立 API key、不做 HTTP call、不串流、不重試、不保存 generation，也不接 UI、API、Server Action、Database、Supabase、RLS、Audit 或 Authorization product enforcement。完整契約見 `docs/product/bf-002-ai-generation-engine.md` 與 `docs/product/bf-003-original-curriculum-generation.md`。
 
 ### 既有決策
 

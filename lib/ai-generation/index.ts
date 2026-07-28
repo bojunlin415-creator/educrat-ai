@@ -1,4 +1,5 @@
 export * from "@/lib/ai-generation/application/generation-pipeline";
+export * from "@/lib/ai-generation/application/copyright-safety-validator";
 export * from "@/lib/ai-generation/application/openai-adapter-boundary";
 export * from "@/lib/ai-generation/application/output-validator";
 export * from "@/lib/ai-generation/application/prompt-builder";

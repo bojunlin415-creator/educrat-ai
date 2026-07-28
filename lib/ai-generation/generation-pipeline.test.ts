@@ -9,7 +9,8 @@ import {
 function createRequest() {
   return createGenerationRequest({
     context: {
-      curriculumReference: "課綱通用版",
+      competencyIndicators: ["能理解小數乘法的意義。"],
+      curriculumTopic: "小數乘法",
       difficulty: "MEDIUM",
       grade: 5,
       includeExplanations: true,
@@ -20,6 +21,9 @@ function createRequest() {
           title: "小數乘法",
         },
       ],
+      learningObjectives: ["學生能用加法意義理解小數乘法。"],
+      learningStage: "UPPER_ELEMENTARY",
+      purpose: "課堂練習",
       questionCount: 1,
       subject: "數學",
       unit: "小數乘法",

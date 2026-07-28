@@ -26,11 +26,26 @@ export function validateGenerationInput(input: CurriculumGenerationInput) {
   if (isBlank(input.subject)) {
     issues.push({ code: "MISSING_REQUIRED_FIELD", path: "subject" });
   }
-  if (isBlank(input.book)) {
-    issues.push({ code: "MISSING_REQUIRED_FIELD", path: "book" });
-  }
   if (isBlank(input.unit)) {
     issues.push({ code: "MISSING_REQUIRED_FIELD", path: "unit" });
+  }
+  if (isBlank(input.curriculumTopic)) {
+    issues.push({ code: "MISSING_REQUIRED_FIELD", path: "curriculumTopic" });
+  }
+  if (isBlank(input.purpose)) {
+    issues.push({ code: "MISSING_REQUIRED_FIELD", path: "purpose" });
+  }
+  if (input.competencyIndicators.length === 0) {
+    issues.push({
+      code: "MISSING_REQUIRED_FIELD",
+      path: "competencyIndicators",
+    });
+  }
+  if (input.learningObjectives.length === 0) {
+    issues.push({
+      code: "MISSING_REQUIRED_FIELD",
+      path: "learningObjectives",
+    });
   }
   if (!CURRICULUM_DIFFICULTIES.includes(input.difficulty)) {
     issues.push({ code: "INVALID_DIFFICULTY", path: "difficulty" });

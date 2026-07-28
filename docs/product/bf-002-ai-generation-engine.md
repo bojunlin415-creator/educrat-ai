@@ -63,9 +63,9 @@ Prompt pipeline 包含：
 - `buildUserPrompt()`
 - `assemblePrompt()`
 
-Prompt 支援年級、科目、單元、知識點、難易度、題數與是否附解析。
+Prompt 支援學習階段、年級、科目、學習主題、單元、知識點、能力指標、教學目標、教材用途、難易度、題數與是否附解析。
 
-Prompt 明確禁止直接引用、複製、改寫或重製出版社教材、課文、教師手冊、題庫、插圖、答案或解析，也不得要求模型模仿出版社版面、語氣或品牌可辨識內容。
+Prompt 明確禁止直接引用、改寫、翻譯、重製或摘要出版社教材、課文、教師手冊、題庫、插圖、答案或解析，也不得要求模型參考既有教材來源、課本章節、章節代碼、單元對照、版面、語氣或品牌可辨識內容。
 
 ## Generation Pipeline
 
@@ -88,6 +88,7 @@ Validation 分層：
 - Request validator：年級、科目、單元、題數、難易度、knowledge points。
 - Schema validator：固定 JSON schema。
 - Knowledge mapping validator：每一道題必須映射到 request 中的 known Knowledge Point。
+- Copyright safety validator：檢查使用者輸入與 prompt context 中的禁止來源詞彙，偵測到出版社名稱、教師手冊、題庫、課文引用、課本章節或 mapping 語意時 fail closed。
 
 ## Retry Policy
 
