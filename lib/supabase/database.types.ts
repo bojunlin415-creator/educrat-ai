@@ -74,6 +74,9 @@ export interface Database {
         Row: {
           created_at: string;
           created_by: string;
+          deleted_at: string | null;
+          deleted_by: string | null;
+          deletion_reason: string | null;
           grade_id: string;
           id: string;
           name: string;
@@ -88,6 +91,9 @@ export interface Database {
         Insert: {
           created_at?: string;
           created_by: string;
+          deleted_at?: string | null;
+          deleted_by?: string | null;
+          deletion_reason?: string | null;
           grade_id: string;
           id?: string;
           name: string;
@@ -100,6 +106,9 @@ export interface Database {
           updated_at?: string;
         };
         Update: {
+          deleted_at?: string | null;
+          deleted_by?: string | null;
+          deletion_reason?: string | null;
           grade_id?: string;
           name?: string;
           publisher_id?: string;
@@ -108,6 +117,60 @@ export interface Database {
           status?: "draft" | "active" | "archived";
           subject_id?: string;
         };
+        Relationships: [];
+      };
+      curriculum_lifecycle_audit_events: {
+        Row: {
+          action:
+            | "CURRICULUM_ARCHIVED"
+            | "CURRICULUM_PERMANENTLY_DELETED"
+            | "CURRICULUM_RESTORED"
+            | "CURRICULUM_SOFT_DELETED";
+          acting_role: string;
+          actor_id: string;
+          actor_type: "ACCOUNT";
+          correlation_id: string;
+          created_at: string;
+          current_hash: string;
+          curriculum_id: string;
+          event_id: string;
+          metadata: Json;
+          occurred_at: string;
+          organization_id: string;
+          previous_hash: string | null;
+          reason: string;
+          request_id: string;
+          result: "DENIED" | "FAILED" | "SUCCEEDED";
+          state_after: string;
+          state_before: string;
+          version: number;
+        };
+        Insert: {
+          action:
+            | "CURRICULUM_ARCHIVED"
+            | "CURRICULUM_PERMANENTLY_DELETED"
+            | "CURRICULUM_RESTORED"
+            | "CURRICULUM_SOFT_DELETED";
+          acting_role: string;
+          actor_id: string;
+          actor_type?: "ACCOUNT";
+          correlation_id: string;
+          created_at?: string;
+          current_hash: string;
+          curriculum_id: string;
+          event_id: string;
+          metadata?: Json;
+          occurred_at: string;
+          organization_id: string;
+          previous_hash?: string | null;
+          reason: string;
+          request_id: string;
+          result: "DENIED" | "FAILED" | "SUCCEEDED";
+          state_after: string;
+          state_before: string;
+          version?: number;
+        };
+        Update: never;
         Relationships: [];
       };
       grades: {
@@ -423,6 +486,10 @@ export interface Database {
         };
         Returns: string;
       };
+      archive_curriculum: {
+        Args: { p_curriculum_id: string };
+        Returns: string;
+      };
       create_lesson: {
         Args: {
           p_chapter_id: string;
@@ -458,6 +525,10 @@ export interface Database {
         Args: { p_lesson_id: string };
         Returns: string;
       };
+      permanently_delete_curriculum: {
+        Args: { p_curriculum_id: string };
+        Returns: string;
+      };
       get_active_organization_id: {
         Args: Record<PropertyKey, never>;
         Returns: string | null;
@@ -480,6 +551,18 @@ export interface Database {
       reorder_lessons: {
         Args: { p_chapter_id: string; p_ordered_ids: string[] };
         Returns: string[];
+      };
+      restore_archived_curriculum: {
+        Args: { p_curriculum_id: string };
+        Returns: string;
+      };
+      restore_deleted_curriculum: {
+        Args: { p_curriculum_id: string };
+        Returns: string;
+      };
+      soft_delete_curriculum: {
+        Args: { p_curriculum_id: string; p_reason?: string | null };
+        Returns: string;
       };
       switch_active_organization: {
         Args: { p_organization_id: string };

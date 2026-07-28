@@ -1,6 +1,6 @@
 # EduCraft AI（Education Intelligence Platform）
 
-為台灣國小補教業者與教師打造的教育智慧平台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構、章節／課次編輯器，以及 Curriculum Reference 相容層。BF-001～BF-003 已建立 AI 原創教材生成 foundation：產品輸入改為學習階段、年級、科目、學習主題、知識點、能力指標、教學目標與教材用途；不再使用任何出版社導向、教材版本、章節 mapping 或 lesson code。AI foundation 尚未串接 AI provider、API、Database 或正式 UI。AP-002、AP-003A 與 AP-003B 架構皆已核准。AP-004A／B、AP-004C-A／B、AP-002B、AP-002A、AP-002C、AP-002D 與 AP-002E 均已 Accepted and Git Sealed；AP-002F Recycle Bin Foundation 已完成實作、等待架構審查。Authorization、Audit、Lifecycle、Dependency、Retention、Re-authentication、Recycle Bin 與 AI Generation Foundation 尚未接入產品 API、Database persistence、RLS enforcement 或任何產品 write flow。
+為台灣國小補教業者與教師打造的教育智慧平台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構、章節／課次編輯器，以及 Curriculum Reference 相容層。BF-001～BF-003 已建立 AI 原創教材生成 foundation：產品輸入改為學習階段、年級、科目、學習主題、知識點、能力指標、教學目標與教材用途；不再使用任何出版社導向、教材版本、章節 mapping 或 lesson code。AI foundation 尚未串接 AI provider、API、Database 或正式 UI。AP-002、AP-003A 與 AP-003B 架構皆已核准。AP-004A／B、AP-004C-A／B、AP-002B、AP-002A、AP-002C、AP-002D 與 AP-002E 均已 Accepted and Git Sealed；AP-002F Recycle Bin Foundation 已完成實作、等待架構審查。PI-001 已將 Curriculum-only 的封存、回收桶、還原與受控永久刪除接入產品流程，等待產品審查。其餘跨 Entity Lifecycle、Platform Recycle Bin、Background Job、AI Generation persistence 與正式 AI UI 尚未開始。
 
 ## 技術堆疊
 
@@ -39,6 +39,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 - `/settings/organization`：目前機構資料與使用者角色
 - `/dashboard`：受保護、具 active organization context 的教材工作台
 - `/curriculums`：目前機構的教材列表
+- `/curriculums/recycle-bin`：owner/admin 查看教材回收桶、還原或永久刪除
 - `/curriculums/new`：owner/admin 建立教材與初始版本
 - `/curriculums/[id]`：教材、版本與章節詳細資料
 - `/curriculums/[id]/edit`：owner/admin 編輯教材基本資料
@@ -75,6 +76,7 @@ lib/dependency/      無框架 dependency graph、policy、validation 與 decisi
 lib/retention/       無框架 retention rule、legal hold、policy 與 decision core
 lib/re-authentication/ 無框架 re-auth requirement、challenge、policy 與 decision core
 lib/recycle-bin/     無框架 recycle entry、restore、purge eligibility 與 decision core
+lib/curriculum/      Curriculum 產品資料層、授權／回收桶／稽核 adapter 與 API DTO
 lib/ai-curriculum/   無框架 AI 原創教材生成輸入、prompt、template、layout、validation 與 preview foundation
 lib/ai-generation/   無框架 AI provider、structured output、prompt/generation pipeline、validation、retry 與 usage foundation
 tests/e2e/           Playwright 測試
@@ -162,6 +164,7 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - [AP-002D Retention & Legal Hold Foundation](docs/architecture/ap-002d-retention-legal-hold-foundation.md)：已核准並 Git Sealed 的 Retention Rule、Legal Hold gate、pure Policy port、fail-closed Evaluator 與 canonical serialization（無產品規則或 Database adapter）
 - [AP-002E Re-authentication Boundary](docs/architecture/ap-002e-re-authentication-boundary.md)：已核准並 Git Sealed 的 Re-auth Requirement、Challenge reference、pure Policy port、fail-closed Evaluator 與 canonical serialization（無 Login／MFA／Credential verification）
 - [AP-002F Recycle Bin Foundation](docs/architecture/ap-002f-recycle-bin-foundation.md)：已完成實作、等待架構審查的 Recycle Entry、Restore／Permanent Deletion decision、pure Policy port、fail-closed Evaluator 與 canonical serialization（無 actual restore／delete／DB）
+- [PI-001 Curriculum Delete & Recycle Bin](docs/product/pi-001-curriculum-delete-recycle-bin.md)：已完成實作、等待產品審查的 Curriculum-only 封存、回收桶、還原、受控永久刪除、Audit receipt 與產品 API／UI 整合
 - [BF-001 AI Curriculum Engine MVP](docs/product/bf-001-ai-curriculum-engine.md)：已完成實作、等待產品審查的原創教材生成輸入、Knowledge Point、Prompt Builder、Template、Printable Layout、Validator 與 Preview foundation（無 AI provider／API／DB／UI）
 - [BF-002 AI Generation Engine](docs/product/bf-002-ai-generation-engine.md)：已完成實作、等待產品審查的 Provider Interface、OpenAI boundary、Structured Output、Prompt／Generation Pipeline、Validation、Retry Decision 與 Usage foundation（無 SDK／HTTP／API key／DB／UI）
 - [BF-003 Original Curriculum Generation](docs/product/bf-003-original-curriculum-generation.md)：已完成實作、等待產品審查的完全原創教材生成方向、Curriculum Topic／Knowledge Point／Learning Objective／Competency Indicator domain 與 Copyright Safety Validation
@@ -216,5 +219,6 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - BF-001：**Implementation Completed — Awaiting Product Review**；已建立 framework-neutral AI Curriculum Engine MVP foundation，包含原創教材 generation input、Knowledge Point、Prompt Builder、Curriculum Template、A4/PDF-ready layout descriptor、Validator 與 Preview contract。尚未串接 AI provider、Database、Migration、API、Server Action、正式 UI 或 PDF binary export。
 - BF-002：**Implementation Completed — Awaiting Product Review**；已建立 framework-neutral AI Generation Engine foundation，包含 GenerationRequest／Result／Metadata／Usage、AIProvider interface、OpenAI adapter boundary、固定 JSON Structured Output schema、Prompt Pipeline、Generation Pipeline、Output／Knowledge Mapping Validator、Retry Decision 與 canonical serialization。尚未串接 OpenAI SDK、HTTP call、API key、Database、Migration、API、Server Action 或 UI。
 - BF-003：**Implementation Completed — Awaiting Product Review**；AI 產品 foundation 已移除教材版本、出版社進度參考、冊次與 mapping 語意，改以 Curriculum Topic、Knowledge Point、Competency Indicator、Learning Objective 與教材用途生成完全原創教材；新增 Copyright Safety Validation 與 `generateOriginalCurriculum()` 語意入口。
-- AP-002F：**Implementation Completed — Awaiting Architecture Review**；已建立 framework-neutral Recycle Entry、Restore／Permanent Deletion decision、Purge Eligibility、Registry、pure Policy port、fail-closed Evaluator 與 canonical serializer；尚無 actual restore／delete、Database、Migration、API、UI、background job 或產品 policy integration。
-- AP-004C 後續產品整合與其餘 Governance implementation 均尚未開始。Sprint 9 尚未開始，本階段不串接 AI、題庫或試卷。
+- AP-002F：**Implementation Completed — Awaiting Architecture Review**；已建立 framework-neutral Recycle Entry、Restore／Permanent Deletion decision、Purge Eligibility、Registry、pure Policy port、fail-closed Evaluator 與 canonical serializer。
+- PI-001：**Implementation Completed — Awaiting Product Review**；已完成 Curriculum-only 封存、移入回收桶、回收桶還原、受控永久刪除、append-only curriculum lifecycle audit table、API 與 UI 整合。未開始 Lesson／Worksheet／Assessment lifecycle、Platform-wide recycle bin、Background Job 或任何 AI 產品流程。
+- AP-004C 後續產品整合與其餘 Governance implementation 仍需逐 Package 核准。Sprint 9 尚未開始，本階段不串接 AI、題庫或試卷。

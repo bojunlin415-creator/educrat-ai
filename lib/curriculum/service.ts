@@ -1,7 +1,18 @@
 import "server-only";
 
 import type { Database } from "@/lib/supabase/database.types";
+import { getCurrentUser } from "@/lib/auth/session";
+import {
+  authorizeCurriculumLifecycle,
+  isAllowedDecision,
+} from "@/lib/curriculum/authorization";
+import { writeCurriculumLifecycleAudit } from "@/lib/curriculum/audit";
 import { CurriculumError } from "@/lib/curriculum/errors";
+import {
+  curriculumToRecycleEntry,
+  evaluateCurriculumPermanentDeletion,
+  evaluateCurriculumRestore,
+} from "@/lib/curriculum/recycle-bin";
 import {
   toCurriculumReferenceDisplay,
   type CurriculumReferenceDisplay,
@@ -32,8 +43,12 @@ import {
 import {
   createCurriculumSchema,
   curriculumIdSchema,
+  curriculumDeletionSchema,
+  curriculumPermanentDeletionSchema,
   updateCurriculumSchema,
   type CreateCurriculumInput,
+  type CurriculumDeletionInput,
+  type CurriculumPermanentDeletionInput,
   type UpdateCurriculumInput,
 } from "@/lib/validation/curriculum";
 
@@ -96,6 +111,21 @@ function mapDatabaseError(error: { code?: string; message?: string } | null) {
   ) {
     return new CurriculumError("hierarchy_conflict");
   }
+  if (error.message?.includes("curriculum_already_deleted")) {
+    return new CurriculumError("already_deleted");
+  }
+  if (error.message?.includes("curriculum_not_deleted")) {
+    return new CurriculumError("not_deleted");
+  }
+  if (error.message?.includes("published_curriculum_must_be_archived")) {
+    return new CurriculumError("delete_not_allowed");
+  }
+  if (error.message?.includes("curriculum_dependency_blocked")) {
+    return new CurriculumError("dependency_blocked");
+  }
+  if (error.message?.includes("curriculum_restore_name_taken")) {
+    return new CurriculumError("restore_name_conflict");
+  }
   if (
     error.code === "23505" ||
     error.message?.includes("curriculum_name_taken")
@@ -146,6 +176,16 @@ async function requireCurriculumRole(roles: readonly OrganizationRole[]) {
     if (error instanceof OrganizationError) throw mapOrganizationError(error);
     throw error;
   }
+}
+
+async function requireCurriculumActor() {
+  const user = await getCurrentUser();
+  if (!user) throw new CurriculumError("not_authenticated");
+  return user;
+}
+
+function assertAuthorized(allowed: boolean) {
+  if (!allowed) throw new CurriculumError("forbidden");
 }
 
 function referenceMap(rows: ReferenceRow[]) {
@@ -233,6 +273,9 @@ async function hydrateCurriculums(
     return {
       created_at: row.created_at,
       created_by: row.created_by,
+      deleted_at: row.deleted_at,
+      deleted_by: row.deleted_by,
+      deletion_reason: row.deletion_reason,
       grade: requireReference(grades, row.grade_id),
       grade_id: row.grade_id,
       id: row.id,
@@ -257,7 +300,31 @@ export async function getCurriculums(): Promise<CurriculumSummary[]> {
     .from("curriculums")
     .select("*")
     .eq("organization_id", context.organization.id)
+    .is("deleted_at", null)
     .order("updated_at", { ascending: false });
+
+  if (error) throw mapDatabaseError(error);
+  return hydrateCurriculums(data);
+}
+
+export async function getDeletedCurriculums(): Promise<CurriculumSummary[]> {
+  const context = await requireCurriculumMembership();
+  const user = await requireCurriculumActor();
+  const decision = await authorizeCurriculumLifecycle({
+    context,
+    curriculumId: context.organization.id,
+    permission: "recycle_bin.read",
+    user,
+  });
+  assertAuthorized(isAllowedDecision(decision));
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("curriculums")
+    .select("*")
+    .eq("organization_id", context.organization.id)
+    .not("deleted_at", "is", null)
+    .order("deleted_at", { ascending: false });
 
   if (error) throw mapDatabaseError(error);
   return hydrateCurriculums(data);
@@ -274,6 +341,7 @@ export async function getCurriculum(id: string): Promise<CurriculumDetail> {
     .select("*")
     .eq("id", parsedId.data)
     .eq("organization_id", context.organization.id)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (error) throw mapDatabaseError(error);
@@ -382,12 +450,320 @@ export async function updateCurriculum(
     })
     .eq("id", parsedId.data)
     .eq("organization_id", context.organization.id)
+    .is("deleted_at", null)
     .select("id")
     .maybeSingle();
 
   if (error) throw mapDatabaseError(error);
   if (!data) throw new CurriculumError("not_found");
   return getCurriculum(data.id);
+}
+
+async function loadCurriculumSummaryForLifecycle(input: {
+  readonly id: string;
+  readonly includeDeleted?: boolean;
+}): Promise<CurriculumSummary> {
+  const parsedId = curriculumIdSchema.safeParse(input.id);
+  if (!parsedId.success) throw new CurriculumError("not_found");
+
+  const context = await requireCurriculumMembership();
+  const supabase = await createClient();
+  let query = supabase
+    .from("curriculums")
+    .select("*")
+    .eq("id", parsedId.data)
+    .eq("organization_id", context.organization.id);
+  if (!input.includeDeleted) query = query.is("deleted_at", null);
+  const { data, error } = await query.maybeSingle();
+  if (error) throw mapDatabaseError(error);
+  if (!data) throw new CurriculumError("not_found");
+  const [summary] = await hydrateCurriculums([data]);
+  if (!summary) throw new CurriculumError("not_found");
+  return summary;
+}
+
+async function hasProtectedCurriculumDependencies(
+  curriculumId: string,
+): Promise<boolean> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("curriculum_versions")
+    .select("id")
+    .eq("curriculum_id", curriculumId)
+    .eq("status", "published")
+    .limit(1)
+    .maybeSingle();
+  if (error) throw mapDatabaseError(error);
+  return Boolean(data);
+}
+
+async function writeLifecycleAudit(input: {
+  readonly action:
+    | "CURRICULUM_ARCHIVED"
+    | "CURRICULUM_PERMANENTLY_DELETED"
+    | "CURRICULUM_RESTORED"
+    | "CURRICULUM_SOFT_DELETED";
+  readonly context: Awaited<ReturnType<typeof requireCurriculumMembership>>;
+  readonly curriculumId: string;
+  readonly reason: string;
+  readonly stateAfter: string;
+  readonly stateBefore: string;
+  readonly userId: string;
+}) {
+  const supabase = await createClient();
+  return writeCurriculumLifecycleAudit({
+    action: input.action,
+    actingRole: input.context.membership.role,
+    actorId: input.userId,
+    curriculumId: input.curriculumId,
+    organizationId: input.context.organization.id,
+    reason: input.reason,
+    stateAfter: input.stateAfter,
+    stateBefore: input.stateBefore,
+    supabase,
+  });
+}
+
+export async function archiveCurriculum(id: string): Promise<CurriculumDetail> {
+  const parsedId = curriculumIdSchema.safeParse(id);
+  if (!parsedId.success) throw new CurriculumError("invalid_input");
+  const context = await requireCurriculumMembership();
+  const user = await requireCurriculumActor();
+  const curriculum = await loadCurriculumSummaryForLifecycle({
+    id: parsedId.data,
+  });
+  const decision = await authorizeCurriculumLifecycle({
+    context,
+    curriculumId: curriculum.id,
+    permission: "curriculum.archive",
+    user,
+  });
+  assertAuthorized(isAllowedDecision(decision));
+  if (curriculum.status === "archived") {
+    throw new CurriculumError("archive_not_allowed");
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("archive_curriculum", {
+    p_curriculum_id: curriculum.id,
+  });
+  if (error) throw mapDatabaseError(error);
+  await writeLifecycleAudit({
+    action: "CURRICULUM_ARCHIVED",
+    context,
+    curriculumId: curriculum.id,
+    reason: "USER_REQUESTED",
+    stateAfter: "ARCHIVED",
+    stateBefore: curriculum.status.toUpperCase(),
+    userId: user.id,
+  });
+  return getCurriculum(data);
+}
+
+export async function restoreArchivedCurriculum(
+  id: string,
+): Promise<CurriculumDetail> {
+  const parsedId = curriculumIdSchema.safeParse(id);
+  if (!parsedId.success) throw new CurriculumError("invalid_input");
+  const context = await requireCurriculumMembership();
+  const user = await requireCurriculumActor();
+  const curriculum = await loadCurriculumSummaryForLifecycle({
+    id: parsedId.data,
+  });
+  const decision = await authorizeCurriculumLifecycle({
+    context,
+    curriculumId: curriculum.id,
+    permission: "curriculum.restore",
+    user,
+  });
+  assertAuthorized(isAllowedDecision(decision));
+  if (curriculum.status !== "archived") {
+    throw new CurriculumError("restore_not_allowed");
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("restore_archived_curriculum", {
+    p_curriculum_id: curriculum.id,
+  });
+  if (error) throw mapDatabaseError(error);
+  await writeLifecycleAudit({
+    action: "CURRICULUM_RESTORED",
+    context,
+    curriculumId: curriculum.id,
+    reason: "USER_REQUESTED",
+    stateAfter: "ACTIVE",
+    stateBefore: "ARCHIVED",
+    userId: user.id,
+  });
+  return getCurriculum(data);
+}
+
+export async function deleteCurriculum(
+  id: string,
+  input: CurriculumDeletionInput = {},
+): Promise<CurriculumSummary> {
+  const parsedId = curriculumIdSchema.safeParse(id);
+  const parsed = curriculumDeletionSchema.safeParse(input);
+  if (!parsedId.success || !parsed.success) {
+    throw new CurriculumError("invalid_input");
+  }
+  const context = await requireCurriculumMembership();
+  const user = await requireCurriculumActor();
+  const curriculum = await loadCurriculumSummaryForLifecycle({
+    id: parsedId.data,
+  });
+  const decision = await authorizeCurriculumLifecycle({
+    context,
+    curriculumId: curriculum.id,
+    permission: "curriculum.delete",
+    user,
+  });
+  assertAuthorized(isAllowedDecision(decision));
+  if (curriculum.status === "active") {
+    throw new CurriculumError("delete_not_allowed");
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("soft_delete_curriculum", {
+    p_curriculum_id: curriculum.id,
+    p_reason: parsed.data.reason ?? null,
+  });
+  if (error) throw mapDatabaseError(error);
+  const deleted = await loadCurriculumSummaryForLifecycle({
+    id: data,
+    includeDeleted: true,
+  });
+  await writeLifecycleAudit({
+    action: "CURRICULUM_SOFT_DELETED",
+    context,
+    curriculumId: deleted.id,
+    reason: parsed.data.reason ? "USER_REQUESTED" : "NO_REASON_PROVIDED",
+    stateAfter: "DELETED",
+    stateBefore: curriculum.status.toUpperCase(),
+    userId: user.id,
+  });
+  return deleted;
+}
+
+export async function restoreDeletedCurriculum(
+  id: string,
+): Promise<CurriculumDetail> {
+  const parsedId = curriculumIdSchema.safeParse(id);
+  if (!parsedId.success) throw new CurriculumError("invalid_input");
+  const context = await requireCurriculumMembership();
+  const user = await requireCurriculumActor();
+  const curriculum = await loadCurriculumSummaryForLifecycle({
+    id: parsedId.data,
+    includeDeleted: true,
+  });
+  if (!curriculum.deleted_at) throw new CurriculumError("not_deleted");
+  const decision = await authorizeCurriculumLifecycle({
+    context,
+    curriculumId: curriculum.id,
+    permission: "curriculum.restore",
+    user,
+  });
+  assertAuthorized(isAllowedDecision(decision));
+  const restoreDecision = evaluateCurriculumRestore({
+    actorId: user.id,
+    entry: curriculumToRecycleEntry(curriculum, {
+      hasProtectedDependencies: false,
+    }),
+  });
+  if (!restoreDecision.allowed)
+    throw new CurriculumError("restore_not_allowed");
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("restore_deleted_curriculum", {
+    p_curriculum_id: curriculum.id,
+  });
+  if (error) throw mapDatabaseError(error);
+  await writeLifecycleAudit({
+    action: "CURRICULUM_RESTORED",
+    context,
+    curriculumId: curriculum.id,
+    reason: "USER_REQUESTED",
+    stateAfter: curriculum.status.toUpperCase(),
+    stateBefore: "DELETED",
+    userId: user.id,
+  });
+  return getCurriculum(data);
+}
+
+function mapPermanentDecisionToError(
+  decision: ReturnType<typeof evaluateCurriculumPermanentDeletion>,
+): CurriculumError {
+  const actions = decision.requiredActions.map((item) => item.action);
+  if (actions.includes("RETENTION_BLOCKED")) {
+    return new CurriculumError("retention_blocked");
+  }
+  if (actions.includes("LEGAL_HOLD_BLOCKED")) {
+    return new CurriculumError("legal_hold_blocked");
+  }
+  if (actions.includes("DEPENDENCY_BLOCKED")) {
+    return new CurriculumError("dependency_blocked");
+  }
+  return new CurriculumError("permanent_delete_not_allowed");
+}
+
+export async function permanentlyDeleteCurriculum(
+  id: string,
+  input: CurriculumPermanentDeletionInput,
+): Promise<string> {
+  const parsedId = curriculumIdSchema.safeParse(id);
+  const parsed = curriculumPermanentDeletionSchema.safeParse(input);
+  if (!parsedId.success || !parsed.success) {
+    throw new CurriculumError("invalid_input");
+  }
+  const context = await requireCurriculumMembership();
+  const user = await requireCurriculumActor();
+  const curriculum = await loadCurriculumSummaryForLifecycle({
+    id: parsedId.data,
+    includeDeleted: true,
+  });
+  if (!curriculum.deleted_at) throw new CurriculumError("not_deleted");
+  if (
+    parsed.data.confirmation !== curriculum.name &&
+    parsed.data.confirmation !== "永久刪除"
+  ) {
+    throw new CurriculumError("invalid_input");
+  }
+
+  const decision = await authorizeCurriculumLifecycle({
+    context,
+    curriculumId: curriculum.id,
+    permission: "curriculum.permanently_delete",
+    user,
+  });
+  assertAuthorized(isAllowedDecision(decision));
+
+  const hasDependencies = await hasProtectedCurriculumDependencies(
+    curriculum.id,
+  );
+  const permanentDecision = evaluateCurriculumPermanentDeletion({
+    actorId: user.id,
+    entry: curriculumToRecycleEntry(curriculum, {
+      hasProtectedDependencies: hasDependencies,
+    }),
+  });
+  if (!permanentDecision.allowed)
+    throw mapPermanentDecisionToError(permanentDecision);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("permanently_delete_curriculum", {
+    p_curriculum_id: curriculum.id,
+  });
+  if (error) throw mapDatabaseError(error);
+  await writeLifecycleAudit({
+    action: "CURRICULUM_PERMANENTLY_DELETED",
+    context,
+    curriculumId: curriculum.id,
+    reason: "USER_REQUESTED",
+    stateAfter: "PERMANENTLY_DELETED",
+    stateBefore: "DELETED",
+    userId: user.id,
+  });
+  return data;
 }
 
 export async function createChapter(

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CurriculumLifecycleAction } from "@/components/curriculums/curriculum-lifecycle-actions";
 import { CurriculumHeader } from "@/components/curriculums/curriculum-header";
 import { Card } from "@/components/ui/card";
 import { CurriculumError } from "@/lib/curriculum/errors";
@@ -119,6 +120,49 @@ export default async function CurriculumDetailPage({
           ))}
         </div>
       </section>
+
+      {canEdit ? (
+        <section aria-labelledby="danger-zone-title" className="mt-10">
+          <Card className="border-red-200 p-6">
+            <p className="font-bold text-red-700">Danger Zone</p>
+            <h2
+              className="mt-1 text-xl font-black text-emerald-950"
+              id="danger-zone-title"
+            >
+              教材生命週期
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              封存會保留教材資料；刪除會移入回收桶，需通過相依與保留檢查後才可永久刪除。
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              {curriculum.status === "active" ? (
+                <CurriculumLifecycleAction
+                  action="archive"
+                  curriculum={curriculum}
+                  redirectTo={`/curriculums/${curriculum.id}`}
+                  source="detail"
+                />
+              ) : null}
+              {curriculum.status === "archived" ? (
+                <CurriculumLifecycleAction
+                  action="restore"
+                  curriculum={curriculum}
+                  redirectTo={`/curriculums/${curriculum.id}`}
+                  source="detail"
+                />
+              ) : null}
+              {curriculum.status !== "active" ? (
+                <CurriculumLifecycleAction
+                  action="delete"
+                  curriculum={curriculum}
+                  redirectTo="/curriculums"
+                  source="detail"
+                />
+              ) : null}
+            </div>
+          </Card>
+        </section>
+      ) : null}
     </main>
   );
 }

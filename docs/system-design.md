@@ -90,6 +90,16 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - Editor 以三次批次查詢取得教材、版本、章與課，不逐節點查詢。Tree 分頁顯示章節，只有展開章節才 render 課次；拖曳之外保留可聚焦的上下移動按鈕與方向鍵展開／收合。
 - AI-ready reserve 只在 Lesson 保存 nullable 1–5 級 `difficulty` 與受限 `keywords` 陣列。它們位於 version-owned、tenant-scoped hierarchy 中，未來 Engine 可直接取用；Prompt、Embedding、provider／model、generation provenance 與 review workflow 必須使用後續獨立模型，不得塞入這兩個欄位。
 
+### Curriculum Lifecycle Integration（PI-001）
+
+- PI-001 將 Curriculum-only 生命週期接入產品流程。`curriculums.deleted_at` 是回收桶狀態來源；一般 list、detail 與 GET API 只讀取 `deleted_at is null` 的教材。
+- `active` 教材必須先封存，才能移入回收桶；`draft` 與 `archived` 可 soft delete。回收桶還原只清除 delete metadata，不修改既有 status；archived restore 另由受控 restore RPC 回到 active。
+- `lib/curriculum/authorization.ts` 使用 server-resolved authenticated account 與 active organization membership 建 trusted authorization context，不接受 client role／organization id。PI-001 僅將 lifecycle permissions 授予 organization owner/admin。
+- `lib/curriculum/recycle-bin.ts` 是 AP-002F product adapter，將 deleted curriculum row 映射為 Recycle Entry，並使用 foundation evaluator 判斷 restore／permanent deletion。`lib/recycle-bin/` 本身仍維持 product-neutral。
+- `lib/curriculum/audit.ts` 是 AP-002B product adapter，使用 AuditWriter 建立 receipt/hash chain material，再 append 至 `curriculum_lifecycle_audit_events`。Audit metadata 不保存教材內容、Prompt、答案、Token、Secret 或完整 PII。
+- Permanent deletion 只能針對已在回收桶的教材，並在目前階段阻擋 published curriculum version。未來 Worksheet／Assessment／Learning History 等下游資料推出前，必須擴充 dependency inventory，不得直接 cascade 破壞受保護資料。
+- PI-001 不代表 Platform-wide Recycle Bin、Background Job、Re-auth receipt、Platform Admin review、Organization Closing、Account Deletion 或 Lesson／Worksheet／Assessment lifecycle 已完成。
+
 ### 後續 Sprint 銜接
 
 - 新版 Roadmap 的 Sprint 7 改為 Curriculum Foundation；原先規劃的 branch Sprint 尚未執行，active branch 仍只保留架構延伸點。

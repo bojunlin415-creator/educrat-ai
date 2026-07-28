@@ -6,6 +6,16 @@ export type CurriculumErrorCode =
   | "duplicate_name"
   | "hierarchy_conflict"
   | "invalid_input"
+  | "already_deleted"
+  | "not_deleted"
+  | "archive_not_allowed"
+  | "delete_not_allowed"
+  | "restore_not_allowed"
+  | "restore_name_conflict"
+  | "permanent_delete_not_allowed"
+  | "retention_blocked"
+  | "legal_hold_blocked"
+  | "dependency_blocked"
   | "service_unavailable";
 
 const curriculumErrorMessages: Record<CurriculumErrorCode, string> = {
@@ -16,6 +26,17 @@ const curriculumErrorMessages: Record<CurriculumErrorCode, string> = {
   duplicate_name: "目前機構已有相同名稱的教材，請更換名稱。",
   hierarchy_conflict: "章節或課次的編號重複，請調整後再試。",
   invalid_input: "教材資料格式不正確。",
+  already_deleted: "這份教材已在回收桶中。",
+  not_deleted: "這份教材不在回收桶中。",
+  archive_not_allowed: "目前無法封存這份教材。",
+  delete_not_allowed: "使用中的教材需先封存，才能移入回收桶。",
+  restore_not_allowed: "目前無法還原這份教材。",
+  restore_name_conflict:
+    "目前已有同名教材正在使用中，請先更名或永久刪除其中一份後再還原。",
+  permanent_delete_not_allowed: "目前無法永久刪除這份教材。",
+  retention_blocked: "這份教材仍受保留政策保護，暫時不能永久刪除。",
+  legal_hold_blocked: "這份教材仍有法務保留，暫時不能永久刪除。",
+  dependency_blocked: "這份教材已有受保護相依資料，暫時不能永久刪除。",
   service_unavailable: "目前無法處理教材資料，請稍後再試。",
 };
 
@@ -41,6 +62,16 @@ export function getCurriculumErrorStatus(error: CurriculumError): number {
       return 404;
     case "duplicate_name":
     case "hierarchy_conflict":
+    case "already_deleted":
+    case "not_deleted":
+    case "archive_not_allowed":
+    case "delete_not_allowed":
+    case "restore_not_allowed":
+    case "restore_name_conflict":
+    case "permanent_delete_not_allowed":
+    case "retention_blocked":
+    case "legal_hold_blocked":
+    case "dependency_blocked":
       return 409;
     case "invalid_input":
       return 400;

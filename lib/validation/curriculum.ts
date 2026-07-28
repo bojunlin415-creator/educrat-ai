@@ -63,6 +63,22 @@ export const updateCurriculumRequestSchema = z.preprocess(
 
 export const curriculumIdSchema = z.uuid("教材識別碼格式不正確。");
 
+export const curriculumDeletionSchema = z
+  .object({
+    reason: z
+      .string()
+      .trim()
+      .max(500, "刪除原因不可超過 500 個字。")
+      .optional(),
+  })
+  .strict();
+
+export const curriculumPermanentDeletionSchema = z
+  .object({
+    confirmation: z.string().trim().min(1, "請輸入確認文字。"),
+  })
+  .strict();
+
 export const curriculumApiResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
@@ -78,3 +94,7 @@ export const curriculumApiResponseSchema = z.object({
 export type CurriculumFormInput = z.infer<typeof curriculumFormSchema>;
 export type CreateCurriculumInput = z.infer<typeof createCurriculumSchema>;
 export type UpdateCurriculumInput = z.infer<typeof updateCurriculumSchema>;
+export type CurriculumDeletionInput = z.infer<typeof curriculumDeletionSchema>;
+export type CurriculumPermanentDeletionInput = z.infer<
+  typeof curriculumPermanentDeletionSchema
+>;

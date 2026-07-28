@@ -285,7 +285,7 @@ test("authenticated user completes and manages their profile", async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/curriculums/${curriculumId}`);
   await expect(page.getByText("目前版本")).toBeVisible();
-  await expect(page.getByText("v1")).toBeVisible();
+  await expect(page.getByText("v1", { exact: true })).toBeVisible();
 
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto(`/curriculums/${curriculumId}/edit`);

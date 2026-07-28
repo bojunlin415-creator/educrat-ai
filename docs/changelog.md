@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-07-28 — PI-001：Curriculum Delete & Recycle Bin Integration（Awaiting Product Review）
+
+### Curriculum lifecycle product integration
+
+- 新增 Curriculum-only soft delete 欄位、回收桶索引與受控 fixed-search-path lifecycle RPC。
+- 新增 append-only `curriculum_lifecycle_audit_events`，並透過 AP-002B `AuditWriter` adapter 產生 lifecycle audit receipt 與 hash chain material。
+- 新增 Curriculum product authorization adapter，使用 server-resolved authenticated account、active organization membership 與 role 建立 trusted authorization context，再檢查 `curriculum.archive`、`curriculum.delete`、`curriculum.restore`、`curriculum.permanently_delete` 與 `recycle_bin.read`。
+- 新增 AP-002F product adapter，將 deleted curriculum row 映射為 `RecycleEntry`，並使用 restore／permanent deletion evaluator fail closed。
+- 新增教材詳細頁 Danger Zone、教材列表 lifecycle actions、`/curriculums/recycle-bin` 回收桶頁，以及 archive／restore／delete／permanent-delete API routes。
+- 一般教材列表、詳細頁與既有 GET API 排除 `deleted_at is not null` 的教材；回收桶頁僅顯示目前 active organization 的 deleted curricula。
+- 新增 forward-only partial unique index migration，讓 deleted curriculum 不再占用同 organization 內的 active curriculum name；restore 若遇同名 active curriculum，回傳安全 `restore_name_conflict` domain error。
+- 新增 lifecycle RPC role-check follow-up migration，讓 archive／restore／soft delete／permanent delete RPC 使用 caller-bound `auth.uid()` 直接驗證 active owner/admin membership，避免 lifecycle write 在 RPC chaining 情境 fail closed。
+
+### Boundaries
+
+- 未修改歷史 Migration；新增 migration 為 additive。
+- 未開始 Lesson、Worksheet、Assessment、Student、Class、Organization Closing、Account Deletion、AI、Background Job、Platform Admin Console 或 platform-wide recycle bin。
+- 未建立 Service Role cleanup、未放寬 RLS、未加入出版社資料或 AI provider。
+- 狀態為 **Implementation Completed — Awaiting Product Review**；未 commit、push、deploy 或操作 Production。
+
 ## 2026-07-28 — BF-003：Original Curriculum Generation（Awaiting Product Review）
 
 ### Original curriculum direction

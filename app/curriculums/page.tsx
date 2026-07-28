@@ -8,6 +8,7 @@ import { requireWorkspaceContext } from "@/lib/onboarding/guard";
 import { canManageCurriculums } from "@/lib/organization/constants";
 
 export const metadata: Metadata = { title: "教材列表" };
+export const dynamic = "force-dynamic";
 
 export default async function CurriculumsPage() {
   const { currentOrganization } = await requireWorkspaceContext();
@@ -19,12 +20,20 @@ export default async function CurriculumsPage() {
       <CurriculumHeader
         actions={
           canCreate ? (
-            <Link
-              className="inline-flex min-h-11 items-center justify-center rounded-xl bg-emerald-800 px-5 py-2.5 font-bold text-white hover:bg-emerald-900"
-              href="/curriculums/new"
-            >
-              建立教材
-            </Link>
+            <>
+              <Link
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-emerald-900/15 bg-white px-5 py-2.5 font-bold text-emerald-950 hover:bg-emerald-50"
+                href="/curriculums/recycle-bin"
+              >
+                教材回收桶
+              </Link>
+              <Link
+                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-emerald-800 px-5 py-2.5 font-bold text-white hover:bg-emerald-900"
+                href="/curriculums/new"
+              >
+                建立教材
+              </Link>
+            </>
           ) : null
         }
         description={`${currentOrganization.organization.name} 的教材結構與版本紀錄。`}
@@ -35,7 +44,7 @@ export default async function CurriculumsPage() {
         {curriculums.length === 0 ? (
           <CurriculumEmptyState canCreate={canCreate} />
         ) : (
-          <CurriculumTable curriculums={curriculums} />
+          <CurriculumTable canManage={canCreate} curriculums={curriculums} />
         )}
       </section>
     </main>

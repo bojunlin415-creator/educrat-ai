@@ -19,6 +19,7 @@ export function curriculumSuccess(
 export function curriculumFailure(
   message: string,
   fieldErrors?: Record<string, string[] | undefined>,
+  code?: string,
 ) {
   const normalized = fieldErrors
     ? Object.fromEntries(
@@ -27,7 +28,7 @@ export function curriculumFailure(
         ),
       )
     : undefined;
-  return { success: false, message, fieldErrors: normalized };
+  return { success: false, message, fieldErrors: normalized, code };
 }
 
 export async function parseCurriculumJson<T>(
@@ -101,9 +102,12 @@ export async function parseCurriculumJson<T>(
 
 export function curriculumErrorResponse(error: unknown): Response {
   if (error instanceof CurriculumError) {
-    return Response.json(curriculumFailure(error.message), {
-      status: getCurriculumErrorStatus(error),
-    });
+    return Response.json(
+      curriculumFailure(error.message, undefined, error.code),
+      {
+        status: getCurriculumErrorStatus(error),
+      },
+    );
   }
 
   return Response.json(

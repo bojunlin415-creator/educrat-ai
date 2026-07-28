@@ -1,7 +1,8 @@
 import { CurriculumError } from "@/lib/curriculum/errors";
-import { GET, PATCH } from "./route";
+import { DELETE, GET, PATCH } from "./route";
 
 const serviceMocks = vi.hoisted(() => ({
+  deleteCurriculum: vi.fn(),
   getCurriculum: vi.fn(),
   updateCurriculum: vi.fn(),
 }));
@@ -105,5 +106,41 @@ describe("curriculum detail API", () => {
     );
     expect(response.status).toBe(422);
     expect(serviceMocks.updateCurriculum).not.toHaveBeenCalled();
+  });
+
+  it("moves a curriculum to the recycle bin through DELETE", async () => {
+    serviceMocks.deleteCurriculum.mockResolvedValue({
+      id,
+      name: "草稿教材",
+    });
+    const response = await DELETE(
+      new Request(`http://localhost/api/curriculums/${id}`, {
+        body: JSON.stringify({ reason: "不再使用" }),
+        headers: { "content-type": "application/json" },
+        method: "DELETE",
+      }),
+      { params: Promise.resolve({ id }) },
+    );
+    const payload = (await response.json()) as { redirectTo?: string };
+
+    expect(response.status).toBe(200);
+    expect(serviceMocks.deleteCurriculum).toHaveBeenCalledWith(id, {
+      reason: "不再使用",
+    });
+    expect(payload.redirectTo).toBe("/curriculums");
+  });
+
+  it("rejects invalid delete payloads before calling the service", async () => {
+    const response = await DELETE(
+      new Request(`http://localhost/api/curriculums/${id}`, {
+        body: JSON.stringify({ reason: "x".repeat(501) }),
+        headers: { "content-type": "application/json" },
+        method: "DELETE",
+      }),
+      { params: Promise.resolve({ id }) },
+    );
+
+    expect(response.status).toBe(422);
+    expect(serviceMocks.deleteCurriculum).not.toHaveBeenCalled();
   });
 });

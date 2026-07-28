@@ -2,6 +2,15 @@
 
 本文件只記錄尚待獨立 Architecture Request 審查的架構議題。Backlog 項目不代表已實作、已排入目前 Sprint 或已取得資料庫變更授權。
 
+## PI-001：Curriculum Delete & Recycle Bin Integration
+
+- 狀態：**Implementation Completed — Awaiting Product Review**；產品整合已完成，尚未 Git Seal。
+- 已完成：Curriculum-only archive、soft delete、recycle bin list、restore from recycle bin、controlled permanent deletion、append-only lifecycle audit table、trusted authorization adapter、AP-002F recycle entry adapter、API routes 與 UI Danger Zone。
+- Database：新增 additive migration `20260728120000_pi001_add_curriculum_recycle_bin.sql`、forward-only uniqueness follow-up `20260728123000_pi001_use_active_curriculum_name_uniqueness.sql`，以及 caller-bound lifecycle RPC role-check follow-up `20260728124000_pi001_inline_curriculum_lifecycle_role_checks.sql`；不修改 Sprint 1～8 歷史 Migration。
+- 安全：owner/admin 才可 lifecycle write；teacher/reviewer 維持唯讀；一般 list/detail 排除 deleted curricula；回收桶維持 active organization isolation。
+- 明確未完成：Lesson／Worksheet／Assessment lifecycle、Platform-wide recycle bin、Re-auth UI／receipt、Background Job、Platform Admin review、Organization Closing、Account Deletion、AI generation persistence。
+- 名稱策略：同一 organization 內只有 `deleted_at is null` 的教材受唯一名稱限制；回收桶教材不阻擋建立同名新教材。若還原時名稱已被 active 教材占用，必須 fail closed 並回傳安全 domain error。
+
 ## BF-001：AI Curriculum Engine MVP Handoff
 
 - 狀態：**Implementation Completed — Awaiting Product Review**；產品 foundation 已建立，尚未 Git Seal。

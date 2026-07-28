@@ -5,6 +5,8 @@ import { cookies } from "next/headers";
 import { getSupabasePublicEnv } from "@/lib/env/public";
 import type { Database } from "@/lib/supabase/database.types";
 
+export type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
 export async function createClient() {
   const env = getSupabasePublicEnv();
   const cookieStore = await cookies();

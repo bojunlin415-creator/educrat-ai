@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CurriculumLifecycleAction } from "@/components/curriculums/curriculum-lifecycle-actions";
 import type { CurriculumSummary } from "@/lib/curriculum/service";
 
 const STATUS_LABELS: Record<CurriculumSummary["status"], string> = {
@@ -8,8 +9,10 @@ const STATUS_LABELS: Record<CurriculumSummary["status"], string> = {
 };
 
 export function CurriculumTable({
+  canManage,
   curriculums,
 }: {
+  canManage: boolean;
   curriculums: CurriculumSummary[];
 }) {
   return (
@@ -32,6 +35,11 @@ export function CurriculumTable({
             <th className="px-5 py-4 font-black" scope="col">
               狀態
             </th>
+            {canManage ? (
+              <th className="px-5 py-4 font-black" scope="col">
+                操作
+              </th>
+            ) : null}
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -61,6 +69,35 @@ export function CurriculumTable({
               <td className="px-5 py-4 font-bold text-slate-700">
                 {STATUS_LABELS[curriculum.status]}
               </td>
+              {canManage ? (
+                <td className="px-5 py-4">
+                  <div className="flex flex-wrap gap-2">
+                    {curriculum.status === "active" ? (
+                      <CurriculumLifecycleAction
+                        action="archive"
+                        curriculum={curriculum}
+                        source="list"
+                      />
+                    ) : null}
+                    {curriculum.status === "archived" ? (
+                      <CurriculumLifecycleAction
+                        action="restore"
+                        curriculum={curriculum}
+                        redirectTo="/curriculums"
+                        source="list"
+                      />
+                    ) : null}
+                    {curriculum.status !== "active" ? (
+                      <CurriculumLifecycleAction
+                        action="delete"
+                        curriculum={curriculum}
+                        redirectTo="/curriculums"
+                        source="list"
+                      />
+                    ) : null}
+                  </div>
+                </td>
+              ) : null}
             </tr>
           ))}
         </tbody>
