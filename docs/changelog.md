@@ -1,6 +1,37 @@
 # Changelog
 
-## 2026-07-23 — AP-002E：Re-authentication Boundary Foundation（Awaiting Architecture Review）
+## 2026-07-27 — BF-001：AI Curriculum Engine MVP（Awaiting Product Review）
+
+### AI curriculum foundation
+
+- 新增 framework-neutral `lib/ai-curriculum/`，包含 generation input、Knowledge Point、Generated Curriculum、Prompt、Printable Layout、Validation 與 Preview contract。
+- 新增 Prompt Builder，明確要求依公開課綱、能力指標與知識點原創生成，禁止複製、改寫、引用或重製出版社課文、教師手冊、題庫、插圖、答案或解析。
+- Legacy 教材版本 input 僅轉為中性「課綱通用版／教學進度模板 1～3」label；AI Prompt 不輸出出版社名稱、code 或 mapping details。
+- 新增 Curriculum Template、A4／PDF-ready Print Layout descriptor、Curriculum Validator 與 canonical serializer。
+- 新增 Curriculum model、Prompt Builder、Validation、Print Layout、Serialization 與 import boundary tests。
+
+### Boundaries
+
+- 未新增 AI provider call、Database、Migration、Supabase、RLS、API、Server Action、正式 UI、PDF binary export、Learning History、BI、家長端、金流、訂閱、加盟或 CRM。
+- 狀態為 **Implementation Completed — Awaiting Product Review**；未 commit、push、deploy 或操作 Production。
+
+## 2026-07-27 — AP-002F：Recycle Bin Foundation（Awaiting Architecture Review）
+
+### Recycle bin foundation
+
+- 新增framework-neutral `lib/recycle-bin/`，包含versioned Recycle Entry、Restore Request、Permanent Deletion Request、Purge Eligibility、Restore／PermanentDeletion Decision與machine-readable error。
+- 新增construction-only Registry、interface-only pure Recycle Bin Policy port，以及固定執行validation → recycle entry → retention/dependency/hold gate → policy → decision的fail-closed Evaluator。
+- 新增unknown resource/transition/version/field、invalid entry/lifecycle state/request/policy output、duplicate vocabulary與payload-shaped extra field驗證。
+- 新增依object key穩定排序的canonical Recycle Bin serializer；不計算hash、不保存payload。
+- 新增Model、Registry、Validation、Serialization、Evaluator integration、immutability、architecture/import boundary與module circular dependency tests。
+
+### Boundaries
+
+- 未新增Database、Migration、Repository、Supabase、RLS、API、UI、Server Action、actual restore、soft delete、hard delete、storage deletion、background job、notification、queue或產品Business Rule。
+- ALLOWED只代表Recycle Bin Foundation Policy通過，不代表restore/delete/purge已執行，或Authorization／Lifecycle／Dependency／Retention／Legal Hold／Re-auth／Audit／Approval／transaction門檻已完成。
+- 狀態為 **Implementation Completed — Awaiting Architecture Review**；未commit、push、deploy、操作Production、開始BF-003或任何後續產品Package。
+
+## 2026-07-23 — AP-002E：Re-authentication Boundary Foundation（Accepted and Git Sealed）
 
 ### Re-authentication boundary foundation
 
@@ -15,7 +46,7 @@
 
 - 未新增Login、MFA、OTP、Password verification、WebAuthn、Session refresh、Credential verifier、Clock、receipt repository、Database schema、Migration、RLS、API、UI、Server Action、Purge、Archive、Restore、Delete、Recycle Bin、Audit write或產品Business Rule。
 - ALLOWED只代表Re-authentication Boundary Policy通過，不代表credential已驗證、freshness window已滿足、Lifecycle write已授權，或Authorization／Dependency／Retention／Legal Hold／Audit／Approval／transaction門檻已完成。
-- 狀態為 **Implementation Completed — Awaiting Architecture Review**；未commit、push、deploy、操作Production、開始BF-003或任何後續產品Package。
+- 狀態為 **Accepted and Git Sealed**；已建立 Git Seal commit 並 push 至 `origin/develop`。未deploy、操作Production、開始BF-003或任何後續產品Package。
 
 ## 2026-07-23 — AP-002D：Retention & Legal Hold Foundation（Accepted and Git Sealed）
 

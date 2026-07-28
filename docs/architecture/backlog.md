@@ -2,6 +2,14 @@
 
 本文件只記錄尚待獨立 Architecture Request 審查的架構議題。Backlog 項目不代表已實作、已排入目前 Sprint 或已取得資料庫變更授權。
 
+## BF-001：AI Curriculum Engine MVP Handoff
+
+- 狀態：**Implementation Completed — Awaiting Product Review**；產品 foundation 已建立，尚未 Git Seal。
+- 已完成：`lib/ai-curriculum/` generation input、Knowledge Point、Prompt Builder、Curriculum Template、A4/PDF-ready layout descriptor、Validator、Preview contract 與 canonical serialization。
+- 版權邊界：legacy 教材版本 input 只轉為中性 Curriculum Reference label；Prompt 不接收出版社名稱、code 或 mapping details。教材生成規則要求原創，不複製、改寫、引用或重製出版社課文、教師手冊、題庫、插圖、答案或解析。
+- 明確未完成：AI provider call、model schema adapter、generation persistence、Database、Migration、API、Server Action、正式 UI、PDF binary export、Audit、Authorization product integration、Learning History、BI、家長端、金流、訂閱、加盟或 CRM。
+- 後續產品化：需獨立核准 AI Provider Adapter、Teacher Review Workflow、Export Provider、Quality Gate、Usage/Cost Tracking、Knowledge Graph persistence 與產品 UI。
+
 ## AR-002：Data Lifecycle & Audit Architecture（由 AP-002 提案承接）
 
 - 狀態：AP-002 Accepted — Architecture Approved；尚未實作
@@ -27,11 +35,11 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 4. AP-002A Lifecycle Schema Foundation（Accepted and Git Sealed；runtime foundation only）
 5. AP-002C Dependency Protection（Accepted and Git Sealed；runtime foundation only）
 6. AP-002D Retention & Legal Hold Foundation（Accepted and Git Sealed）
-7. AP-002E Re-authentication Boundary Foundation（Implementation Completed；等待架構審查）
-8. AP-004 Background Job, Event & Notification Foundation
-9. Organization Closing product Package（識別碼待後續架構核准，未開始）
-10. Account Privacy／Deletion product Package（識別碼待後續架構核准，未開始）
-11. AP-002F Recycle Bin
+7. AP-002E Re-authentication Boundary Foundation（Accepted and Git Sealed）
+8. AP-002F Recycle Bin Foundation（Implementation Completed；等待架構審查）
+9. AP-004 Background Job, Event & Notification Foundation
+10. Organization Closing product Package（識別碼待後續架構核准，未開始）
+11. Account Privacy／Deletion product Package（識別碼待後續架構核准，未開始）
 12. AP-002G Platform Admin Console
 
 > AP-002 原始 roadmap 曾以 AP-002D 指稱 Organization Closing。2026-07-23 的獨立 Package 指令將 AP-002D 用於 Retention & Legal Hold Foundation；本文件保留 Organization Closing 產品範圍但不沿用衝突識別碼，也不宣稱該產品流程已開始。
@@ -154,7 +162,7 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 
 ## AP-002E Handoff：Re-authentication Boundary Foundation
 
-- 狀態：**Implementation Completed — Awaiting Architecture Review**；尚未接入產品流程。
+- 狀態：**Accepted and Git Sealed**；尚未接入產品流程。
 - 已完成：versioned Re-auth Requirement、Risk Level、Challenge Reference、Check Request／Decision、construction-only Registry、pure Policy port、fail-closed validation／Evaluator與canonical serializer。
 - Evaluator順序：validation → requirement resolution → challenge validation → policy → immutable decision；missing required challenge只回傳`challengeRequired`，不驗證credential。
 - Validation：unknown action／challenge type／field／version、duplicate vocabulary／requirement、invalid requirement／risk level／metadata／challenge／policy output、wrong challenge type與credential-shaped payload均fail closed。
@@ -162,3 +170,14 @@ AR-002 不屬於 AR-001。其需求已由已核准的 `AP-002 Platform Governanc
 - 明確未完成：Login、OAuth re-auth flow、MFA、OTP、Password verification、WebAuthn、Session refresh、Clock／freshness window、receipt repository、credential verifier、Database、Migration、RLS、API、UI、Audit/Dependency/Lifecycle/Retention orchestration、transaction/outbox或background job。
 - AP-002E ALLOWED不等於允許Role mutation、Export、Archive、Delete、Purge或break-glass；產品write仍須AP-004 trusted Authorization、AP-002B persisted Audit、AP-002A Lifecycle、AP-002C Dependency、AP-002D Retention/Hold、authoritative Re-auth adapter、Approval與transaction consistency。
 - Organization Closing、Account Privacy／Deletion、Recycle Bin、BF-003、permanent deletion與Sprint 9均未因本Foundation自動解鎖。
+
+## AP-002F Handoff：Recycle Bin Foundation
+
+- 狀態：**Implementation Completed — Awaiting Architecture Review**；尚未接入產品流程。
+- 已完成：versioned Recycle Entry、Restore Request、Permanent Deletion Request、Purge Eligibility、Restore／PermanentDeletion Decision、construction-only Registry、pure Policy port、fail-closed validation／Evaluator與canonical serializer。
+- Evaluator順序：validation → recycle entry → retention/dependency/hold gates → policy → immutable decision；不執行actual restore、delete、purge或write。
+- Validation：unknown resource／transition／field／version、duplicate vocabulary、invalid entry／lifecycle state／restore request／permanent deletion request／policy output與payload-shaped extra field均fail closed。
+- Security boundary：只接受technical identifiers、受控codes、有界數字、boolean與ISO instant；不接受Password、Token、Cookie、Header、HTTP payload、PII、教材內容或學生資料。
+- 明確未完成：Database、Migration、RLS、RPC、Repository、Supabase adapter、API、UI、Server Action、middleware、actual restore、soft delete、hard delete、storage deletion、background job、notification、queue或產品policy。
+- AP-002F allowed decision不等於允許Curriculum Delete、Archive、Restore或Permanent Delete；產品write仍須AP-004 trusted Authorization、AP-002B persisted Audit、AP-002A Lifecycle、AP-002C Dependency、AP-002D Retention/Hold、AP-002E Re-auth、Approval與transaction consistency。
+- BF-003、Curriculum lifecycle、Account Privacy／Deletion、Organization Closing、permanent deletion與Sprint 9均未因本Foundation自動解鎖。
