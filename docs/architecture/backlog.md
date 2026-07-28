@@ -10,6 +10,15 @@
 - 明確未完成：AI provider call、model schema adapter、generation persistence、Database、Migration、API、Server Action、正式 UI、PDF binary export、Audit、Authorization product integration、Learning History、BI、家長端、金流、訂閱、加盟或 CRM。
 - 後續產品化：需獨立核准 AI Provider Adapter、Teacher Review Workflow、Export Provider、Quality Gate、Usage/Cost Tracking、Knowledge Graph persistence 與產品 UI。
 
+## BF-002：AI Generation Engine Handoff
+
+- 狀態：**Implementation Completed — Awaiting Product Review**；產品 foundation 已建立，尚未 Git Seal。
+- 已完成：`lib/ai-generation/` GenerationRequest／Result／Metadata／Usage、AIProvider interface、OpenAI adapter boundary、Structured Output schema、Prompt Pipeline、Generation Pipeline、Output／Knowledge Mapping Validator、Retry Decision 與 canonical serialization。
+- Provider 邊界：`AIProvider` 支援 `generate()`、`health()`、`providerName()`、`modelName()`；不依賴 OpenAI SDK、HTTP、Next.js、Supabase、Database 或 API Route。
+- Fail-closed：invalid request、provider unavailable、provider exception、invalid structured output、invalid knowledge mapping 均回傳 machine-readable failure，不接受自由文字教材。
+- 明確未完成：concrete OpenAI adapter、API key、HTTP call、streaming、real retry executor、Database、Migration、API、Server Action、UI、generation persistence、Audit、Authorization product integration、quota/cost persistence、background job。
+- 後續產品化：需獨立核准 concrete provider adapter、server composition root、Authorization／Audit integration、generation persistence、cost/quota tracking、Teacher Review Workflow 與 Export Pipeline。
+
 ## AR-002：Data Lifecycle & Audit Architecture（由 AP-002 提案承接）
 
 - 狀態：AP-002 Accepted — Architecture Approved；尚未實作

@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-07-28 — BF-002：AI Generation Engine（Awaiting Product Review）
+
+### AI generation foundation
+
+- 新增 framework-neutral `lib/ai-generation/`，包含 GenerationRequest／Context／Result／Metadata／Usage／Error domain model。
+- 新增 `AIProvider` interface，支援 `generate()`、`health()`、`providerName()` 與 `modelName()`，不依賴 OpenAI SDK 或 HTTP。
+- 新增 OpenAI adapter boundary mapper／response translator／error translator；未建立 API key、SDK client 或真實 API call。
+- 新增固定 JSON `CurriculumGenerationSchema`，要求 title、learningObjectives、summary、examples、questions、challengeQuestions、solutions、teacherNotes、knowledgePoints。
+- 新增 Prompt Pipeline、Generation Pipeline、Output Validator、Knowledge Mapping Validator、Retry Decision 與 Usage model。
+- 新增 Prompt、Structured Output、Generation Pipeline、OpenAI Boundary、Retry、Serialization 與 Architecture/import boundary tests。
+
+### Boundaries
+
+- 未新增 UI、API、Database、Migration、Server Action、React component、Supabase、OpenAI SDK、HTTP call、API key、background job、persistence 或 production provider configuration。
+- 狀態為 **Implementation Completed — Awaiting Product Review**；未 commit、push、deploy 或操作 Production。
+
 ## 2026-07-27 — BF-001：AI Curriculum Engine MVP（Awaiting Product Review）
 
 ### AI curriculum foundation

@@ -358,6 +358,14 @@ Evaluator 固定依序執行 validation → recycle entry → retention/dependen
 
 Recycle Bin production source維持 `shared → domain/interfaces → application`，禁止依賴React、Next.js、Supabase、Database、Audit、Authorization、Lifecycle、Dependency、Retention、Re-authentication或產品Domain。AP-002F沒有Repository、Database、Migration、RLS、API、UI、actual restore、actual delete、storage deletion、background job或產品recycle bin flow；完整契約見 `docs/architecture/ap-002f-recycle-bin-foundation.md`。
 
+### BF-002 AI Generation Engine（Awaiting Product Review）
+
+BF-002 在 `lib/ai-generation/` 建立第一個可測試的 AI 教材生成 engine foundation。它包含 GenerationRequest／Context／Result／Metadata／Usage、`AIProvider` interface、OpenAI adapter boundary、固定 JSON Structured Output schema、Prompt Pipeline、Generation Pipeline、Output／Knowledge Mapping Validator、Retry Decision 與 canonical serialization。
+
+Generation Pipeline 固定順序為 `Input Validation → Prompt Build → Provider Health → Provider Generate → Structured Validation → Knowledge Mapping Validation → Domain Result`。任何 invalid request、provider unavailable、provider exception、invalid structured output 或 invalid knowledge mapping 均 fail closed 並回傳 machine-readable error。
+
+OpenAI 目前只是 adapter boundary，不是 runtime integration。BF-002 不匯入 OpenAI SDK、不建立 API key、不做 HTTP call、不串流、不重試、不保存 generation，也不接 UI、API、Server Action、Database、Supabase、RLS、Audit 或 Authorization product enforcement。完整契約見 `docs/product/bf-002-ai-generation-engine.md`。
+
 ### 既有決策
 
 - 採模組化單體作為早期商用架構，以明確介面隔離領域；有實際規模需求前不拆微服務。
@@ -381,6 +389,7 @@ Recycle Bin production source維持 `shared → domain/interfaces → applicatio
 - `lib/retention/`：framework-neutral Retention Definition／Rule、Legal Hold、Registry、Policy port、validation、Evaluator 與 canonical serializer；目前無產品 rule、Clock、persistence 或 lifecycle write integration。
 - `lib/re-authentication/`：framework-neutral Re-auth Requirement、Challenge Reference、Registry、Policy port、validation、Evaluator 與 canonical serializer；目前無 Login、MFA、credential verification、Session 或產品 write integration。
 - `lib/recycle-bin/`：framework-neutral Recycle Entry、Restore／Permanent Deletion Decision、Purge Eligibility、Registry、Policy port、validation、Evaluator 與 canonical serializer；目前無 persistence、actual restore/delete 或產品 write integration。
+- `lib/ai-generation/`：framework-neutral AI Provider interface、OpenAI adapter boundary、structured output、prompt／generation pipeline、validation、retry decision 與 usage foundation；目前無 SDK、HTTP、API key、persistence 或產品 integration。
 - `lib/supabase/`：browser、server 與 middleware client。
 - `lib/ai/`：AI provider、工作、Prompt 與 schema。
 - `lib/exports/`：列印、PDF、DOCX provider。
