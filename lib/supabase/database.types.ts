@@ -49,7 +49,7 @@ export interface Database {
           id: string;
           published_at: string | null;
           remark: string | null;
-          status: "draft" | "published" | "archived";
+          status: "draft" | "in_review" | "published" | "archived";
           updated_at: string;
           version: number;
         };
@@ -59,14 +59,14 @@ export interface Database {
           id?: string;
           published_at?: string | null;
           remark?: string | null;
-          status?: "draft" | "published" | "archived";
+          status?: "draft" | "in_review" | "published" | "archived";
           updated_at?: string;
           version: number;
         };
         Update: {
           published_at?: string | null;
           remark?: string | null;
-          status?: "draft" | "published" | "archived";
+          status?: "draft" | "in_review" | "published" | "archived";
         };
         Relationships: [];
       };
@@ -84,7 +84,7 @@ export interface Database {
           publisher_id: string;
           school_year: number;
           semester: 1 | 2;
-          status: "draft" | "active" | "archived";
+          status: "draft" | "in_review" | "published" | "archived";
           subject_id: string;
           updated_at: string;
         };
@@ -101,7 +101,7 @@ export interface Database {
           publisher_id: string;
           school_year: number;
           semester: 1 | 2;
-          status?: "draft" | "active" | "archived";
+          status?: "draft" | "in_review" | "published" | "archived";
           subject_id: string;
           updated_at?: string;
         };
@@ -114,7 +114,7 @@ export interface Database {
           publisher_id?: string;
           school_year?: number;
           semester?: 1 | 2;
-          status?: "draft" | "active" | "archived";
+          status?: "draft" | "in_review" | "published" | "archived";
           subject_id?: string;
         };
         Relationships: [];
@@ -128,8 +128,11 @@ export interface Database {
             | "CURRICULUM_AI_SAVED"
             | "CURRICULUM_EXPORTED"
             | "CURRICULUM_PERMANENTLY_DELETED"
+            | "CURRICULUM_PUBLISHED"
             | "CURRICULUM_RESTORED"
-            | "CURRICULUM_SOFT_DELETED";
+            | "CURRICULUM_REVIEWED"
+            | "CURRICULUM_SOFT_DELETED"
+            | "CURRICULUM_SUBMITTED";
           acting_role: string;
           actor_id: string;
           actor_type: "ACCOUNT";
@@ -157,8 +160,11 @@ export interface Database {
             | "CURRICULUM_AI_SAVED"
             | "CURRICULUM_EXPORTED"
             | "CURRICULUM_PERMANENTLY_DELETED"
+            | "CURRICULUM_PUBLISHED"
             | "CURRICULUM_RESTORED"
-            | "CURRICULUM_SOFT_DELETED";
+            | "CURRICULUM_REVIEWED"
+            | "CURRICULUM_SOFT_DELETED"
+            | "CURRICULUM_SUBMITTED";
           acting_role: string;
           actor_id: string;
           actor_type?: "ACCOUNT";
@@ -522,11 +528,31 @@ export interface Database {
           p_publisher_id: string;
           p_school_year: number;
           p_semester: 1 | 2;
-          p_status?: "draft" | "active";
+          p_status?: "draft";
           p_subject_id: string;
           p_version?: number;
           p_version_remark?: string | null;
         };
+        Returns: string;
+      };
+      create_next_curriculum_version: {
+        Args: { p_curriculum_id: string };
+        Returns: string;
+      };
+      publish_curriculum: {
+        Args: { p_curriculum_id: string };
+        Returns: string;
+      };
+      reopen_curriculum_draft: {
+        Args: { p_curriculum_id: string };
+        Returns: string;
+      };
+      review_curriculum: {
+        Args: { p_curriculum_id: string };
+        Returns: string;
+      };
+      submit_curriculum_review: {
+        Args: { p_curriculum_id: string };
         Returns: string;
       };
       create_ai_generated_curriculum_draft: {

@@ -28,10 +28,11 @@ export default async function CurriculumEditorPage({
   const { currentOrganization } = await requireWorkspaceContext();
   const { id } = await params;
   const curriculum = await loadCurriculum(id);
-  const version = curriculum.versions.find((item) => item.version === 1);
+  const version = curriculum.versions[0];
   if (!version) notFound();
   const canEdit =
-    curriculum.status !== "archived" &&
+    curriculum.status === "draft" &&
+    version.status === "draft" &&
     canManageCurriculums(currentOrganization.membership.role);
 
   return (
@@ -46,7 +47,8 @@ export default async function CurriculumEditorPage({
           {curriculum.name}
         </h1>
         <p className="mt-2 text-slate-600">
-          {curriculum.subject.name} · {curriculum.grade.name} · 版本 1
+          {curriculum.subject.name} · {curriculum.grade.name} · 版本{" "}
+          {version.version}
         </p>
       </div>
       <div className="mt-8">

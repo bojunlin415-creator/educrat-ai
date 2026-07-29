@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-07-29 — PB-001：Curriculum Publish Foundation（Awaiting Product Review）
+
+### Curriculum publish workflow
+
+- 新增正式 Curriculum lifecycle：`draft`／`in_review`／`published`／`archived`，不使用 `published=true` boolean。
+- 新增 server-side Submit Review、Review／Approve、Publish、Reopen Draft、Create New Version routes。
+- 新增 publish validation：title、learning objectives、question count、question numbering、answer mapping、knowledge point mapping、metadata、version 與 tenant 檢查。
+- 新增 version lock：Review／Published／Archived 唯讀，Published／Archived 修改需建立下一個 draft version。
+- 新增教材詳細頁 status badge 與 publish workflow actions。
+- 新增 `CURRICULUM_SUBMITTED`、`CURRICULUM_REVIEWED`、`CURRICULUM_PUBLISHED` audit action support。
+
+### Boundaries
+
+- Teacher 可送審；Reviewer 可審閱；Organization Owner/Admin 可發布、封存與建立新版本。
+- 不允許 client 以表單直接切換 publish status；狀態轉換走 server-side lifecycle routes。
+- 未開始 AI-002、通知、Queue、Background Job、Platform review 或跨 Entity publish orchestration。
+- 未 commit、push、deploy 或操作 Production。
+
 ## 2026-07-29 — EX-001：Curriculum Export Foundation（Awaiting Product Review）
 
 ### Curriculum export

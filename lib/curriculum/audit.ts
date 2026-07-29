@@ -20,8 +20,11 @@ type CurriculumAuditAction =
   | "CURRICULUM_AI_SAVED"
   | "CURRICULUM_EXPORTED"
   | "CURRICULUM_PERMANENTLY_DELETED"
+  | "CURRICULUM_PUBLISHED"
   | "CURRICULUM_RESTORED"
-  | "CURRICULUM_SOFT_DELETED";
+  | "CURRICULUM_REVIEWED"
+  | "CURRICULUM_SOFT_DELETED"
+  | "CURRICULUM_SUBMITTED";
 
 type CurriculumAuditInsert =
   Database["public"]["Tables"]["curriculum_lifecycle_audit_events"]["Insert"];
@@ -143,7 +146,11 @@ export async function writeCurriculumLifecycleAudit(input: {
         ? "CURRICULUM_AI_GENERATION"
         : input.action === "CURRICULUM_EXPORTED"
           ? "CURRICULUM_EXPORT"
-          : "CURRICULUM_LIFECYCLE",
+          : input.action === "CURRICULUM_SUBMITTED" ||
+              input.action === "CURRICULUM_REVIEWED" ||
+              input.action === "CURRICULUM_PUBLISHED"
+            ? "CURRICULUM_PUBLISH"
+            : "CURRICULUM_LIFECYCLE",
       stateAfter: input.stateAfter.toUpperCase(),
       stateBefore: input.stateBefore.toUpperCase(),
     },
@@ -158,6 +165,10 @@ export async function writeCurriculumLifecycleAudit(input: {
       ? "AI_CURRICULUM_SERVICE"
       : input.action === "CURRICULUM_EXPORTED"
         ? "CURRICULUM_EXPORT_SERVICE"
-        : "CURRICULUM_SERVICE",
+        : input.action === "CURRICULUM_SUBMITTED" ||
+            input.action === "CURRICULUM_REVIEWED" ||
+            input.action === "CURRICULUM_PUBLISHED"
+          ? "CURRICULUM_PUBLISH_SERVICE"
+          : "CURRICULUM_SERVICE",
   });
 }

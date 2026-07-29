@@ -3,9 +3,10 @@ import { Card } from "@/components/ui/card";
 import type { CurriculumSummary } from "@/lib/curriculum/service";
 
 const STATUS_LABELS: Record<CurriculumSummary["status"], string> = {
-  active: "使用中",
   archived: "已封存",
   draft: "草稿",
+  in_review: "審核中",
+  published: "已發布",
 };
 
 export function CurriculumCard({

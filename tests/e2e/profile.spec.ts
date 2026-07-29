@@ -199,7 +199,7 @@ test("authenticated user completes and manages their profile", async ({
   await expect(
     page.getByRole("heading", { name: curriculumFixtureName }),
   ).toBeVisible();
-  await expect(page.getByText("版本 1")).toBeVisible();
+  await expect(page.getByText("版本 1", { exact: true })).toBeVisible();
   const curriculumId = new URL(page.url()).pathname.split("/").at(-1) ?? "";
   const curriculumDetailResponse = await page
     .context()
@@ -339,7 +339,8 @@ test("authenticated user completes and manages their profile", async ({
   await expect(
     page.getByRole("heading", { name: curriculumFixtureName }),
   ).toBeVisible();
-  await expect(page.getByText("版本 1（唯讀）")).toBeVisible();
+  await expect(page.getByText("版本 1", { exact: true })).toBeVisible();
+  await expect(page.getByText("草稿", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "新增章節" }).first().click();
   await page.getByLabel("章節編號").fill("91");

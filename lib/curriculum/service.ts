@@ -41,6 +41,11 @@ import {
   type UpdateLessonInput,
 } from "@/lib/validation/curriculum-hierarchy";
 import {
+  validateCurriculumExportDocument,
+  type CurriculumExportDocument,
+} from "@/lib/curriculum-export";
+import { getCurriculumExportDocument } from "@/lib/curriculum/export";
+import {
   createCurriculumSchema,
   curriculumIdSchema,
   curriculumDeletionSchema,
@@ -53,6 +58,7 @@ import {
 } from "@/lib/validation/curriculum";
 
 type CurriculumRow = Database["public"]["Tables"]["curriculums"]["Row"];
+type CurriculumStatus = CurriculumRow["status"];
 type CurriculumVersionRow =
   Database["public"]["Tables"]["curriculum_versions"]["Row"];
 type ChapterRow = Database["public"]["Tables"]["chapters"]["Row"];
@@ -119,6 +125,18 @@ function mapDatabaseError(error: { code?: string; message?: string } | null) {
   }
   if (error.message?.includes("published_curriculum_must_be_archived")) {
     return new CurriculumError("delete_not_allowed");
+  }
+  if (error.message?.includes("curriculum_archive_requires_published")) {
+    return new CurriculumError("archive_not_allowed");
+  }
+  if (error.message?.includes("curriculum_transition_not_allowed")) {
+    return new CurriculumError("publish_transition_not_allowed");
+  }
+  if (error.message?.includes("curriculum_publish_validation_failed")) {
+    return new CurriculumError("publish_validation_failed");
+  }
+  if (error.message?.includes("curriculum_version_locked")) {
+    return new CurriculumError("version_locked");
   }
   if (error.message?.includes("curriculum_dependency_blocked")) {
     return new CurriculumError("dependency_blocked");
@@ -411,7 +429,7 @@ export async function createCurriculum(
       p_publisher_id: parsed.data.curriculumReferenceId,
       p_school_year: parsed.data.schoolYear,
       p_semester: parsed.data.semester,
-      p_status: parsed.data.status === "active" ? "active" : "draft",
+      p_status: "draft",
       p_subject_id: parsed.data.subjectId,
       p_version: 1,
       p_version_remark: parsed.data.versionRemark || null,
@@ -436,6 +454,11 @@ export async function updateCurriculum(
     "organization_owner",
     "organization_admin",
   ]);
+  const current = await loadCurriculumSummaryForLifecycle({
+    id: parsedId.data,
+  });
+  if (current.status !== "draft") throw new CurriculumError("version_locked");
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("curriculums")
@@ -445,7 +468,7 @@ export async function updateCurriculum(
       publisher_id: parsed.data.curriculumReferenceId,
       school_year: parsed.data.schoolYear,
       semester: parsed.data.semester,
-      status: parsed.data.status,
+      status: "draft",
       subject_id: parsed.data.subjectId,
     })
     .eq("id", parsedId.data)
@@ -497,12 +520,74 @@ async function hasProtectedCurriculumDependencies(
   return Boolean(data);
 }
 
+async function assertCurriculumVersionEditableByVersionId(versionId: string) {
+  const context = await requireCurriculumMembership();
+  const supabase = await createClient();
+  const { data: version, error: versionError } = await supabase
+    .from("curriculum_versions")
+    .select("id,curriculum_id,status")
+    .eq("id", versionId)
+    .maybeSingle();
+  if (versionError) throw mapDatabaseError(versionError);
+  if (!version) throw new CurriculumError("not_found");
+
+  const { data: curriculum, error: curriculumError } = await supabase
+    .from("curriculums")
+    .select("id,status")
+    .eq("id", version.curriculum_id)
+    .eq("organization_id", context.organization.id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (curriculumError) throw mapDatabaseError(curriculumError);
+  if (!curriculum) throw new CurriculumError("not_found");
+  if (curriculum.status !== "draft" || version.status !== "draft") {
+    throw new CurriculumError("version_locked");
+  }
+}
+
+async function loadVersionIdForChapter(chapterId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("chapters")
+    .select("curriculum_version_id")
+    .eq("id", chapterId)
+    .maybeSingle();
+  if (error) throw mapDatabaseError(error);
+  if (!data) throw new CurriculumError("not_found");
+  return data.curriculum_version_id;
+}
+
+async function loadVersionIdForLesson(lessonId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("lessons")
+    .select("chapter_id")
+    .eq("id", lessonId)
+    .maybeSingle();
+  if (error) throw mapDatabaseError(error);
+  if (!data) throw new CurriculumError("not_found");
+  return loadVersionIdForChapter(data.chapter_id);
+}
+
+async function assertCurriculumVersionEditableByChapterId(chapterId: string) {
+  const versionId = await loadVersionIdForChapter(chapterId);
+  await assertCurriculumVersionEditableByVersionId(versionId);
+}
+
+async function assertCurriculumVersionEditableByLessonId(lessonId: string) {
+  const versionId = await loadVersionIdForLesson(lessonId);
+  await assertCurriculumVersionEditableByVersionId(versionId);
+}
+
 async function writeLifecycleAudit(input: {
   readonly action:
     | "CURRICULUM_ARCHIVED"
     | "CURRICULUM_PERMANENTLY_DELETED"
+    | "CURRICULUM_PUBLISHED"
     | "CURRICULUM_RESTORED"
-    | "CURRICULUM_SOFT_DELETED";
+    | "CURRICULUM_REVIEWED"
+    | "CURRICULUM_SOFT_DELETED"
+    | "CURRICULUM_SUBMITTED";
   readonly context: Awaited<ReturnType<typeof requireCurriculumMembership>>;
   readonly curriculumId: string;
   readonly reason: string;
@@ -524,6 +609,208 @@ async function writeLifecycleAudit(input: {
   });
 }
 
+function latestVersion(curriculum: CurriculumDetail): CurriculumVersion {
+  const version = curriculum.versions[0];
+  if (!version) throw new CurriculumError("publish_validation_failed");
+  return version;
+}
+
+function questionSection(document: CurriculumExportDocument) {
+  return document.sections.find((section) => section.kind === "questions");
+}
+
+function hasNonEmptySectionItems(
+  document: CurriculumExportDocument,
+  kind: "examples" | "notes" | "objectives" | "summary",
+) {
+  const section = document.sections.find((item) => item.kind === kind);
+  return Boolean(section?.items.some((item) => item.trim().length > 0));
+}
+
+async function validatePublishableCurriculumVersion(input: {
+  readonly curriculum: CurriculumDetail;
+  readonly expectedVersionStatus: CurriculumStatus;
+}) {
+  const version = latestVersion(input.curriculum);
+  if (
+    input.curriculum.status !== input.expectedVersionStatus ||
+    version.status !== input.expectedVersionStatus
+  ) {
+    throw new CurriculumError("publish_transition_not_allowed");
+  }
+
+  const document = await getCurriculumExportDocument({
+    curriculumId: input.curriculum.id,
+    mode: "answer-sheet",
+    versionId: version.id,
+  });
+  const exportValidation = validateCurriculumExportDocument(document);
+  if (!exportValidation.success) {
+    throw new CurriculumError("publish_validation_failed");
+  }
+
+  const questions = questionSection(document)?.questions ?? [];
+  if (
+    document.metadata.version !== version.version ||
+    !hasNonEmptySectionItems(document, "objectives") ||
+    questions.length === 0
+  ) {
+    throw new CurriculumError("publish_validation_failed");
+  }
+
+  for (const [index, question] of questions.entries()) {
+    if (
+      question.number !== index + 1 ||
+      question.knowledgePointIds.length === 0 ||
+      !question.answer?.value.trim()
+    ) {
+      throw new CurriculumError("publish_validation_failed");
+    }
+  }
+}
+
+async function performCurriculumPublishAction(input: {
+  readonly action:
+    "CURRICULUM_PUBLISHED" | "CURRICULUM_REVIEWED" | "CURRICULUM_SUBMITTED";
+  readonly auditReason: string;
+  readonly expectedStatus: CurriculumStatus;
+  readonly id: string;
+  readonly nextStatus: CurriculumStatus;
+  readonly permission:
+    "curriculum.publish" | "curriculum.review" | "curriculum.submit_review";
+  readonly rpc:
+    "publish_curriculum" | "review_curriculum" | "submit_curriculum_review";
+}) {
+  const parsedId = curriculumIdSchema.safeParse(input.id);
+  if (!parsedId.success) throw new CurriculumError("invalid_input");
+  const context = await requireCurriculumMembership();
+  const user = await requireCurriculumActor();
+  const curriculum = await getCurriculum(parsedId.data);
+  const decision = await authorizeCurriculumLifecycle({
+    context,
+    curriculumId: curriculum.id,
+    permission: input.permission,
+    user,
+  });
+  assertAuthorized(isAllowedDecision(decision));
+  await validatePublishableCurriculumVersion({
+    curriculum,
+    expectedVersionStatus: input.expectedStatus,
+  });
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc(input.rpc, {
+    p_curriculum_id: curriculum.id,
+  });
+  if (error) throw mapDatabaseError(error);
+  await writeLifecycleAudit({
+    action: input.action,
+    context,
+    curriculumId: curriculum.id,
+    reason: input.auditReason,
+    stateAfter: input.nextStatus.toUpperCase(),
+    stateBefore: input.expectedStatus.toUpperCase(),
+    userId: user.id,
+  });
+  return getCurriculum(data);
+}
+
+export async function submitCurriculumReview(
+  id: string,
+): Promise<CurriculumDetail> {
+  return performCurriculumPublishAction({
+    action: "CURRICULUM_SUBMITTED",
+    auditReason: "USER_SUBMITTED_FOR_REVIEW",
+    expectedStatus: "draft",
+    id,
+    nextStatus: "in_review",
+    permission: "curriculum.submit_review",
+    rpc: "submit_curriculum_review",
+  });
+}
+
+export async function reviewCurriculum(id: string): Promise<CurriculumDetail> {
+  return performCurriculumPublishAction({
+    action: "CURRICULUM_REVIEWED",
+    auditReason: "USER_REVIEWED_CURRICULUM",
+    expectedStatus: "in_review",
+    id,
+    nextStatus: "in_review",
+    permission: "curriculum.review",
+    rpc: "review_curriculum",
+  });
+}
+
+export async function publishCurriculum(id: string): Promise<CurriculumDetail> {
+  return performCurriculumPublishAction({
+    action: "CURRICULUM_PUBLISHED",
+    auditReason: "USER_PUBLISHED_CURRICULUM",
+    expectedStatus: "in_review",
+    id,
+    nextStatus: "published",
+    permission: "curriculum.publish",
+    rpc: "publish_curriculum",
+  });
+}
+
+export async function reopenCurriculumDraft(
+  id: string,
+): Promise<CurriculumDetail> {
+  const parsedId = curriculumIdSchema.safeParse(id);
+  if (!parsedId.success) throw new CurriculumError("invalid_input");
+  const context = await requireCurriculumMembership();
+  const user = await requireCurriculumActor();
+  const curriculum = await getCurriculum(parsedId.data);
+  const decision = await authorizeCurriculumLifecycle({
+    context,
+    curriculumId: curriculum.id,
+    permission: "curriculum.reopen_draft",
+    user,
+  });
+  assertAuthorized(isAllowedDecision(decision));
+  if (curriculum.status !== "in_review") {
+    throw new CurriculumError("publish_transition_not_allowed");
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("reopen_curriculum_draft", {
+    p_curriculum_id: curriculum.id,
+  });
+  if (error) throw mapDatabaseError(error);
+  return getCurriculum(data);
+}
+
+export async function createNextCurriculumVersion(
+  id: string,
+): Promise<CurriculumDetail> {
+  const parsedId = curriculumIdSchema.safeParse(id);
+  if (!parsedId.success) throw new CurriculumError("invalid_input");
+  const context = await requireCurriculumMembership();
+  const user = await requireCurriculumActor();
+  const curriculum = await getCurriculum(parsedId.data);
+  const decision = await authorizeCurriculumLifecycle({
+    context,
+    curriculumId: curriculum.id,
+    permission: "curriculum_version.create",
+    user,
+  });
+  assertAuthorized(isAllowedDecision(decision));
+  if (curriculum.status !== "published" && curriculum.status !== "archived") {
+    throw new CurriculumError("publish_transition_not_allowed");
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("create_next_curriculum_version", {
+    p_curriculum_id: curriculum.id,
+  });
+  if (error) throw mapDatabaseError(error);
+  const next = await getCurriculum(curriculum.id);
+  if (!next.versions.some((version) => version.id === data)) {
+    throw new CurriculumError("service_unavailable");
+  }
+  return next;
+}
+
 export async function archiveCurriculum(id: string): Promise<CurriculumDetail> {
   const parsedId = curriculumIdSchema.safeParse(id);
   if (!parsedId.success) throw new CurriculumError("invalid_input");
@@ -539,7 +826,7 @@ export async function archiveCurriculum(id: string): Promise<CurriculumDetail> {
     user,
   });
   assertAuthorized(isAllowedDecision(decision));
-  if (curriculum.status === "archived") {
+  if (curriculum.status !== "published") {
     throw new CurriculumError("archive_not_allowed");
   }
 
@@ -565,37 +852,8 @@ export async function restoreArchivedCurriculum(
 ): Promise<CurriculumDetail> {
   const parsedId = curriculumIdSchema.safeParse(id);
   if (!parsedId.success) throw new CurriculumError("invalid_input");
-  const context = await requireCurriculumMembership();
-  const user = await requireCurriculumActor();
-  const curriculum = await loadCurriculumSummaryForLifecycle({
-    id: parsedId.data,
-  });
-  const decision = await authorizeCurriculumLifecycle({
-    context,
-    curriculumId: curriculum.id,
-    permission: "curriculum.restore",
-    user,
-  });
-  assertAuthorized(isAllowedDecision(decision));
-  if (curriculum.status !== "archived") {
-    throw new CurriculumError("restore_not_allowed");
-  }
-
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("restore_archived_curriculum", {
-    p_curriculum_id: curriculum.id,
-  });
-  if (error) throw mapDatabaseError(error);
-  await writeLifecycleAudit({
-    action: "CURRICULUM_RESTORED",
-    context,
-    curriculumId: curriculum.id,
-    reason: "USER_REQUESTED",
-    stateAfter: "ACTIVE",
-    stateBefore: "ARCHIVED",
-    userId: user.id,
-  });
-  return getCurriculum(data);
+  await loadCurriculumSummaryForLifecycle({ id: parsedId.data });
+  throw new CurriculumError("restore_not_allowed");
 }
 
 export async function deleteCurriculum(
@@ -619,7 +877,7 @@ export async function deleteCurriculum(
     user,
   });
   assertAuthorized(isAllowedDecision(decision));
-  if (curriculum.status === "active") {
+  if (curriculum.status === "published" || curriculum.status === "in_review") {
     throw new CurriculumError("delete_not_allowed");
   }
 
@@ -772,6 +1030,7 @@ export async function createChapter(
   const parsed = createChapterSchema.safeParse(input);
   if (!parsed.success) throw new CurriculumError("invalid_input");
   await requireCurriculumRole(["organization_owner", "organization_admin"]);
+  await assertCurriculumVersionEditableByVersionId(parsed.data.versionId);
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("create_chapter", {
@@ -787,7 +1046,7 @@ export async function createChapter(
 
 export async function getChapters(curriculumId: string) {
   const curriculum = await getCurriculum(curriculumId);
-  const version = curriculum.versions.find((item) => item.version === 1);
+  const version = curriculum.versions[0];
   if (!version) throw new CurriculumError("not_found");
   return { version, chapters: version.chapters };
 }
@@ -798,6 +1057,7 @@ export async function updateChapter(
   const parsed = updateChapterSchema.safeParse(input);
   if (!parsed.success) throw new CurriculumError("invalid_input");
   await requireCurriculumRole(["organization_owner", "organization_admin"]);
+  await assertCurriculumVersionEditableByChapterId(parsed.data.chapterId);
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("update_chapter", {
@@ -815,6 +1075,7 @@ export async function deleteChapter(chapterId: string): Promise<string> {
   const parsed = deleteChapterSchema.safeParse({ chapterId });
   if (!parsed.success) throw new CurriculumError("invalid_input");
   await requireCurriculumRole(["organization_owner", "organization_admin"]);
+  await assertCurriculumVersionEditableByChapterId(parsed.data.chapterId);
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("delete_chapter", {
@@ -830,6 +1091,7 @@ export async function reorderChapter(
   const parsed = reorderChaptersSchema.safeParse(input);
   if (!parsed.success) throw new CurriculumError("invalid_input");
   await requireCurriculumRole(["organization_owner", "organization_admin"]);
+  await assertCurriculumVersionEditableByVersionId(parsed.data.versionId);
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("reorder_chapters", {
@@ -844,6 +1106,7 @@ export async function createLesson(input: CreateLessonInput): Promise<string> {
   const parsed = createLessonSchema.safeParse(input);
   if (!parsed.success) throw new CurriculumError("invalid_input");
   await requireCurriculumRole(["organization_owner", "organization_admin"]);
+  await assertCurriculumVersionEditableByChapterId(parsed.data.chapterId);
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("create_lesson", {
@@ -886,6 +1149,7 @@ export async function updateLesson(input: UpdateLessonInput): Promise<string> {
   const parsed = updateLessonSchema.safeParse(input);
   if (!parsed.success) throw new CurriculumError("invalid_input");
   await requireCurriculumRole(["organization_owner", "organization_admin"]);
+  await assertCurriculumVersionEditableByLessonId(parsed.data.lessonId);
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("update_lesson", {
@@ -905,6 +1169,7 @@ export async function deleteLesson(lessonId: string): Promise<string> {
   const parsed = deleteLessonSchema.safeParse({ lessonId });
   if (!parsed.success) throw new CurriculumError("invalid_input");
   await requireCurriculumRole(["organization_owner", "organization_admin"]);
+  await assertCurriculumVersionEditableByLessonId(parsed.data.lessonId);
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("delete_lesson", {
@@ -920,6 +1185,7 @@ export async function reorderLesson(
   const parsed = reorderLessonsSchema.safeParse(input);
   if (!parsed.success) throw new CurriculumError("invalid_input");
   await requireCurriculumRole(["organization_owner", "organization_admin"]);
+  await assertCurriculumVersionEditableByChapterId(parsed.data.chapterId);
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("reorder_lessons", {

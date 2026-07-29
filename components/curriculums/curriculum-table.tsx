@@ -3,9 +3,10 @@ import { CurriculumLifecycleAction } from "@/components/curriculums/curriculum-l
 import type { CurriculumSummary } from "@/lib/curriculum/service";
 
 const STATUS_LABELS: Record<CurriculumSummary["status"], string> = {
-  active: "使用中",
   archived: "已封存",
   draft: "草稿",
+  in_review: "審核中",
+  published: "已發布",
 };
 
 export function CurriculumTable({
@@ -72,22 +73,15 @@ export function CurriculumTable({
               {canManage ? (
                 <td className="px-5 py-4">
                   <div className="flex flex-wrap gap-2">
-                    {curriculum.status === "active" ? (
+                    {curriculum.status === "published" ? (
                       <CurriculumLifecycleAction
                         action="archive"
                         curriculum={curriculum}
                         source="list"
                       />
                     ) : null}
-                    {curriculum.status === "archived" ? (
-                      <CurriculumLifecycleAction
-                        action="restore"
-                        curriculum={curriculum}
-                        redirectTo="/curriculums"
-                        source="list"
-                      />
-                    ) : null}
-                    {curriculum.status !== "active" ? (
+                    {curriculum.status === "draft" ||
+                    curriculum.status === "archived" ? (
                       <CurriculumLifecycleAction
                         action="delete"
                         curriculum={curriculum}

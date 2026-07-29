@@ -81,8 +81,7 @@ function EditorPanel() {
         <div>
           <p className="font-black text-emerald-950">選擇一個章節或課次</p>
           <p className="mt-2 max-w-sm text-sm leading-6 text-slate-600">
-            左側為教材樹，右側會顯示所選內容。版本 1 保持唯讀，不會在本 Sprint
-            建立版本 2。
+            左側為教材樹，右側會顯示所選內容。只有草稿版本可以編輯；發布後請建立新版本再修改。
           </p>
         </div>
       </div>
@@ -123,7 +122,7 @@ export function CurriculumEditor({
   chapters: CurriculumChapter[];
   versionId: string;
   versionNumber: number;
-  versionStatus: "draft" | "published" | "archived";
+  versionStatus: "archived" | "draft" | "in_review" | "published";
 }) {
   return (
     <HierarchyProvider

@@ -22,6 +22,11 @@ const CURRICULUM_MANAGEMENT_PERMISSIONS = [
   "curriculum.generate",
   "curriculum.restore",
   "curriculum.permanently_delete",
+  "curriculum.publish",
+  "curriculum.reopen_draft",
+  "curriculum.review",
+  "curriculum.submit_review",
+  "curriculum_version.create",
   "recycle_bin.read",
 ] as const;
 
@@ -31,6 +36,14 @@ const AI_GENERATION_ROLES = new Set([
   "organization_admin",
   "teacher",
 ]);
+const TEACHER_REVIEW_SUBMISSION_PERMISSIONS = new Set([
+  "curriculum.create",
+  "curriculum.export",
+  "curriculum.generate",
+  "curriculum.reopen_draft",
+  "curriculum.submit_review",
+]);
+const REVIEWER_PERMISSIONS = new Set(["curriculum.review"]);
 
 function organizationScope(organizationId: string): ResourceScope {
   return Object.freeze({ organizationId, type: "ORGANIZATION" });
@@ -62,9 +75,8 @@ function createPermissionGrants(
     (permission) =>
       MANAGING_ROLES.has(role) ||
       (AI_GENERATION_ROLES.has(role) &&
-        (permission === "curriculum.generate" ||
-          permission === "curriculum.export" ||
-          permission === "curriculum.create")),
+        TEACHER_REVIEW_SUBMISSION_PERMISSIONS.has(permission)) ||
+      (role === "reviewer" && REVIEWER_PERMISSIONS.has(permission)),
   );
 
   return Object.freeze(
@@ -162,7 +174,12 @@ export async function authorizeCurriculumLifecycle(input: {
     | "curriculum.archive"
     | "curriculum.delete"
     | "curriculum.permanently_delete"
+    | "curriculum.publish"
+    | "curriculum.reopen_draft"
+    | "curriculum.review"
     | "curriculum.restore"
+    | "curriculum.submit_review"
+    | "curriculum_version.create"
     | "recycle_bin.read";
   readonly user: User;
 }): Promise<DecisionResult> {

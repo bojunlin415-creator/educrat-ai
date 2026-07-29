@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-export const curriculumStatusSchema = z.enum(["draft", "active", "archived"]);
+export const curriculumStatusSchema = z.enum([
+  "draft",
+  "in_review",
+  "published",
+  "archived",
+]);
 
 const curriculumFields = {
   curriculumReferenceId: z.uuid("請選擇有效的教材進度架構。"),
@@ -30,11 +35,17 @@ export const curriculumFormSchema = z
   .strict();
 
 export const createCurriculumSchema = curriculumFormSchema.refine(
-  (value) => value.status !== "archived",
-  { message: "新教材不可直接設為封存。", path: ["status"] },
+  (value) => value.status === "draft",
+  { message: "新教材必須先以草稿建立。", path: ["status"] },
 );
 
-export const updateCurriculumSchema = z.object(curriculumFields).strict();
+export const updateCurriculumSchema = z
+  .object(curriculumFields)
+  .strict()
+  .refine((value) => value.status === "draft", {
+    message: "只有草稿教材可以直接編輯。",
+    path: ["status"],
+  });
 
 function normalizeLegacyReferenceField(input: unknown): unknown {
   if (!input || typeof input !== "object" || Array.isArray(input)) return input;

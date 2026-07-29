@@ -17,6 +17,9 @@ export type CurriculumErrorCode =
   | "delete_not_allowed"
   | "restore_not_allowed"
   | "restore_name_conflict"
+  | "publish_transition_not_allowed"
+  | "publish_validation_failed"
+  | "version_locked"
   | "permanent_delete_not_allowed"
   | "retention_blocked"
   | "legal_hold_blocked"
@@ -44,6 +47,11 @@ const curriculumErrorMessages: Record<CurriculumErrorCode, string> = {
   restore_not_allowed: "目前無法還原這份教材。",
   restore_name_conflict:
     "目前已有同名教材正在使用中，請先更名或永久刪除其中一份後再還原。",
+  publish_transition_not_allowed: "目前教材狀態不允許執行這個發布流程操作。",
+  publish_validation_failed:
+    "教材尚未通過發布檢核，請確認標題、教學目標、知識點、題目、答案與版本資料完整。",
+  version_locked:
+    "此教材版本已進入審核、發布或封存狀態，請建立新版本後再編輯。",
   permanent_delete_not_allowed: "目前無法永久刪除這份教材。",
   retention_blocked: "這份教材仍受保留政策保護，暫時不能永久刪除。",
   legal_hold_blocked: "這份教材仍有法務保留，暫時不能永久刪除。",
@@ -81,6 +89,9 @@ export function getCurriculumErrorStatus(error: CurriculumError): number {
     case "delete_not_allowed":
     case "restore_not_allowed":
     case "restore_name_conflict":
+    case "publish_transition_not_allowed":
+    case "publish_validation_failed":
+    case "version_locked":
     case "permanent_delete_not_allowed":
     case "retention_blocked":
     case "legal_hold_blocked":

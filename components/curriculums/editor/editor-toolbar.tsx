@@ -9,7 +9,7 @@ export function EditorToolbar({
   versionStatus,
 }: {
   version: number;
-  versionStatus: "draft" | "published" | "archived";
+  versionStatus: "archived" | "draft" | "in_review" | "published";
 }) {
   const { canEdit, collapseAll, expandAll, pendingOrder, setSelection } =
     useHierarchy();
@@ -17,9 +17,15 @@ export function EditorToolbar({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-950/10 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge>版本 {version}（唯讀）</Badge>
+        <Badge>版本 {version}</Badge>
         <Badge className="bg-amber-50 text-amber-800">
-          {versionStatus === "published" ? "已發布" : "草稿"}
+          {versionStatus === "published"
+            ? "已發布"
+            : versionStatus === "in_review"
+              ? "審核中"
+              : versionStatus === "archived"
+                ? "已封存"
+                : "草稿"}
         </Badge>
         {pendingOrder ? (
           <span aria-live="polite" className="text-sm text-slate-600">

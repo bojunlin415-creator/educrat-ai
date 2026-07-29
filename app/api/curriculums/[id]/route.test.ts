@@ -16,7 +16,7 @@ const validUpdate = {
   publisherId: "10000000-0000-4000-8000-000000000003",
   schoolYear: 115,
   semester: 2,
-  status: "active",
+  status: "draft",
   subjectId: "10000000-0000-4000-8000-000000000001",
 };
 

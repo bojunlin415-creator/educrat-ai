@@ -10,6 +10,14 @@
 - 安全：PDF runtime generate；不建立 public storage、不永久保存 PDF、不輸出 provider raw response、prompt、完整教材內容到 audit metadata 或公開 URL。
 - 明確未完成：DOCX、批次匯出、Background Job、Export Job Queue、品質 gate、簽章、水印、機構品牌模板、長文件 pagination 精修、正式 PDF library／font embedding 策略。
 
+## PB-001：Curriculum Publish Foundation
+
+- 狀態：**Implementation Completed — Awaiting Product Review**；產品整合已完成，尚未 Git Seal。
+- 已完成：正式 `draft`／`in_review`／`published`／`archived` 狀態、Submit Review／Review／Publish／Archive／Reopen Draft／Create New Version server routes、publish validation、version lock、狀態徽章與 lifecycle action UI。
+- Database：新增 additive migration `20260729120000_pb001_curriculum_publish_foundation.sql`，forward-only 將 legacy `active` curriculum 轉為 `published`，擴充 curriculum/version status check、publish RPC 與 audit action allowlist；不修改 Sprint 1～8 歷史 Migration。
+- 安全：Teacher 可送審；Reviewer 可審閱；Owner/Admin 可發布、封存與建立新版本。Published version 不可原地覆寫，非 Draft 的章節／課次 product service write fail closed。
+- 明確未完成：AI-002、通知、Queue、Background Job、Platform review、dedicated reopen audit action、DB-level hardening for every historical editor RPC、跨 Entity publish orchestration。
+
 ## PI-001：Curriculum Delete & Recycle Bin Integration
 
 - 狀態：**Implementation Completed — Awaiting Product Review**；產品整合已完成，尚未 Git Seal。
@@ -52,7 +60,7 @@
 - Provider：使用 server-only `OPENAI_API_KEY` 與 `OPENAI_MODEL`；未設定 key 時 fail closed，不產生 fake output。
 - Persistence：`client_request_id` 保護同一 save request 的重送，不以 UI disabled 作為唯一防重邊界。
 - Copyright：Route 與 service 雙層 validation；偵測出版社名稱、publisher、edition、textbook、教師手冊、題庫、課文引用、課本章節或 mapping 語意時停止。
-- 明確未完成：streaming、AI job queue、background retry、usage/cost persistence、quota、billing、teacher review workflow、publish workflow、PDF export、worksheet/assessment generation、learning analytics 與 production deployment。
+- 明確未完成：streaming、AI job queue、background retry、usage/cost persistence、quota、billing、worksheet/assessment generation、learning analytics 與 production deployment。
 - 人工產品驗收：需在 Development server 設定 `OPENAI_API_KEY` 後執行一次真實生成 → 編輯 → 儲存 → 重新開啟。
 
 ## AR-002：Data Lifecycle & Audit Architecture（由 AP-002 提案承接）

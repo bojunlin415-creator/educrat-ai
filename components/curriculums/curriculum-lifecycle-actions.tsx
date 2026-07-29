@@ -6,7 +6,16 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 
-type LifecycleAction = "archive" | "delete" | "permanent-delete" | "restore";
+type LifecycleAction =
+  | "archive"
+  | "create-version"
+  | "delete"
+  | "permanent-delete"
+  | "publish"
+  | "reopen-draft"
+  | "restore"
+  | "review"
+  | "submit-review";
 
 type RequestState =
   | { type: "idle" }
@@ -20,7 +29,7 @@ interface CurriculumLifecycleActionProps {
     readonly id: string;
     readonly latestVersion: number;
     readonly name: string;
-    readonly status: "active" | "archived" | "draft";
+    readonly status: "archived" | "draft" | "in_review" | "published";
     readonly subject: { readonly name: string };
   };
   redirectTo?: string;
@@ -29,17 +38,27 @@ interface CurriculumLifecycleActionProps {
 
 const ACTION_LABELS: Record<LifecycleAction, string> = {
   archive: "封存教材",
+  "create-version": "建立新版本",
   delete: "刪除教材",
   "permanent-delete": "永久刪除",
+  publish: "發布教材",
+  "reopen-draft": "退回草稿",
   restore: "還原教材",
+  review: "記錄審閱",
+  "submit-review": "送出審核",
 };
 
 const ACTION_DESCRIPTIONS: Record<LifecycleAction, string> = {
   archive: "封存後教材會保留資料，但一般編輯流程會停止使用它。",
+  "create-version": "系統會從已發布或封存教材建立下一個可編輯草稿版本。",
   delete: "教材會移入回收桶，可在永久刪除前還原。",
   "permanent-delete":
     "這是不可逆操作。系統會先確認教材已在回收桶中且沒有受保護相依資料。",
+  publish: "發布會鎖定目前版本。發布後若需修改，必須建立新版本。",
+  "reopen-draft": "退回草稿後，教師可以再次編輯並重新送審。",
   restore: "教材會從目前狀態還原，並重新出現在教材列表中。",
+  review: "審閱只記錄 reviewer 已檢查教材，不會直接發布。",
+  "submit-review": "送審前會檢查教材、題目、答案與知識點是否完整。",
 };
 
 async function parseLifecycleResponse(response: Response): Promise<{
@@ -63,6 +82,35 @@ async function parseLifecycleResponse(response: Response): Promise<{
   };
 }
 
+function lifecycleEndpoint(input: {
+  readonly action: LifecycleAction;
+  readonly curriculumId: string;
+  readonly source: "detail" | "list" | "recycle-bin";
+}) {
+  switch (input.action) {
+    case "archive":
+      return `/api/curriculums/${input.curriculumId}/archive`;
+    case "create-version":
+      return `/api/curriculums/${input.curriculumId}/versions/new`;
+    case "delete":
+      return `/api/curriculums/${input.curriculumId}`;
+    case "permanent-delete":
+      return `/api/curriculums/${input.curriculumId}/permanent-delete`;
+    case "publish":
+      return `/api/curriculums/${input.curriculumId}/publish`;
+    case "reopen-draft":
+      return `/api/curriculums/${input.curriculumId}/reopen-draft`;
+    case "restore":
+      return `/api/curriculums/${input.curriculumId}/restore${
+        input.source === "recycle-bin" ? "?from=recycle-bin" : ""
+      }`;
+    case "review":
+      return `/api/curriculums/${input.curriculumId}/review`;
+    case "submit-review":
+      return `/api/curriculums/${input.curriculumId}/submit-review`;
+  }
+}
+
 export function CurriculumLifecycleAction({
   action,
   curriculum,
@@ -80,22 +128,19 @@ export function CurriculumLifecycleAction({
   const buttonVariant =
     action === "delete" || action === "permanent-delete"
       ? "danger"
-      : "secondary";
+      : action === "publish" || action === "submit-review"
+        ? "primary"
+        : "secondary";
 
   async function submit() {
     setStatus({ type: "idle" });
     setSubmitting(true);
     try {
-      const endpoint =
-        action === "archive"
-          ? `/api/curriculums/${curriculum.id}/archive`
-          : action === "restore"
-            ? `/api/curriculums/${curriculum.id}/restore${
-                source === "recycle-bin" ? "?from=recycle-bin" : ""
-              }`
-            : action === "permanent-delete"
-              ? `/api/curriculums/${curriculum.id}/permanent-delete`
-              : `/api/curriculums/${curriculum.id}`;
+      const endpoint = lifecycleEndpoint({
+        action,
+        curriculumId: curriculum.id,
+        source,
+      });
       const method = action === "delete" ? "DELETE" : "POST";
       const body =
         action === "delete"

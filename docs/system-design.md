@@ -118,11 +118,19 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - `GET /api/curricula/{curriculumId}/versions/{versionId}/export?mode=...` 回傳 `application/pdf`，不寫入 public storage、不建立公開下載 URL、不永久保存 PDF。Browser Print Preview 使用同一份 export document，由 browser `window.print()` 執行。
 - 匯出資料來源只允許已儲存 Curriculum Version；AI draft 僅讀取已保存的 structured content。不得匯出未儲存 preview、AI raw provider response、prompt、API key、token 或完整 provider metadata。
 
+### Curriculum Publish Foundation（PB-001）
+
+- PB-001 建立正式 Curriculum publish lifecycle：`draft` → `in_review` → `published` → `archived`。UI 顯示為 Draft／Review／Published／Archived，不使用 `published=true` boolean。
+- 手動建立與基本資料更新只保留草稿狀態；狀態轉換必須走 server-side lifecycle routes 與 RPC，不接受 client 直接傳入 role、tenant 或 publish authority。
+- 發布前以已儲存 Curriculum Version 的 export document projection 執行 validation：title、learning objectives、至少一題、連續題號、answer mapping、knowledge point mapping、metadata、version 與 tenant 均需合法；任何缺漏 fail closed。
+- Draft 可編輯；Review／Published／Archived 唯讀。Published／Archived 若需修改，必須建立下一個 draft version，不能覆寫已發布版本。
+- Teacher 可送審；Reviewer 可審閱；Organization Owner/Admin 可發布、封存與建立新版本。`CURRICULUM_SUBMITTED`、`CURRICULUM_REVIEWED`、`CURRICULUM_PUBLISHED` 與 `CURRICULUM_ARCHIVED` 寫入 curriculum lifecycle audit。
+
 ### 後續 Sprint 銜接
 
 - 新版 Roadmap 的 Sprint 7 改為 Curriculum Foundation；原先規劃的 branch Sprint 尚未執行，active branch 仍只保留架構延伸點。
 - 成員邀請與細緻 RBAC 必須透過後續明確 Sprint 增加受控 RPC，不可放寬目前的 direct membership write deny。
-- 章、課編輯已由 Sprint 8 開放；版本 2、版本發布稽核、還原與跨版本複製仍需後續 Sprint 明確定義。
+- 章、課編輯已由 Sprint 8 開放；PB-001 已建立發布版本鎖與新版本建立。跨版本內容複製、進階審核意見與通知仍需後續 Sprint 明確定義。
 - Organization Logo 若實作，需建立獨立 private bucket、organization path 與 Storage RLS，不得共用個人 Avatar bucket。
 
 ## 長期系統邊界

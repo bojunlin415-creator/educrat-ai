@@ -42,19 +42,28 @@ describe("curriculum validation", () => {
     ).toBe(false);
   });
 
-  it("rejects archived status during creation but allows it during update", () => {
-    const archived = { ...validInput, status: "archived" as const };
-    expect(createCurriculumSchema.safeParse(archived).success).toBe(false);
+  it("requires create and update payloads to stay in draft status", () => {
+    for (const status of ["in_review", "published", "archived"] as const) {
+      expect(
+        createCurriculumSchema.safeParse({ ...validInput, status }).success,
+      ).toBe(false);
+    }
     const updateInput = {
-      gradeId: archived.gradeId,
-      name: archived.name,
-      curriculumReferenceId: archived.curriculumReferenceId,
-      schoolYear: archived.schoolYear,
-      semester: archived.semester,
-      status: archived.status,
-      subjectId: archived.subjectId,
+      gradeId: validInput.gradeId,
+      name: validInput.name,
+      curriculumReferenceId: validInput.curriculumReferenceId,
+      schoolYear: validInput.schoolYear,
+      semester: validInput.semester,
+      status: "draft" as const,
+      subjectId: validInput.subjectId,
     };
     expect(updateCurriculumSchema.safeParse(updateInput).success).toBe(true);
+    expect(
+      updateCurriculumSchema.safeParse({
+        ...updateInput,
+        status: "published",
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects unknown fields that could cross tenant boundaries", () => {

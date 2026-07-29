@@ -158,13 +158,7 @@ export function CurriculumForm({
         <Select
           error={errors.status?.message}
           label="狀態"
-          options={[
-            { label: "草稿", value: "draft" },
-            { label: "使用中", value: "active" },
-            ...(mode === "edit"
-              ? [{ label: "已封存", value: "archived" }]
-              : []),
-          ]}
+          options={[{ label: "草稿", value: "draft" }]}
           {...register("status")}
         />
       </div>

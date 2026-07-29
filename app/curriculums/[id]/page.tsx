@@ -14,9 +14,10 @@ import { canManageCurriculums } from "@/lib/organization/constants";
 export const metadata: Metadata = { title: "教材詳細" };
 
 const STATUS_LABELS = {
-  active: "使用中",
   archived: "已封存",
   draft: "草稿",
+  in_review: "審核中",
+  published: "已發布",
 } as const;
 
 const EXPORT_MODES = [
@@ -56,7 +57,33 @@ export default async function CurriculumDetailPage({
   const { id } = await params;
   const curriculum = await loadCurriculum(id);
   const aiDraft = await loadAIDraft(id);
-  const canEdit = canManageCurriculums(currentOrganization.membership.role);
+  const role = currentOrganization.membership.role;
+  const canManage = canManageCurriculums(role);
+  const canEdit = canManage && curriculum.status === "draft";
+  const canSubmitReview =
+    curriculum.status === "draft" &&
+    (role === "organization_owner" ||
+      role === "organization_admin" ||
+      role === "teacher");
+  const canReview =
+    curriculum.status === "in_review" &&
+    (role === "organization_owner" ||
+      role === "organization_admin" ||
+      role === "reviewer");
+  const canPublish =
+    curriculum.status === "in_review" &&
+    (role === "organization_owner" || role === "organization_admin");
+  const canReopenDraft =
+    curriculum.status === "in_review" &&
+    (role === "organization_owner" ||
+      role === "organization_admin" ||
+      role === "teacher");
+  const canArchive =
+    curriculum.status === "published" &&
+    (role === "organization_owner" || role === "organization_admin");
+  const canCreateVersion =
+    (curriculum.status === "published" || curriculum.status === "archived") &&
+    (role === "organization_owner" || role === "organization_admin");
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
@@ -158,6 +185,69 @@ export default async function CurriculumDetailPage({
         </div>
       </section>
 
+      {canSubmitReview ||
+      canReview ||
+      canPublish ||
+      canReopenDraft ||
+      canCreateVersion ? (
+        <section aria-labelledby="publish-actions-title" className="mt-10">
+          <Card className="p-6">
+            <p className="font-bold text-emerald-700">Publish Workflow</p>
+            <h2
+              className="mt-1 text-xl font-black text-emerald-950"
+              id="publish-actions-title"
+            >
+              教材發布流程
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              只有草稿可送審，審核中教材可審閱與發布，已發布版本會鎖定；若需修改，請建立新版本。
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              {canSubmitReview ? (
+                <CurriculumLifecycleAction
+                  action="submit-review"
+                  curriculum={curriculum}
+                  redirectTo={`/curriculums/${curriculum.id}`}
+                  source="detail"
+                />
+              ) : null}
+              {canReview ? (
+                <CurriculumLifecycleAction
+                  action="review"
+                  curriculum={curriculum}
+                  redirectTo={`/curriculums/${curriculum.id}`}
+                  source="detail"
+                />
+              ) : null}
+              {canPublish ? (
+                <CurriculumLifecycleAction
+                  action="publish"
+                  curriculum={curriculum}
+                  redirectTo={`/curriculums/${curriculum.id}`}
+                  source="detail"
+                />
+              ) : null}
+              {canReopenDraft ? (
+                <CurriculumLifecycleAction
+                  action="reopen-draft"
+                  curriculum={curriculum}
+                  redirectTo={`/curriculums/${curriculum.id}`}
+                  source="detail"
+                />
+              ) : null}
+              {canCreateVersion ? (
+                <CurriculumLifecycleAction
+                  action="create-version"
+                  curriculum={curriculum}
+                  redirectTo={`/curriculums/${curriculum.id}/editor`}
+                  source="detail"
+                />
+              ) : null}
+            </div>
+          </Card>
+        </section>
+      ) : null}
+
       {aiDraft ? (
         <section aria-labelledby="ai-draft-title" className="mt-10">
           <h2
@@ -221,7 +311,7 @@ export default async function CurriculumDetailPage({
         </section>
       ) : null}
 
-      {canEdit ? (
+      {canManage ? (
         <section aria-labelledby="danger-zone-title" className="mt-10">
           <Card className="border-red-200 p-6">
             <p className="font-bold text-red-700">Danger Zone</p>
@@ -235,7 +325,7 @@ export default async function CurriculumDetailPage({
               封存會保留教材資料；刪除會移入回收桶，需通過相依與保留檢查後才可永久刪除。
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
-              {curriculum.status === "active" ? (
+              {canArchive ? (
                 <CurriculumLifecycleAction
                   action="archive"
                   curriculum={curriculum}
@@ -243,15 +333,8 @@ export default async function CurriculumDetailPage({
                   source="detail"
                 />
               ) : null}
-              {curriculum.status === "archived" ? (
-                <CurriculumLifecycleAction
-                  action="restore"
-                  curriculum={curriculum}
-                  redirectTo={`/curriculums/${curriculum.id}`}
-                  source="detail"
-                />
-              ) : null}
-              {curriculum.status !== "active" ? (
+              {curriculum.status === "draft" ||
+              curriculum.status === "archived" ? (
                 <CurriculumLifecycleAction
                   action="delete"
                   curriculum={curriculum}
