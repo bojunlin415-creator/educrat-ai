@@ -9,6 +9,130 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      assignments: {
+        Row: {
+          assigned_by: string;
+          created_at: string;
+          curriculum_id: string;
+          curriculum_version_id: string;
+          description: string | null;
+          due_at: string;
+          id: string;
+          organization_id: string;
+          publish_at: string;
+          status: "active" | "cancelled" | "closed" | "draft" | "scheduled";
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          assigned_by: string;
+          created_at?: string;
+          curriculum_id: string;
+          curriculum_version_id: string;
+          description?: string | null;
+          due_at: string;
+          id?: string;
+          organization_id: string;
+          publish_at: string;
+          status?: "active" | "cancelled" | "closed" | "draft" | "scheduled";
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          description?: string | null;
+          due_at?: string;
+          publish_at?: string;
+          status?: "active" | "cancelled" | "closed" | "draft" | "scheduled";
+          title?: string;
+        };
+        Relationships: [];
+      };
+      assignment_audit_events: {
+        Row: {
+          action:
+            | "ASSIGNMENT_ASSIGNED"
+            | "ASSIGNMENT_CREATED"
+            | "ASSIGNMENT_SUBMITTED"
+            | "ASSIGNMENT_UPDATED";
+          actor_id: string;
+          assignment_id: string;
+          created_at: string;
+          id: string;
+          metadata: Json;
+          organization_id: string;
+        };
+        Insert: {
+          action:
+            | "ASSIGNMENT_ASSIGNED"
+            | "ASSIGNMENT_CREATED"
+            | "ASSIGNMENT_SUBMITTED"
+            | "ASSIGNMENT_UPDATED";
+          actor_id: string;
+          assignment_id: string;
+          created_at?: string;
+          id?: string;
+          metadata?: Json;
+          organization_id: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
+      assignment_students: {
+        Row: {
+          assigned_at: string;
+          assignment_id: string;
+          opened_at: string | null;
+          organization_id: string;
+          status: "in_progress" | "not_started" | "overdue" | "submitted";
+          student_id: string;
+          submitted_at: string | null;
+        };
+        Insert: {
+          assigned_at?: string;
+          assignment_id: string;
+          opened_at?: string | null;
+          organization_id: string;
+          status?: "in_progress" | "not_started" | "overdue" | "submitted";
+          student_id: string;
+          submitted_at?: string | null;
+        };
+        Update: {
+          opened_at?: string | null;
+          status?: "in_progress" | "not_started" | "overdue" | "submitted";
+          submitted_at?: string | null;
+        };
+        Relationships: [];
+      };
+      assignment_submissions: {
+        Row: {
+          assignment_id: string;
+          content: Json;
+          created_at: string;
+          id: string;
+          organization_id: string;
+          status: "draft" | "submitted";
+          student_id: string;
+          submitted_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          assignment_id: string;
+          content?: Json;
+          created_at?: string;
+          id?: string;
+          organization_id: string;
+          status?: "draft" | "submitted";
+          student_id: string;
+          submitted_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          content?: Json;
+          status?: "draft" | "submitted";
+          submitted_at?: string | null;
+        };
+        Relationships: [];
+      };
       chapters: {
         Row: {
           chapter_no: number;

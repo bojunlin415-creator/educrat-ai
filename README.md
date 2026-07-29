@@ -78,6 +78,7 @@ lib/re-authentication/ 無框架 re-auth requirement、challenge、policy 與 de
 lib/recycle-bin/     無框架 recycle entry、restore、purge eligibility 與 decision core
 lib/curriculum/      Curriculum 產品資料層、授權／回收桶／稽核 adapter 與 API DTO
 lib/curriculum-export/ 無框架教材匯出 document model、PDF renderer、檔名與 validation
+lib/assignment/      Assignment domain、學生派發狀態、submission foundation 與 server-side service
 lib/ai-curriculum/   無框架 AI 原創教材生成輸入、prompt、template、layout、validation 與 preview foundation
 lib/ai-generation/   AI provider、structured output、prompt/generation pipeline、validation、retry、usage 與 OpenAI Responses provider
 tests/e2e/           Playwright 測試
@@ -172,6 +173,7 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - [AI-001 Real Curriculum Generation](docs/product/ai-001-real-curriculum-generation.md)：已完成實作、等待產品審查的真實 OpenAI Responses provider、生成 API、可編輯 preview、AI draft persistence 與 AI audit integration
 - [EX-001 Curriculum Export Foundation](docs/product/ex-001-curriculum-export-foundation.md)：已完成實作、等待產品審查的已儲存 Curriculum Version PDF 匯出、Browser Print 與 `CURRICULUM_EXPORTED` audit integration
 - [PB-001 Curriculum Publish Foundation](docs/product/pb-001-curriculum-publish-foundation.md)：已完成實作、等待產品審查的 Draft／Review／Published／Archived workflow、publish validation、version lock 與 publish audit integration
+- [AS-001 Assignment Foundation](docs/product/as-001-assignment-foundation.md)：已完成實作、等待產品審查的教材派發、學生派發狀態、Submission foundation 與 Assignment audit integration
 - [Permission Catalog](docs/security/permission-catalog.md)：已核准但尚未 runtime 化的 224 個 `resource.action` 權限鍵與版本規則
 - [Authorization Security](docs/security/authorization-security-model.md)：已核准的 trust boundary、delegation、re-auth、CASE、Service Principal 與 AI 授權限制
 - [Authorization Migration Design](docs/data/authorization-migration-design.md)：已核准但未執行的 versioned hybrid、legacy role backfill 與 additive rollout

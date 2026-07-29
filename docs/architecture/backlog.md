@@ -2,6 +2,14 @@
 
 本文件只記錄尚待獨立 Architecture Request 審查的架構議題。Backlog 項目不代表已實作、已排入目前 Sprint 或已取得資料庫變更授權。
 
+## AS-001：Assignment Foundation
+
+- 狀態：**Implementation Completed — Awaiting Product Review**；產品 foundation 已完成，尚未 Git Seal。
+- 已完成：Assignment aggregate、Student Assignment status、Submission foundation、server-side assignment API、tenant-scoped RLS 與 Assignment audit events。
+- Database：新增 additive migration `20260729150000_as001_create_assignment_foundation.sql`，建立 `assignments`、`assignment_students`、`assignment_submissions` 與 `assignment_audit_events`；不修改歷史 Migration。
+- 安全：Assignment 固定綁定 published Curriculum Version；Student 只能看自己的派發與 submission；Teacher 管理自己建立的 assignment；Organization Owner/Admin 管理機構內全部 assignment。
+- 明確未完成：AI 分析、Learning Analytics、Dashboard、Parent Report、Class／Enrollment persistence、批改、分數報表、通知與 AI 推薦。
+
 ## EX-001：Curriculum Export Foundation
 
 - 狀態：**Implementation Completed — Awaiting Product Review**；產品整合已完成，尚未 Git Seal。

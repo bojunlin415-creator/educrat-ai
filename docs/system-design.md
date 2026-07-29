@@ -126,6 +126,13 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - Draft 可編輯；Review／Published／Archived 唯讀。Published／Archived 若需修改，必須建立下一個 draft version，不能覆寫已發布版本。
 - Teacher 可送審；Reviewer 可審閱；Organization Owner/Admin 可發布、封存與建立新版本。`CURRICULUM_SUBMITTED`、`CURRICULUM_REVIEWED`、`CURRICULUM_PUBLISHED` 與 `CURRICULUM_ARCHIVED` 寫入 curriculum lifecycle audit。
 
+### Assignment Foundation（AS-001）
+
+- AS-001 建立教材派發 foundation。Assignment 固定綁定一個已發布的 `curriculum_version_id`，不得引用 `latest`，也不得修改 Published Curriculum Version。
+- `assignments` 保存派發 aggregate；`assignment_students` 保存每位學生的 `not_started`／`in_progress`／`submitted`／`overdue` 狀態；`assignment_submissions` 保存每位學生每份派發的一份 submission。
+- Teacher 可建立與管理自己建立的 assignment；Organization Owner/Admin 可管理機構內全部 assignment；Student 只能查看與提交自己的 assignment。跨 tenant 由 service layer 與 RLS fail closed。
+- AS-001 僅建立 API 與資料 foundation；不建立 Dashboard、Learning Analytics、AI 推薦、家長報表、Class／Enrollment persistence、通知或批改流程。
+
 ### 後續 Sprint 銜接
 
 - 新版 Roadmap 的 Sprint 7 改為 Curriculum Foundation；原先規劃的 branch Sprint 尚未執行，active branch 仍只保留架構延伸點。
