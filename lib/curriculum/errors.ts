@@ -8,6 +8,7 @@ export type CurriculumErrorCode =
   | "duplicate_name"
   | "copyright_blocked"
   | "hierarchy_conflict"
+  | "invalid_export_mode"
   | "invalid_input"
   | "invalid_ai_generation"
   | "already_deleted"
@@ -33,6 +34,7 @@ const curriculumErrorMessages: Record<CurriculumErrorCode, string> = {
   copyright_blocked:
     "輸入或輸出含有不可使用的教材來源或出版社相關內容，系統已停止處理。",
   hierarchy_conflict: "章節或課次的編號重複，請調整後再試。",
+  invalid_export_mode: "請選擇有效的教材匯出格式。",
   invalid_input: "教材資料格式不正確。",
   invalid_ai_generation: "AI 生成結果未通過教材結構或知識點檢核。",
   already_deleted: "這份教材已在回收桶中。",
@@ -85,6 +87,7 @@ export function getCurriculumErrorStatus(error: CurriculumError): number {
     case "dependency_blocked":
       return 409;
     case "invalid_input":
+    case "invalid_export_mode":
     case "invalid_ai_generation":
       return 400;
     case "ai_provider_unavailable":

@@ -19,6 +19,12 @@ const STATUS_LABELS = {
   draft: "草稿",
 } as const;
 
+const EXPORT_MODES = [
+  ["worksheet", "下載題目卷"],
+  ["answer-sheet", "下載解答卷"],
+  ["combined", "下載合併卷"],
+] as const;
+
 async function loadCurriculum(id: string) {
   try {
     return await getCurriculum(id);
@@ -111,6 +117,23 @@ export default async function CurriculumDetailPage({
                 <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">
                   {version.status}
                 </span>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {EXPORT_MODES.map(([mode, label]) => (
+                  <Link
+                    className="inline-flex min-h-10 items-center justify-center rounded-xl border border-emerald-900/15 bg-white px-4 py-2 text-sm font-bold text-emerald-950 hover:bg-emerald-50"
+                    href={`/api/curricula/${curriculum.id}/versions/${version.id}/export?mode=${mode}`}
+                    key={mode}
+                  >
+                    {label}
+                  </Link>
+                ))}
+                <Link
+                  className="inline-flex min-h-10 items-center justify-center rounded-xl border border-emerald-900/15 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-900 hover:bg-emerald-100"
+                  href={`/curriculums/${curriculum.id}/versions/${version.id}/print?mode=worksheet`}
+                >
+                  列印預覽
+                </Link>
               </div>
               {version.chapters.length === 0 ? (
                 <p className="mt-5 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">

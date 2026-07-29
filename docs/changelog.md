@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-07-29 — EX-001：Curriculum Export Foundation（Awaiting Product Review）
+
+### Curriculum export
+
+- 新增 framework-neutral `lib/curriculum-export/`，包含 `CurriculumExportDocument`、metadata、section、question、answer、mode、validation、deterministic serialization 與 safe filename helper。
+- 新增第一版 runtime PDF renderer，支援 A4 portrait、黑白列印友善、頁首、頁碼、worksheet 作答欄位、answer sheet 與 combined page break。
+- 新增 `GET /api/curricula/{curriculumId}/versions/{versionId}/export?mode=worksheet|answer-sheet|combined`，成功回傳 `application/pdf` 與安全檔名。
+- 新增 Browser Print Preview，使用同一份 `CurriculumExportDocument`，不另外維護 print-only data source。
+- 匯出只讀取已儲存 Curriculum Version；AI draft export 讀取 `curriculum_ai_drafts.content`，不輸出未儲存 preview、AI raw response、prompt 或 provider metadata。
+- 新增 `curriculum.export` authorization permission，owner/admin/teacher 可匯出；cross-tenant 與 missing version fail closed。
+- 新增 `CURRICULUM_EXPORTED` audit action，metadata 僅保存 curriculumId、curriculumVersionId、exportMode 與 outputFormat，不保存 PDF binary、完整教材內容或答案。
+
+### Boundaries
+
+- 未修改 AI-001 prompt、provider、validator 或 generation flow。
+- 未建立 public storage、永久 PDF、background job、DOCX、AI-002、deploy 或 Production 操作。
+
 ## 2026-07-28 — AI-001：Real Curriculum Generation（Awaiting Product Review）
 
 ### Real AI curriculum generation

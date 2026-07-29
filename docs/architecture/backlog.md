@@ -2,6 +2,14 @@
 
 本文件只記錄尚待獨立 Architecture Request 審查的架構議題。Backlog 項目不代表已實作、已排入目前 Sprint 或已取得資料庫變更授權。
 
+## EX-001：Curriculum Export Foundation
+
+- 狀態：**Implementation Completed — Awaiting Product Review**；產品整合已完成，尚未 Git Seal。
+- 已完成：framework-neutral export core、runtime PDF renderer、worksheet／answer-sheet／combined mode、safe filename、stored version export API、Browser Print Preview、`curriculum.export` authorization 與 `CURRICULUM_EXPORTED` audit integration。
+- Database：新增 additive migration `20260729100000_ex001_add_curriculum_export_audit.sql`，僅擴充 curriculum lifecycle audit action allowlist 與 insert policy；不建立 PDF table、storage 或 persistent file。
+- 安全：PDF runtime generate；不建立 public storage、不永久保存 PDF、不輸出 provider raw response、prompt、完整教材內容到 audit metadata 或公開 URL。
+- 明確未完成：DOCX、批次匯出、Background Job、Export Job Queue、品質 gate、簽章、水印、機構品牌模板、長文件 pagination 精修、正式 PDF library／font embedding 策略。
+
 ## PI-001：Curriculum Delete & Recycle Bin Integration
 
 - 狀態：**Implementation Completed — Awaiting Product Review**；產品整合已完成，尚未 Git Seal。

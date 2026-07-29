@@ -111,6 +111,13 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - Audit allowlist 新增 `CURRICULUM_AI_GENERATED`、`CURRICULUM_AI_EDITED`、`CURRICULUM_AI_SAVED`。Audit metadata 只保存 operation class、state 與 curriculum version id 等 safe metadata，不保存 prompt、完整 provider raw response、API key、token 或學生個資。
 - AI-001 尚未建立 streaming、job queue、retry executor、usage/cost persistence、quota、billing、publish workflow、quality review workflow、PDF export 或 background generation。
 
+### Curriculum Export Foundation（EX-001）
+
+- EX-001 建立已儲存 Curriculum Version 的 runtime 匯出能力。Export core 位於 `lib/curriculum-export/`，只處理 `CurriculumExportDocument`、mode、validation、serialization、safe filename 與 PDF renderer；不依賴 React、Next.js、browser API、Supabase、Database 或 PDF library。
+- 產品 adapter 位於 `lib/curriculum/export.ts`，固定順序為 authenticated account → active organization membership → `curriculum.export` authorization → tenant-bound stored curriculum/version load → document build → runtime PDF render → `CURRICULUM_EXPORTED` audit。
+- `GET /api/curricula/{curriculumId}/versions/{versionId}/export?mode=...` 回傳 `application/pdf`，不寫入 public storage、不建立公開下載 URL、不永久保存 PDF。Browser Print Preview 使用同一份 export document，由 browser `window.print()` 執行。
+- 匯出資料來源只允許已儲存 Curriculum Version；AI draft 僅讀取已保存的 structured content。不得匯出未儲存 preview、AI raw provider response、prompt、API key、token 或完整 provider metadata。
+
 ### 後續 Sprint 銜接
 
 - 新版 Roadmap 的 Sprint 7 改為 Curriculum Foundation；原先規劃的 branch Sprint 尚未執行，active branch 仍只保留架構延伸點。

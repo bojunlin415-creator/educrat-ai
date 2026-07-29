@@ -63,6 +63,12 @@ test("authenticated user completes and manages their profile", async ({
     .context()
     .request.get("/api/curriculums");
   expect(unauthenticatedCurriculumsResponse.status()).toBe(401);
+  const unauthenticatedExportResponse = await page
+    .context()
+    .request.get(
+      "/api/curricula/00000000-0000-4000-8000-000000000000/versions/00000000-0000-4000-8000-000000000001/export?mode=worksheet",
+    );
+  expect(unauthenticatedExportResponse.status()).toBe(401);
   expect(
     (
       await page
@@ -204,8 +210,23 @@ test("authenticated user completes and manages their profile", async ({
       grade_id: string;
       publisher_id: string;
       subject_id: string;
+      versions: Array<{ id: string; version: number }>;
     };
   };
+  const versionId = curriculumDetailPayload.curriculum.versions[0]?.id ?? "";
+  expect(versionId).toMatch(/[0-9a-f-]{36}/);
+  for (const mode of ["worksheet", "answer-sheet", "combined"] as const) {
+    const exportResponse = await page
+      .context()
+      .request.get(
+        `/api/curricula/${curriculumId}/versions/${versionId}/export?mode=${mode}`,
+      );
+    expect(exportResponse.status()).toBe(200);
+    expect(exportResponse.headers()["content-type"]).toContain(
+      "application/pdf",
+    );
+    expect((await exportResponse.body()).byteLength).toBeGreaterThan(500);
+  }
 
   const invalidCurriculumResponse = await page
     .context()

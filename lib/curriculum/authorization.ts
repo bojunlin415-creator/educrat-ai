@@ -18,6 +18,7 @@ const CURRICULUM_MANAGEMENT_PERMISSIONS = [
   "curriculum.archive",
   "curriculum.create",
   "curriculum.delete",
+  "curriculum.export",
   "curriculum.generate",
   "curriculum.restore",
   "curriculum.permanently_delete",
@@ -62,6 +63,7 @@ function createPermissionGrants(
       MANAGING_ROLES.has(role) ||
       (AI_GENERATION_ROLES.has(role) &&
         (permission === "curriculum.generate" ||
+          permission === "curriculum.export" ||
           permission === "curriculum.create")),
   );
 
@@ -196,6 +198,32 @@ export async function authorizeAICurriculum(input: {
       policies: lifecyclePolicies(input.context.organization.id),
       resourceAttributes: {
         lineage: {
+          ORGANIZATION: input.context.organization.id,
+        },
+      },
+      scope: organizationScope(input.context.organization.id),
+    },
+    {
+      contextProvider: createCurriculumAuthorizationProvider(
+        input.context,
+        input.user,
+      ),
+    },
+  );
+}
+
+export async function authorizeCurriculumExport(input: {
+  readonly context: OrganizationContext;
+  readonly curriculumId: string;
+  readonly user: User;
+}): Promise<DecisionResult> {
+  return authorize(
+    {
+      permission: parsePermissionKey("curriculum.export"),
+      policies: lifecyclePolicies(input.context.organization.id),
+      resourceAttributes: {
+        lineage: {
+          CURRICULUM: input.curriculumId,
           ORGANIZATION: input.context.organization.id,
         },
       },

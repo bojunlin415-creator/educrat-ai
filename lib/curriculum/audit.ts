@@ -18,6 +18,7 @@ type CurriculumAuditAction =
   | "CURRICULUM_AI_EDITED"
   | "CURRICULUM_AI_GENERATED"
   | "CURRICULUM_AI_SAVED"
+  | "CURRICULUM_EXPORTED"
   | "CURRICULUM_PERMANENTLY_DELETED"
   | "CURRICULUM_RESTORED"
   | "CURRICULUM_SOFT_DELETED";
@@ -140,7 +141,9 @@ export async function writeCurriculumLifecycleAudit(input: {
       ...input.metadata,
       operationClass: input.action.startsWith("CURRICULUM_AI_")
         ? "CURRICULUM_AI_GENERATION"
-        : "CURRICULUM_LIFECYCLE",
+        : input.action === "CURRICULUM_EXPORTED"
+          ? "CURRICULUM_EXPORT"
+          : "CURRICULUM_LIFECYCLE",
       stateAfter: input.stateAfter.toUpperCase(),
       stateBefore: input.stateBefore.toUpperCase(),
     },
@@ -153,6 +156,8 @@ export async function writeCurriculumLifecycleAudit(input: {
     result: input.result ?? "SUCCEEDED",
     source: input.action.startsWith("CURRICULUM_AI_")
       ? "AI_CURRICULUM_SERVICE"
-      : "CURRICULUM_SERVICE",
+      : input.action === "CURRICULUM_EXPORTED"
+        ? "CURRICULUM_EXPORT_SERVICE"
+        : "CURRICULUM_SERVICE",
   });
 }

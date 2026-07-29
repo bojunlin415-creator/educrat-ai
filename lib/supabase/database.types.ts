@@ -126,6 +126,7 @@ export interface Database {
             | "CURRICULUM_AI_EDITED"
             | "CURRICULUM_AI_GENERATED"
             | "CURRICULUM_AI_SAVED"
+            | "CURRICULUM_EXPORTED"
             | "CURRICULUM_PERMANENTLY_DELETED"
             | "CURRICULUM_RESTORED"
             | "CURRICULUM_SOFT_DELETED";
@@ -154,6 +155,7 @@ export interface Database {
             | "CURRICULUM_AI_EDITED"
             | "CURRICULUM_AI_GENERATED"
             | "CURRICULUM_AI_SAVED"
+            | "CURRICULUM_EXPORTED"
             | "CURRICULUM_PERMANENTLY_DELETED"
             | "CURRICULUM_RESTORED"
             | "CURRICULUM_SOFT_DELETED";
