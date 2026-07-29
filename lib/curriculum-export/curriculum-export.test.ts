@@ -101,7 +101,55 @@ describe("curriculum export foundation", () => {
   it("renders a non-empty PDF", () => {
     const pdf = renderCurriculumExportPdf(createDocument("combined"));
     expect(pdf.contentType).toBe("application/pdf");
-    expect(pdf.data.byteLength).toBeGreaterThan(500);
+    expect(pdf.data.byteLength).toBeGreaterThan(1_000_000);
     expect(new TextDecoder().decode(pdf.data.slice(0, 8))).toBe("%PDF-1.7");
+  });
+
+  it("embeds CJK typography and normalizes bullets without splitting numbers", () => {
+    const document = createCurriculumExportDocument({
+      metadata: {
+        ...metadata,
+        organizationName: "測試機構 100",
+        title: "國小數學 36 題型",
+        topic: "小數與分數（100 與 36）",
+      },
+      mode: "combined",
+      questions: [
+        {
+          answer: { explanation: "100 應保持連續數字。", value: "36" },
+          knowledgePointIds: ["kp-typography"],
+          prompt: "計算 100 - 36，並說明原因。",
+        },
+      ],
+      sections: [
+        {
+          heading: "教學目標",
+          items: ["• 理解 100 與 36 的位值關係。"],
+          kind: "objectives",
+        },
+      ],
+    });
+    const pdf = renderCurriculumExportPdf(document);
+    const source = new TextDecoder("latin1").decode(pdf.data);
+    const contentStreams = source.slice(
+      0,
+      source.indexOf("7 0 obj\n<< /Type /Font"),
+    );
+
+    expect(source).toContain("/NotoSansCJKtc-Regular");
+    expect(source).toContain("/FontFile3");
+    expect(source).toContain("/Identity-H");
+    expect(source).toContain("/Subtype /OpenType");
+    expect(source).toContain("/ToUnicode");
+    expect(source).toContain("/W [");
+    expect(source).not.toContain("/MHei-Medium");
+    expect(source).toContain("25CF");
+    expect(contentStreams).not.toContain("2022");
+    expect(source).toContain("0031");
+    expect(source).toContain("0030");
+    expect(source).toContain("0033");
+    expect(source).toContain("0036");
+    expect(contentStreams).not.toContain("00310020003000200030");
+    expect(contentStreams).not.toContain("003300200036");
   });
 });
