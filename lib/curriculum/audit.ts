@@ -15,6 +15,9 @@ import type { SupabaseServerClient } from "@/lib/supabase/server";
 
 type CurriculumAuditAction =
   | "CURRICULUM_ARCHIVED"
+  | "CURRICULUM_AI_EDITED"
+  | "CURRICULUM_AI_GENERATED"
+  | "CURRICULUM_AI_SAVED"
   | "CURRICULUM_PERMANENTLY_DELETED"
   | "CURRICULUM_RESTORED"
   | "CURRICULUM_SOFT_DELETED";
@@ -96,6 +99,7 @@ export async function writeCurriculumLifecycleAudit(input: {
   readonly actorId: string;
   readonly actingRole: string;
   readonly curriculumId: string;
+  readonly metadata?: Record<string, boolean | null | number | string>;
   readonly organizationId: string;
   readonly reason: string;
   readonly result?: "DENIED" | "FAILED" | "SUCCEEDED";
@@ -133,7 +137,10 @@ export async function writeCurriculumLifecycleAudit(input: {
     actorType: "ACCOUNT",
     correlationId: requestId,
     metadata: {
-      operationClass: "CURRICULUM_LIFECYCLE",
+      ...input.metadata,
+      operationClass: input.action.startsWith("CURRICULUM_AI_")
+        ? "CURRICULUM_AI_GENERATION"
+        : "CURRICULUM_LIFECYCLE",
       stateAfter: input.stateAfter.toUpperCase(),
       stateBefore: input.stateBefore.toUpperCase(),
     },
@@ -144,6 +151,8 @@ export async function writeCurriculumLifecycleAudit(input: {
     resourceId: input.curriculumId,
     resourceType: "CURRICULUM",
     result: input.result ?? "SUCCEEDED",
-    source: "CURRICULUM_SERVICE",
+    source: input.action.startsWith("CURRICULUM_AI_")
+      ? "AI_CURRICULUM_SERVICE"
+      : "CURRICULUM_SERVICE",
   });
 }

@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-07-28 — AI-001：Real Curriculum Generation（Awaiting Product Review）
+
+### Real AI curriculum generation
+
+- 新增真實 OpenAI Responses provider，使用 strict JSON schema 輸出原創教材草稿，不依賴 OpenAI SDK，也不將 API key 暴露到 client。
+- 新增 `POST /api/curriculums/generate`，支援 learning stage、grade、subject、curriculum topic、knowledge points、competency indicators、learning objectives、purpose、difficulty、question count 與 language。
+- 新增 `POST /api/curriculums/generate/save`，將教師審閱／編輯後的草稿儲存為 Curriculum draft、Version 1、Chapter、Lesson 與 version-level `curriculum_ai_drafts`。
+- 新增 `/curriculums/new` 的 AI Generate／Preview／Editable Draft／Save Draft flow。Owner/admin 仍可手動建立空白教材；teacher 可使用 AI 生成與儲存草稿；reviewer 不可生成或儲存。
+- 新增 additive migration `20260728132000_ai001_create_ai_curriculum_drafts.sql`，建立 `curriculum_ai_drafts`、同一 save request 的 `client_request_id` idempotency、受控 `create_ai_generated_curriculum_draft()` RPC，以及 AI audit action allowlist。
+- 新增 `CURRICULUM_AI_GENERATED`、`CURRICULUM_AI_EDITED`、`CURRICULUM_AI_SAVED` audit event；Audit metadata 僅保存 safe relationship metadata（例如 curriculum version id），不保存 prompt、provider raw response、API key、token 或完整學生資料。
+- 新增 AI-001 API、provider、UI 與 migration tests。
+
+### Boundaries
+
+- 未修改歷史 Migration；未使用 Service Role；未放寬既有手動 Curriculum create/edit RPC。
+- 未加入出版社資料、教材版本 mapping、課本章節、OCR、教師手冊、題庫或出版社導向 prompt。
+- 未建立 streaming、AI job queue、background retry、usage/cost persistence、billing、PDF export、publish workflow、worksheet/assessment generation 或 learning analytics。
+- 狀態為 **Implementation Completed — Awaiting Product Review**；未 commit、push、deploy 或操作 Production。
+
 ## 2026-07-28 — PI-001：Curriculum Delete & Recycle Bin Integration（Awaiting Product Review）
 
 ### Curriculum lifecycle product integration

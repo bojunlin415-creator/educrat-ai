@@ -100,6 +100,17 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - Permanent deletion 只能針對已在回收桶的教材，並在目前階段阻擋 published curriculum version。未來 Worksheet／Assessment／Learning History 等下游資料推出前，必須擴充 dependency inventory，不得直接 cascade 破壞受保護資料。
 - PI-001 不代表 Platform-wide Recycle Bin、Background Job、Re-auth receipt、Platform Admin review、Organization Closing、Account Deletion 或 Lesson／Worksheet／Assessment lifecycle 已完成。
 
+### Real Curriculum Generation（AI-001）
+
+- AI-001 將 BF-001～BF-003 foundation 接成第一個可用產品切片：teacher／owner／admin 在 `/curriculums/new` 輸入學習階段、年級、科目、學習主題、知識點、能力指標、教學目標、教材用途、難易度與題數後，呼叫 `POST /api/curriculums/generate` 取得結構化原創教材草稿。
+- Concrete provider 位於 `lib/ai-generation/infrastructure/openai-responses-provider.ts`，使用 OpenAI Responses API 與 strict JSON schema；不依賴 OpenAI SDK，不接受自由文字教材。API key 僅讀取 server environment `OPENAI_API_KEY`，不得進入 client bundle。
+- Prompt pipeline 不接收出版社名稱、legacy publisher code、教材版本、課本章節、OCR、教師手冊、題庫或 lesson mapping。Route handler 與 application service 均執行 copyright safety validation，偵測 forbidden vocabulary 時 fail closed。
+- `lib/curriculum/ai-generation.ts` 是產品 application service，固定順序為 Zod validation → copyright safety → AP-004 authorize() → provider generation → structured output validation → optional teacher edit → controlled persistence → AP-002B audit adapter。
+- Persistence 由 additive migration `20260728132000_ai001_create_ai_curriculum_drafts.sql` 提供。`create_ai_generated_curriculum_draft()` 使用 `auth.uid()`、active organization 與 active owner/admin/teacher membership，原子建立 Curriculum、Version 1、Chapter、Lesson 與 `curriculum_ai_drafts`，並以 `client_request_id` 讓同一 save request 重送時回傳既有 draft。既有 owner/admin-only manual create RPC 不修改，reviewer 仍不可生成或儲存。
+- `curriculum_ai_drafts.content` 保存完整 structured draft；Lesson 僅保存摘要型 teaching notes、learning objectives、difficulty 與 keywords，避免把完整教材內容壓進既有 Lesson 欄位。教材詳細頁會顯示已保存的 AI 原創教材草稿。
+- Audit allowlist 新增 `CURRICULUM_AI_GENERATED`、`CURRICULUM_AI_EDITED`、`CURRICULUM_AI_SAVED`。Audit metadata 只保存 operation class、state 與 curriculum version id 等 safe metadata，不保存 prompt、完整 provider raw response、API key、token 或學生個資。
+- AI-001 尚未建立 streaming、job queue、retry executor、usage/cost persistence、quota、billing、publish workflow、quality review workflow、PDF export 或 background generation。
+
 ### 後續 Sprint 銜接
 
 - 新版 Roadmap 的 Sprint 7 改為 Curriculum Foundation；原先規劃的 branch Sprint 尚未執行，active branch 仍只保留架構延伸點。

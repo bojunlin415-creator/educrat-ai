@@ -1,6 +1,6 @@
 # EduCraft AI（Education Intelligence Platform）
 
-為台灣國小補教業者與教師打造的教育智慧平台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構、章節／課次編輯器，以及 Curriculum Reference 相容層。BF-001～BF-003 已建立 AI 原創教材生成 foundation：產品輸入改為學習階段、年級、科目、學習主題、知識點、能力指標、教學目標與教材用途；不再使用任何出版社導向、教材版本、章節 mapping 或 lesson code。AI foundation 尚未串接 AI provider、API、Database 或正式 UI。AP-002、AP-003A 與 AP-003B 架構皆已核准。AP-004A／B、AP-004C-A／B、AP-002B、AP-002A、AP-002C、AP-002D 與 AP-002E 均已 Accepted and Git Sealed；AP-002F Recycle Bin Foundation 已完成實作、等待架構審查。PI-001 已將 Curriculum-only 的封存、回收桶、還原與受控永久刪除接入產品流程，等待產品審查。其餘跨 Entity Lifecycle、Platform Recycle Bin、Background Job、AI Generation persistence 與正式 AI UI 尚未開始。
+為台灣國小補教業者與教師打造的教育智慧平台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構、章節／課次編輯器，以及 Curriculum Reference 相容層。BF-001～BF-003 已建立 AI 原創教材生成 foundation：產品輸入改為學習階段、年級、科目、學習主題、知識點、能力指標、教學目標與教材用途；不再使用任何出版社導向、教材版本、章節 mapping 或 lesson code。AI-001 已接入真實 OpenAI Responses provider、生成 API、建立頁 preview／edit／save flow、AI draft persistence 與 AI audit events，等待產品審查。AP-002、AP-003A 與 AP-003B 架構皆已核准。AP-004A／B、AP-004C-A／B、AP-002B、AP-002A、AP-002C、AP-002D 與 AP-002E 均已 Accepted and Git Sealed；AP-002F Recycle Bin Foundation 已完成實作、等待架構審查。PI-001 已將 Curriculum-only 的封存、回收桶、還原與受控永久刪除接入產品流程，等待產品審查。其餘跨 Entity Lifecycle、Platform Recycle Bin、Background Job、AI job queue、Usage/Billing 與正式 publish workflow 尚未開始。
 
 ## 技術堆疊
 
@@ -40,7 +40,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 - `/dashboard`：受保護、具 active organization context 的教材工作台
 - `/curriculums`：目前機構的教材列表
 - `/curriculums/recycle-bin`：owner/admin 查看教材回收桶、還原或永久刪除
-- `/curriculums/new`：owner/admin 建立教材與初始版本
+- `/curriculums/new`：owner/admin 手動建立教材與初始版本；owner/admin/teacher 可用 AI Generate 建立原創教材草稿
 - `/curriculums/[id]`：教材、版本與章節詳細資料
 - `/curriculums/[id]/edit`：owner/admin 編輯教材基本資料
 - `/curriculums/[id]/editor`：章節與課次樹狀編輯器；teacher/reviewer 唯讀
@@ -78,7 +78,7 @@ lib/re-authentication/ 無框架 re-auth requirement、challenge、policy 與 de
 lib/recycle-bin/     無框架 recycle entry、restore、purge eligibility 與 decision core
 lib/curriculum/      Curriculum 產品資料層、授權／回收桶／稽核 adapter 與 API DTO
 lib/ai-curriculum/   無框架 AI 原創教材生成輸入、prompt、template、layout、validation 與 preview foundation
-lib/ai-generation/   無框架 AI provider、structured output、prompt/generation pipeline、validation、retry 與 usage foundation
+lib/ai-generation/   AI provider、structured output、prompt/generation pipeline、validation、retry、usage 與 OpenAI Responses provider
 tests/e2e/           Playwright 測試
 supabase/migrations/ 經審查後才能套用的 Supabase CLI Migration
 public/              靜態資源
@@ -168,6 +168,7 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - [BF-001 AI Curriculum Engine MVP](docs/product/bf-001-ai-curriculum-engine.md)：已完成實作、等待產品審查的原創教材生成輸入、Knowledge Point、Prompt Builder、Template、Printable Layout、Validator 與 Preview foundation（無 AI provider／API／DB／UI）
 - [BF-002 AI Generation Engine](docs/product/bf-002-ai-generation-engine.md)：已完成實作、等待產品審查的 Provider Interface、OpenAI boundary、Structured Output、Prompt／Generation Pipeline、Validation、Retry Decision 與 Usage foundation（無 SDK／HTTP／API key／DB／UI）
 - [BF-003 Original Curriculum Generation](docs/product/bf-003-original-curriculum-generation.md)：已完成實作、等待產品審查的完全原創教材生成方向、Curriculum Topic／Knowledge Point／Learning Objective／Competency Indicator domain 與 Copyright Safety Validation
+- [AI-001 Real Curriculum Generation](docs/product/ai-001-real-curriculum-generation.md)：已完成實作、等待產品審查的真實 OpenAI Responses provider、生成 API、可編輯 preview、AI draft persistence 與 AI audit integration
 - [Permission Catalog](docs/security/permission-catalog.md)：已核准但尚未 runtime 化的 224 個 `resource.action` 權限鍵與版本規則
 - [Authorization Security](docs/security/authorization-security-model.md)：已核准的 trust boundary、delegation、re-auth、CASE、Service Principal 與 AI 授權限制
 - [Authorization Migration Design](docs/data/authorization-migration-design.md)：已核准但未執行的 versioned hybrid、legacy role backfill 與 additive rollout
@@ -188,7 +189,8 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 
 - 私密金鑰不可使用 `NEXT_PUBLIC_` 前綴，也不可送到瀏覽器。
 - 所有外部輸入必須由伺服器端 Zod 驗證。
-- 未來所有 AI 輸出都必須通過結構化 schema 與教材品質檢查。
+- OpenAI API key 僅能存在於 server environment；不得使用 `NEXT_PUBLIC_` 或傳給 client。
+- AI 輸出必須通過 strict structured JSON schema、知識點 mapping 與 copyright safety validation；不接受自由文字教材。
 - 不得收錄出版社課文、題庫、教師手冊或其他未授權內容；使用者介面與新 Domain 只使用中性的 Curriculum Reference。
 - AI 只能依賴 Knowledge Graph、Knowledge Point 與經驗證的 Curriculum Reference，不得讀取 legacy Publisher identity。
 - 不得自行執行正式環境 Migration 或修改正式資料。
@@ -219,6 +221,7 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - BF-001：**Implementation Completed — Awaiting Product Review**；已建立 framework-neutral AI Curriculum Engine MVP foundation，包含原創教材 generation input、Knowledge Point、Prompt Builder、Curriculum Template、A4/PDF-ready layout descriptor、Validator 與 Preview contract。尚未串接 AI provider、Database、Migration、API、Server Action、正式 UI 或 PDF binary export。
 - BF-002：**Implementation Completed — Awaiting Product Review**；已建立 framework-neutral AI Generation Engine foundation，包含 GenerationRequest／Result／Metadata／Usage、AIProvider interface、OpenAI adapter boundary、固定 JSON Structured Output schema、Prompt Pipeline、Generation Pipeline、Output／Knowledge Mapping Validator、Retry Decision 與 canonical serialization。尚未串接 OpenAI SDK、HTTP call、API key、Database、Migration、API、Server Action 或 UI。
 - BF-003：**Implementation Completed — Awaiting Product Review**；AI 產品 foundation 已移除教材版本、出版社進度參考、冊次與 mapping 語意，改以 Curriculum Topic、Knowledge Point、Competency Indicator、Learning Objective 與教材用途生成完全原創教材；新增 Copyright Safety Validation 與 `generateOriginalCurriculum()` 語意入口。
+- AI-001：**Implementation Completed — Awaiting Product Review**；已建立真實 OpenAI Responses provider、`POST /api/curriculums/generate`、`POST /api/curriculums/generate/save`、建立頁 AI Generate／Preview／Edit／Save Draft、`curriculum_ai_drafts` persistence、save request idempotency、AI audit events 與 teacher/owner/admin authorization integration。Production 未操作；真實 provider 人工驗收需設定 server-only `OPENAI_API_KEY`。
 - AP-002F：**Implementation Completed — Awaiting Architecture Review**；已建立 framework-neutral Recycle Entry、Restore／Permanent Deletion decision、Purge Eligibility、Registry、pure Policy port、fail-closed Evaluator 與 canonical serializer。
 - PI-001：**Implementation Completed — Awaiting Product Review**；已完成 Curriculum-only 封存、移入回收桶、回收桶還原、受控永久刪除、append-only curriculum lifecycle audit table、API 與 UI 整合。未開始 Lesson／Worksheet／Assessment lifecycle、Platform-wide recycle bin、Background Job 或任何 AI 產品流程。
 - AP-004C 後續產品整合與其餘 Governance implementation 仍需逐 Package 核准。Sprint 9 尚未開始，本階段不串接 AI、題庫或試卷。

@@ -59,6 +59,20 @@ const validOutput = {
   title: "水的三態練習",
 };
 
+function withQuestionCounts(normalCount: number, challengeCount: number) {
+  return {
+    ...validOutput,
+    challengeQuestions: Array.from({ length: challengeCount }, (_, index) => ({
+      ...validOutput.challengeQuestions[0],
+      prompt: `挑戰題 ${index + 1}`,
+    })),
+    questions: Array.from({ length: normalCount }, (_, index) => ({
+      ...validOutput.questions[0],
+      prompt: `普通題 ${index + 1}`,
+    })),
+  };
+}
+
 describe("AI generation output validator", () => {
   it("accepts strict structured curriculum JSON", () => {
     const result = validateCurriculumOutput(context, validOutput);
@@ -84,4 +98,39 @@ describe("AI generation output validator", () => {
       }),
     ).toEqual({ reason: "KNOWLEDGE_MAPPING_INVALID", success: false });
   });
+
+  it.each([
+    [5, 0],
+    [4, 1],
+    [3, 2],
+  ])(
+    "accepts questionCount 5 when normal=%i and challenge=%i",
+    (normalCount, challengeCount) => {
+      const result = validateCurriculumOutput(
+        { ...context, questionCount: 5 },
+        withQuestionCounts(normalCount, challengeCount),
+      );
+
+      expect(result.success).toBe(true);
+    },
+  );
+
+  it.each([
+    [5, 2],
+    [2, 2],
+    [6, 0],
+  ])(
+    "rejects questionCount 5 when normal=%i and challenge=%i",
+    (normalCount, challengeCount) => {
+      const result = validateCurriculumOutput(
+        { ...context, questionCount: 5 },
+        withQuestionCounts(normalCount, challengeCount),
+      );
+
+      expect(result).toEqual({
+        reason: "KNOWLEDGE_MAPPING_INVALID",
+        success: false,
+      });
+    },
+  );
 });

@@ -37,6 +37,16 @@
 - 明確未完成：出版社 mapping、教材比對、OCR、課本章節、Lesson Code、Unit Mapping、真實 AI provider call、API、UI、Database、Migration、Audit、Authorization product integration。
 - 後續產品化：需獨立核准 concrete provider adapter、server composition root、Teacher Review Workflow、Copyright Safety reporting、Audit／Authorization integration 與 generation persistence。
 
+## AI-001：Real Curriculum Generation Handoff
+
+- 狀態：**Implementation Completed — Awaiting Product Review**；尚未 Git Seal、push 或 deploy。
+- 已完成：真實 OpenAI Responses provider、`POST /api/curriculums/generate`、`POST /api/curriculums/generate/save`、建立頁 AI Generate／Preview／Edit／Save Draft、`curriculum_ai_drafts` structured persistence、Version 1 draft 建立、Chapter／Lesson 摘要建立、AI audit events 與 owner/admin/teacher authorization。
+- Provider：使用 server-only `OPENAI_API_KEY` 與 `OPENAI_MODEL`；未設定 key 時 fail closed，不產生 fake output。
+- Persistence：`client_request_id` 保護同一 save request 的重送，不以 UI disabled 作為唯一防重邊界。
+- Copyright：Route 與 service 雙層 validation；偵測出版社名稱、publisher、edition、textbook、教師手冊、題庫、課文引用、課本章節或 mapping 語意時停止。
+- 明確未完成：streaming、AI job queue、background retry、usage/cost persistence、quota、billing、teacher review workflow、publish workflow、PDF export、worksheet/assessment generation、learning analytics 與 production deployment。
+- 人工產品驗收：需在 Development server 設定 `OPENAI_API_KEY` 後執行一次真實生成 → 編輯 → 儲存 → 重新開啟。
+
 ## AR-002：Data Lifecycle & Audit Architecture（由 AP-002 提案承接）
 
 - 狀態：AP-002 Accepted — Architecture Approved；尚未實作

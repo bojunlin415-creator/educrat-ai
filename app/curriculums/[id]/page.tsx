@@ -4,8 +4,10 @@ import { notFound } from "next/navigation";
 import { CurriculumLifecycleAction } from "@/components/curriculums/curriculum-lifecycle-actions";
 import { CurriculumHeader } from "@/components/curriculums/curriculum-header";
 import { Card } from "@/components/ui/card";
+import { getAICurriculumDraft } from "@/lib/curriculum/ai-generation";
 import { CurriculumError } from "@/lib/curriculum/errors";
 import { getCurriculum } from "@/lib/curriculum/service";
+import { aiCurriculumGeneratedDraftSchema } from "@/lib/validation/ai-curriculum-generation";
 import { requireWorkspaceContext } from "@/lib/onboarding/guard";
 import { canManageCurriculums } from "@/lib/organization/constants";
 
@@ -28,6 +30,17 @@ async function loadCurriculum(id: string) {
   }
 }
 
+async function loadAIDraft(id: string) {
+  try {
+    const row = await getAICurriculumDraft(id);
+    if (!row) return null;
+    const parsed = aiCurriculumGeneratedDraftSchema.safeParse(row.content);
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function CurriculumDetailPage({
   params,
 }: {
@@ -36,6 +49,7 @@ export default async function CurriculumDetailPage({
   const { currentOrganization } = await requireWorkspaceContext();
   const { id } = await params;
   const curriculum = await loadCurriculum(id);
+  const aiDraft = await loadAIDraft(id);
   const canEdit = canManageCurriculums(currentOrganization.membership.role);
 
   return (
@@ -120,6 +134,69 @@ export default async function CurriculumDetailPage({
           ))}
         </div>
       </section>
+
+      {aiDraft ? (
+        <section aria-labelledby="ai-draft-title" className="mt-10">
+          <h2
+            className="text-xl font-black text-emerald-950"
+            id="ai-draft-title"
+          >
+            AI 原創教材草稿
+          </h2>
+          <Card className="mt-4 space-y-5 p-6">
+            <div>
+              <p className="text-sm text-slate-500">標題</p>
+              <p className="mt-1 font-black text-emerald-950">
+                {aiDraft.title}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-700">教學目標</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-slate-700">
+                {aiDraft.learningObjectives.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-700">重點整理</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-slate-700">
+                {aiDraft.summary.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-700">練習題</p>
+              <ol className="mt-2 space-y-3">
+                {aiDraft.questions.map((question, index) => (
+                  <li className="rounded-xl bg-slate-50 p-4" key={index}>
+                    <p className="font-bold text-slate-900">
+                      {index + 1}. {question.prompt}
+                    </p>
+                    <p className="mt-2 text-sm text-slate-600">
+                      答案：{question.answer}
+                    </p>
+                    {question.explanation ? (
+                      <p className="mt-1 text-sm text-slate-600">
+                        解析：{question.explanation}
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-700">教師提醒</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-slate-700">
+                {aiDraft.teacherNotes.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </Card>
+        </section>
+      ) : null}
 
       {canEdit ? (
         <section aria-labelledby="danger-zone-title" className="mt-10">

@@ -37,6 +37,10 @@ describe("AI generation prompt pipeline", () => {
     expect(prompt.outputFormat).toBe("json");
     expect(serialized).toContain("固定 JSON");
     expect(serialized).toContain("完全原創教材");
+    expect(serialized).toContain(
+      "questions.length + challengeQuestions.length",
+    );
+    expect(serialized).toContain("合計總數");
     expect(serialized).toContain("kp-fraction");
     expect(serialized).toContain("學習主題：分數大小比較");
   });

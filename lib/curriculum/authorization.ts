@@ -16,13 +16,20 @@ import type { OrganizationContext } from "@/lib/organization/service";
 
 const CURRICULUM_MANAGEMENT_PERMISSIONS = [
   "curriculum.archive",
+  "curriculum.create",
   "curriculum.delete",
+  "curriculum.generate",
   "curriculum.restore",
   "curriculum.permanently_delete",
   "recycle_bin.read",
 ] as const;
 
 const MANAGING_ROLES = new Set(["organization_owner", "organization_admin"]);
+const AI_GENERATION_ROLES = new Set([
+  "organization_owner",
+  "organization_admin",
+  "teacher",
+]);
 
 function organizationScope(organizationId: string): ResourceScope {
   return Object.freeze({ organizationId, type: "ORGANIZATION" });
@@ -50,10 +57,16 @@ function createPermissionGrants(
   organizationId: string,
   role: string,
 ): readonly PermissionGrant[] {
-  if (!MANAGING_ROLES.has(role)) return Object.freeze([]);
+  const permissions = CURRICULUM_MANAGEMENT_PERMISSIONS.filter(
+    (permission) =>
+      MANAGING_ROLES.has(role) ||
+      (AI_GENERATION_ROLES.has(role) &&
+        (permission === "curriculum.generate" ||
+          permission === "curriculum.create")),
+  );
 
   return Object.freeze(
-    CURRICULUM_MANAGEMENT_PERMISSIONS.map((permission) =>
+    permissions.map((permission) =>
       Object.freeze({
         organizationId,
         permission: parsePermissionKey(permission),
@@ -158,6 +171,31 @@ export async function authorizeCurriculumLifecycle(input: {
       resourceAttributes: {
         lineage: {
           CURRICULUM: input.curriculumId,
+          ORGANIZATION: input.context.organization.id,
+        },
+      },
+      scope: organizationScope(input.context.organization.id),
+    },
+    {
+      contextProvider: createCurriculumAuthorizationProvider(
+        input.context,
+        input.user,
+      ),
+    },
+  );
+}
+
+export async function authorizeAICurriculum(input: {
+  readonly context: OrganizationContext;
+  readonly permission: "curriculum.create" | "curriculum.generate";
+  readonly user: User;
+}): Promise<DecisionResult> {
+  return authorize(
+    {
+      permission: parsePermissionKey(input.permission),
+      policies: lifecyclePolicies(input.context.organization.id),
+      resourceAttributes: {
+        lineage: {
           ORGANIZATION: input.context.organization.id,
         },
       },

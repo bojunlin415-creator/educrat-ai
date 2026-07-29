@@ -71,6 +71,9 @@ describe("audit validation", () => {
   });
 
   it("rejects metadata outside the allowlist or containing likely PII", () => {
+    expect(validateAuditMetadata({ curriculumVersionId: "version-1" })).toEqual(
+      { curriculumVersionId: "version-1" },
+    );
     expect(() =>
       validateAuditMetadata({ email: "person@example.com" }),
     ).toThrow(AuditError);

@@ -16,6 +16,10 @@ export const DEFAULT_CURRICULUM_PROMPT_TEMPLATE: PromptTemplate = Object.freeze(
       "不得進行教材比對、OCR、內容摘錄或相似改寫。",
       "必須輸出固定 JSON，不得輸出 markdown、前言、後記或自由文字。",
       "每一道題都必須至少對應一個 knowledgePointId。",
+      "questionCount 是普通題 questions 與挑戰題 challengeQuestions 合計的總題數。",
+      "questions.length + challengeQuestions.length 必須精確等於 questionCount。",
+      "challengeQuestions 必須包含在 questionCount 內，不得額外產生超出 requested count 的題目。",
+      "若無法合理產出挑戰題，challengeQuestions 必須使用空陣列。",
     ]),
     userFields: Object.freeze([
       "grade",
@@ -55,7 +59,7 @@ export function buildUserPrompt(request: GenerationRequest): string {
     `單元：${request.context.unit}`,
     `教材用途：${request.context.purpose}`,
     `難易度：${request.context.difficulty}`,
-    `題數：${request.context.questionCount}`,
+    `題數：${request.context.questionCount}（普通題 questions 與挑戰題 challengeQuestions 合計總數；不得額外產生超出此數量的題目）`,
     `是否附解析：${request.context.includeExplanations ? "是" : "否"}`,
     "能力指標：",
     request.context.competencyIndicators.map((item) => `- ${item}`).join("\n"),
@@ -63,6 +67,7 @@ export function buildUserPrompt(request: GenerationRequest): string {
     request.context.learningObjectives.map((item) => `- ${item}`).join("\n"),
     "知識點：",
     knowledgePoints,
+    `題數契約：questions.length + challengeQuestions.length 必須精確等於 ${request.context.questionCount}。challengeQuestions 必須包含在這個總數內；若不產出挑戰題，請輸出空陣列。`,
     "請輸出 JSON 欄位：title, learningObjectives, summary, examples, questions, challengeQuestions, solutions, teacherNotes, knowledgePoints。",
   ].join("\n");
 }

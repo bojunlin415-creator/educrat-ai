@@ -1,6 +1,7 @@
 export const AUDIT_METADATA_KEYS = [
   "approvalReference",
   "caseReference",
+  "curriculumVersionId",
   "dependencyDecision",
   "failureClass",
   "impactCount",

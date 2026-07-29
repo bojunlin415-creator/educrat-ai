@@ -123,6 +123,9 @@ export interface Database {
         Row: {
           action:
             | "CURRICULUM_ARCHIVED"
+            | "CURRICULUM_AI_EDITED"
+            | "CURRICULUM_AI_GENERATED"
+            | "CURRICULUM_AI_SAVED"
             | "CURRICULUM_PERMANENTLY_DELETED"
             | "CURRICULUM_RESTORED"
             | "CURRICULUM_SOFT_DELETED";
@@ -148,6 +151,9 @@ export interface Database {
         Insert: {
           action:
             | "CURRICULUM_ARCHIVED"
+            | "CURRICULUM_AI_EDITED"
+            | "CURRICULUM_AI_GENERATED"
+            | "CURRICULUM_AI_SAVED"
             | "CURRICULUM_PERMANENTLY_DELETED"
             | "CURRICULUM_RESTORED"
             | "CURRICULUM_SOFT_DELETED";
@@ -171,6 +177,41 @@ export interface Database {
           version?: number;
         };
         Update: never;
+        Relationships: [];
+      };
+      curriculum_ai_drafts: {
+        Row: {
+          client_request_id: string;
+          content: Json;
+          created_at: string;
+          curriculum_id: string;
+          curriculum_version_id: string;
+          edited: boolean;
+          generated_by: string;
+          id: string;
+          organization_id: string;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          client_request_id: string;
+          content: Json;
+          created_at?: string;
+          curriculum_id: string;
+          curriculum_version_id: string;
+          edited?: boolean;
+          generated_by: string;
+          id?: string;
+          organization_id: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          client_request_id?: string;
+          content?: Json;
+          edited?: boolean;
+          title?: string;
+        };
         Relationships: [];
       };
       grades: {
@@ -485,6 +526,28 @@ export interface Database {
           p_version_remark?: string | null;
         };
         Returns: string;
+      };
+      create_ai_generated_curriculum_draft: {
+        Args: {
+          p_chapter_description: string | null;
+          p_chapter_title: string;
+          p_client_request_id: string;
+          p_content: Json;
+          p_difficulty: number;
+          p_edited: boolean;
+          p_grade_id: string;
+          p_keywords: string[];
+          p_learning_objectives: string[];
+          p_lesson_title: string;
+          p_name: string;
+          p_publisher_id: string;
+          p_school_year: number;
+          p_semester: 1 | 2;
+          p_subject_id: string;
+          p_teaching_notes: string | null;
+          p_version_remark: string | null;
+        };
+        Returns: Json;
       };
       archive_curriculum: {
         Args: { p_curriculum_id: string };
