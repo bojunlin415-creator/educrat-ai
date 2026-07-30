@@ -283,6 +283,216 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      learning_events: {
+        Row: {
+          answered_at: string;
+          assignment_id: string;
+          attempt_number: number;
+          class_id: string;
+          correct: boolean;
+          created_at: string;
+          curriculum_id: string;
+          curriculum_version_id: string;
+          difficulty: number;
+          earned_score: number;
+          grade: string;
+          id: string;
+          knowledge_point_id: string;
+          learning_objective_id: string | null;
+          max_score: number;
+          organization_id: string;
+          question_id: string;
+          student_id: string;
+          subject: string;
+          submission_id: string;
+          time_spent_seconds: number;
+        };
+        Insert: {
+          answered_at: string;
+          assignment_id: string;
+          attempt_number: number;
+          class_id: string;
+          correct: boolean;
+          created_at?: string;
+          curriculum_id: string;
+          curriculum_version_id: string;
+          difficulty: number;
+          earned_score: number;
+          grade: string;
+          id?: string;
+          knowledge_point_id: string;
+          learning_objective_id?: string | null;
+          max_score: number;
+          organization_id: string;
+          question_id: string;
+          student_id: string;
+          subject: string;
+          submission_id: string;
+          time_spent_seconds: number;
+        };
+        Update: never;
+        Relationships: [];
+      };
+      learning_audit_events: {
+        Row: {
+          action: "LEARNING_EVENT_CREATED" | "LEARNING_SUMMARY_VIEWED";
+          actor_id: string;
+          created_at: string;
+          id: string;
+          metadata: Json;
+          organization_id: string;
+          student_id: string | null;
+        };
+        Insert: {
+          action: "LEARNING_EVENT_CREATED" | "LEARNING_SUMMARY_VIEWED";
+          actor_id: string;
+          created_at?: string;
+          id?: string;
+          metadata?: Json;
+          organization_id: string;
+          student_id?: string | null;
+        };
+        Update: never;
+        Relationships: [];
+      };
+      student_knowledge_mastery: {
+        Row: {
+          accuracy: number;
+          attempt_count: number;
+          correct_count: number;
+          grade: string;
+          id: string;
+          incorrect_count: number;
+          knowledge_point_id: string;
+          last_answered_at: string;
+          mastery_level:
+            "beginner" | "developing" | "mastered" | "proficient" | "unknown";
+          mastery_score: number;
+          organization_id: string;
+          student_id: string;
+          subject: string;
+          updated_at: string;
+        };
+        Insert: {
+          accuracy?: number;
+          attempt_count?: number;
+          correct_count?: number;
+          grade: string;
+          id?: string;
+          incorrect_count?: number;
+          knowledge_point_id: string;
+          last_answered_at: string;
+          mastery_level?:
+            "beginner" | "developing" | "mastered" | "proficient" | "unknown";
+          mastery_score?: number;
+          organization_id: string;
+          student_id: string;
+          subject: string;
+          updated_at?: string;
+        };
+        Update: {
+          accuracy?: number;
+          attempt_count?: number;
+          correct_count?: number;
+          grade?: string;
+          incorrect_count?: number;
+          knowledge_point_id?: string;
+          last_answered_at?: string;
+          mastery_level?:
+            "beginner" | "developing" | "mastered" | "proficient" | "unknown";
+          mastery_score?: number;
+          subject?: string;
+        };
+        Relationships: [];
+      };
+      student_subject_summary: {
+        Row: {
+          accuracy: number;
+          average_score: number;
+          grade: string;
+          id: string;
+          knowledge_count: number;
+          last_activity: string;
+          mastery_distribution: Json;
+          organization_id: string;
+          question_count: number;
+          student_id: string;
+          subject: string;
+          updated_at: string;
+        };
+        Insert: {
+          accuracy?: number;
+          average_score?: number;
+          grade: string;
+          id?: string;
+          knowledge_count?: number;
+          last_activity: string;
+          mastery_distribution?: Json;
+          organization_id: string;
+          question_count?: number;
+          student_id: string;
+          subject: string;
+          updated_at?: string;
+        };
+        Update: {
+          accuracy?: number;
+          average_score?: number;
+          grade?: string;
+          knowledge_count?: number;
+          last_activity?: string;
+          mastery_distribution?: Json;
+          question_count?: number;
+          subject?: string;
+        };
+        Relationships: [];
+      };
+      teacher_class_summary: {
+        Row: {
+          accuracy: number;
+          activity_trend: Json;
+          class_id: string;
+          grade: string;
+          id: string;
+          knowledge_distribution: Json;
+          last_activity: string;
+          organization_id: string;
+          question_count: number;
+          student_count: number;
+          subject: string;
+          teacher_id: string;
+          updated_at: string;
+          weak_knowledge_ranking: Json;
+        };
+        Insert: {
+          accuracy?: number;
+          activity_trend?: Json;
+          class_id: string;
+          grade: string;
+          id?: string;
+          knowledge_distribution?: Json;
+          last_activity: string;
+          organization_id: string;
+          question_count?: number;
+          student_count?: number;
+          subject: string;
+          teacher_id: string;
+          updated_at?: string;
+          weak_knowledge_ranking?: Json;
+        };
+        Update: {
+          accuracy?: number;
+          activity_trend?: Json;
+          grade?: string;
+          knowledge_distribution?: Json;
+          last_activity?: string;
+          question_count?: number;
+          student_count?: number;
+          subject?: string;
+          teacher_id?: string;
+          weak_knowledge_ranking?: Json;
+        };
+        Relationships: [];
+      };
       curriculum_versions: {
         Row: {
           created_at: string;

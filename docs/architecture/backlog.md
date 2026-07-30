@@ -4,7 +4,7 @@
 
 ## AS-001：Assignment Foundation
 
-- 狀態：**Implementation Completed — Awaiting Product Review**；產品 foundation 已完成，尚未 Git Seal。
+- 狀態：**Completed and Git Sealed**；產品 foundation 已完成並封板。
 - 已完成：Assignment aggregate、Student Assignment status、Submission foundation、server-side assignment API、tenant-scoped RLS 與 Assignment audit events。
 - Database：新增 additive migration `20260729150000_as001_create_assignment_foundation.sql`，建立 `assignments`、`assignment_students`、`assignment_submissions` 與 `assignment_audit_events`；不修改歷史 Migration。
 - 安全：Assignment 固定綁定 published Curriculum Version；Student 只能看自己的派發與 submission；Teacher 管理自己建立的 assignment；Organization Owner/Admin 管理機構內全部 assignment。
@@ -12,11 +12,19 @@
 
 ## CL-001：Class & Enrollment Foundation
 
-- 狀態：**Implementation Completed — Awaiting Product Review**；產品 foundation 已完成，尚未 Git Seal。
+- 狀態：**Completed and Git Sealed**；產品 foundation 已完成並封板。
 - 已完成：Class aggregate、Enrollment domain、Primary Teacher relationship、Student-Class relationship、Assignment class target integration、tenant-scoped RLS 與 Classroom audit events。
 - Database：新增 additive migration `20260730100000_cl001_create_class_enrollment_foundation.sql`，建立 `classes`、`class_enrollments`、`assignment_classes` 與 `classroom_audit_events`；不修改歷史 Migration。
 - 安全：Teacher 只能管理自己為 primary teacher 的班級；Student 只能查看自己的 active class enrollment；Organization Owner/Admin 可管理機構內全部班級；cross tenant fail closed。
 - 明確未完成：Attendance、Timetable、Learning Analytics、Dashboard、Parent Portal、AI Recommendation、Assistant Teacher、批改與報表流程。
+
+## AN-001：Student Learning Analytics Foundation
+
+- 狀態：**Implementation Completed — Awaiting Product Review**；產品 foundation 已完成，尚未 Git Seal。
+- 已完成：Learning Event domain、Knowledge Mastery、Subject Summary、Learning Timeline、Teacher Class Summary API、Aggregation service、tenant-scoped RLS 與 Learning audit events。
+- Database：新增 additive migration `20260730130000_an001_create_learning_analytics_foundation.sql`，建立 `learning_events`、`student_knowledge_mastery`、`student_subject_summary`、`teacher_class_summary` 與 `learning_audit_events`；不修改歷史 Migration。
+- 安全：Learning Event append-only；Student 只能查看自己；Teacher 只能查看自己班級；Organization Owner/Admin 可查看機構內 learning analytics；cross tenant fail closed。
+- 明確未完成：AI Recommendation、Dashboard、Charts、Parent Report、Teacher Dashboard、Organization Dashboard、Adaptive Learning、background aggregation job 與 production migration。
 
 ## EX-001：Curriculum Export Foundation
 

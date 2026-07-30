@@ -140,6 +140,14 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - `assignment_classes` 將 Assignment target 擴充為單一班級或多班級。班級派發時會把 active enrollments materialize 到 `assignment_students`，Assignment 仍固定綁定 published Curriculum Version，且不解析 `latest`。
 - CL-001 不建立 Attendance、Timetable、Learning Analytics、Dashboard、Parent Portal、AI Recommendation、批改或報表流程。
 
+### Student Learning Analytics Foundation（AN-001）
+
+- AN-001 建立 `learning_events` append-only event table；每次學生作答都保存 assignment、submission、student、class、curriculum version、question、knowledge point、difficulty、score、attempt 與 answered time。
+- `student_knowledge_mastery`、`student_subject_summary` 與 `teacher_class_summary` 是可重建 projection，不取代 immutable event history。
+- Aggregation 由 server-side service 在 learning event 建立後重建 affected student／class summary；未建立 background job、queue 或 dashboard。
+- Student 只能查看自己的 learning data；Teacher 只能查看自己負責班級；Organization Owner/Admin 可查看機構內 summary。跨 tenant 由 service layer 與 RLS fail closed。
+- AN-001 不建立 AI Recommendation、Adaptive Learning、Parent Report、Teacher Dashboard、Organization Dashboard 或 Charts。
+
 ### 後續 Sprint 銜接
 
 - 新版 Roadmap 的 Sprint 7 改為 Curriculum Foundation；原先規劃的 branch Sprint 尚未執行，active branch 仍只保留架構延伸點。

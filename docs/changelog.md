@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-07-30 — AN-001：Student Learning Analytics Foundation（Awaiting Product Review）
+
+### Learning analytics foundation
+
+- 新增 `lib/learning-analytics/`，包含 Learning Event domain、Knowledge Mastery、Subject Summary、Teacher Class Summary、validation、aggregation service 與 safe API response boundary。
+- 新增 `learning_events`、`student_knowledge_mastery`、`student_subject_summary`、`teacher_class_summary` 與 `learning_audit_events` additive migration。
+- 新增 `/api/learning/events`、`/api/learning/student/summary`、`/api/learning/student/timeline`、`/api/learning/knowledge`、`/api/learning/teacher/classes/[classId]/summary` 與 `/api/learning/teacher/classes/[classId]/weak-knowledge` server-side API。
+- Learning Event 為 immutable append-only event；Knowledge Mastery、Subject Summary 與 Teacher Class Summary 為可重建 projection。
+- 新增 `LEARNING_EVENT_CREATED` 與 `LEARNING_SUMMARY_VIEWED` audit events。
+
+### Boundaries
+
+- 未建立 AI Recommendation、Dashboard、Charts、Parent Report、Teacher Dashboard、Organization Dashboard、Adaptive Learning、background aggregation job 或 Production migration。
+- 未修改 AI-001、EX-001、PB-001、AS-001 或 CL-001 既有流程；未 commit、push、deploy 或操作 Production。
+
 ## 2026-07-30 — CL-001：Class & Enrollment Foundation（Awaiting Product Review）
 
 ### Class and enrollment foundation
@@ -13,7 +28,7 @@
 ### Boundaries
 
 - 未建立 Attendance、Timetable、Learning Analytics、Dashboard、Parent Portal、AI Recommendation、Assistant Teacher、批改或報表流程。
-- 未修改 AI-001、EX-001、PB-001 既有流程；AS-001 僅做 class target integration；未 commit、push、deploy 或操作 Production。
+- 未修改 AI-001、EX-001、PB-001 既有流程；AS-001 僅做 class target integration；已 Git Seal，未 deploy 或操作 Production。
 
 ## 2026-07-29 — AS-001：Assignment Foundation（Awaiting Product Review）
 
@@ -28,7 +43,7 @@
 ### Boundaries
 
 - 未建立 AI 分析、Learning Analytics、家長報表、Dashboard、AI 推薦、Class／Enrollment persistence、通知、批改或分數報表。
-- 未修改 AI-001、EX-001 或 PB-001 既有流程；未 commit、push、deploy 或操作 Production。
+- 未修改 AI-001、EX-001 或 PB-001 既有流程；已 Git Seal，未 deploy 或操作 Production。
 
 ## 2026-07-29 — PB-001：Curriculum Publish Foundation（Awaiting Product Review）
 

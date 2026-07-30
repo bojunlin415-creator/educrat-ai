@@ -80,6 +80,7 @@ lib/curriculum/      Curriculum 產品資料層、授權／回收桶／稽核 ad
 lib/curriculum-export/ 無框架教材匯出 document model、PDF renderer、檔名與 validation
 lib/assignment/      Assignment domain、學生派發狀態、submission foundation 與 server-side service
 lib/classroom/       Class、Enrollment、Teacher-Class、Student-Class foundation 與 server-side service
+lib/learning-analytics/ Learning Event、Knowledge Mastery、Subject Summary 與 Teacher Class Summary foundation
 lib/ai-curriculum/   無框架 AI 原創教材生成輸入、prompt、template、layout、validation 與 preview foundation
 lib/ai-generation/   AI provider、structured output、prompt/generation pipeline、validation、retry、usage 與 OpenAI Responses provider
 tests/e2e/           Playwright 測試
@@ -176,6 +177,7 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - [PB-001 Curriculum Publish Foundation](docs/product/pb-001-curriculum-publish-foundation.md)：已完成實作、等待產品審查的 Draft／Review／Published／Archived workflow、publish validation、version lock 與 publish audit integration
 - [AS-001 Assignment Foundation](docs/product/as-001-assignment-foundation.md)：已完成實作、等待產品審查的教材派發、學生派發狀態、Submission foundation 與 Assignment audit integration
 - [CL-001 Class & Enrollment Foundation](docs/product/cl-001-class-enrollment-foundation.md)：已完成實作、等待產品審查的班級、學生 enrollment、教師班級管理與 Assignment class target integration
+- [AN-001 Student Learning Analytics Foundation](docs/product/an-001-student-learning-analytics-foundation.md)：已完成實作、等待產品審查的 Learning Event、Knowledge Mastery、Subject Summary、Timeline 與 Teacher Summary API
 - [Permission Catalog](docs/security/permission-catalog.md)：已核准但尚未 runtime 化的 224 個 `resource.action` 權限鍵與版本規則
 - [Authorization Security](docs/security/authorization-security-model.md)：已核准的 trust boundary、delegation、re-auth、CASE、Service Principal 與 AI 授權限制
 - [Authorization Migration Design](docs/data/authorization-migration-design.md)：已核准但未執行的 versioned hybrid、legacy role backfill 與 additive rollout
