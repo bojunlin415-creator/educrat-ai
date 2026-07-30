@@ -493,6 +493,99 @@ export interface Database {
         };
         Relationships: [];
       };
+      learning_recommendations: {
+        Row: {
+          created_at: string;
+          grade: string;
+          id: string;
+          knowledge_point_id: string;
+          organization_id: string;
+          reason: string;
+          recommended_curriculum_type: "advanced" | "remedial";
+          recommended_difficulty: "easy" | "hard" | "normal";
+          recommended_question_count: number;
+          student_id: string;
+          subject: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          grade: string;
+          id?: string;
+          knowledge_point_id: string;
+          organization_id: string;
+          reason: string;
+          recommended_curriculum_type: "advanced" | "remedial";
+          recommended_difficulty: "easy" | "hard" | "normal";
+          recommended_question_count: number;
+          student_id: string;
+          subject: string;
+          updated_at?: string;
+        };
+        Update: {
+          reason?: string;
+          recommended_curriculum_type?: "advanced" | "remedial";
+          recommended_difficulty?: "easy" | "hard" | "normal";
+          recommended_question_count?: number;
+        };
+        Relationships: [];
+      };
+      learning_paths: {
+        Row: {
+          created_at: string;
+          current_knowledge_point_id: string;
+          grade: string;
+          id: string;
+          next_step: string;
+          organization_id: string;
+          recommended_ability: string;
+          recommended_curriculum: string;
+          student_id: string;
+          subject: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          current_knowledge_point_id: string;
+          grade: string;
+          id?: string;
+          next_step: string;
+          organization_id: string;
+          recommended_ability: string;
+          recommended_curriculum: string;
+          student_id: string;
+          subject: string;
+          updated_at?: string;
+        };
+        Update: {
+          next_step?: string;
+          recommended_ability?: string;
+          recommended_curriculum?: string;
+        };
+        Relationships: [];
+      };
+      learning_recommendation_audit_events: {
+        Row: {
+          action: "LEARNING_PATH_VIEWED" | "LEARNING_RECOMMENDATION_CREATED";
+          actor_id: string;
+          created_at: string;
+          id: string;
+          metadata: Json;
+          organization_id: string;
+          student_id: string;
+        };
+        Insert: {
+          action: "LEARNING_PATH_VIEWED" | "LEARNING_RECOMMENDATION_CREATED";
+          actor_id: string;
+          created_at?: string;
+          id?: string;
+          metadata?: Json;
+          organization_id: string;
+          student_id: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
       curriculum_versions: {
         Row: {
           created_at: string;

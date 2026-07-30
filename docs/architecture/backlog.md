@@ -20,11 +20,19 @@
 
 ## AN-001：Student Learning Analytics Foundation
 
-- 狀態：**Implementation Completed — Awaiting Product Review**；產品 foundation 已完成，尚未 Git Seal。
+- 狀態：**Completed and Git Sealed**；產品 foundation 已完成並封板。
 - 已完成：Learning Event domain、Knowledge Mastery、Subject Summary、Learning Timeline、Teacher Class Summary API、Aggregation service、tenant-scoped RLS 與 Learning audit events。
 - Database：新增 additive migration `20260730130000_an001_create_learning_analytics_foundation.sql`，建立 `learning_events`、`student_knowledge_mastery`、`student_subject_summary`、`teacher_class_summary` 與 `learning_audit_events`；不修改歷史 Migration。
 - 安全：Learning Event append-only；Student 只能查看自己；Teacher 只能查看自己班級；Organization Owner/Admin 可查看機構內 learning analytics；cross tenant fail closed。
 - 明確未完成：AI Recommendation、Dashboard、Charts、Parent Report、Teacher Dashboard、Organization Dashboard、Adaptive Learning、background aggregation job 與 production migration。
+
+## AI-002：Adaptive Learning Engine
+
+- 狀態：**Implementation Completed — Awaiting Product Review**；產品 foundation 已完成，尚未 Git Seal。
+- 已完成：Weak Knowledge Detection、Knowledge Gap Analysis、Adaptive Difficulty、Learning Recommendation、Learning Path Recommendation、AI-001 handoff interface、server-side Recommendation API、tenant-scoped RLS 與 recommendation audit events。
+- Database：新增 additive migration `20260730160000_ai002_create_adaptive_learning_foundation.sql`，建立 `learning_recommendations`、`learning_paths` 與 `learning_recommendation_audit_events`；不修改歷史 Migration。
+- 安全：Recommendation 必須以既有 learning analytics 為基礎；Student 只能查看自己；Teacher 只能查看自己班級；Organization Owner/Admin 可查看機構內 recommendation；cross tenant fail closed。
+- 明確未完成：Dashboard、Charts、Parent Report、Teacher Dashboard、Organization Dashboard、Notification、Background Scheduler、AI-001 direct generation call、完整 Knowledge Graph prerequisite engine 與 production migration。
 
 ## EX-001：Curriculum Export Foundation
 

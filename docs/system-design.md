@@ -148,6 +148,14 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - Student 只能查看自己的 learning data；Teacher 只能查看自己負責班級；Organization Owner/Admin 可查看機構內 summary。跨 tenant 由 service layer 與 RLS fail closed。
 - AN-001 不建立 AI Recommendation、Adaptive Learning、Parent Report、Teacher Dashboard、Organization Dashboard 或 Charts。
 
+### Adaptive Learning Engine（AI-002）
+
+- AI-002 從 AN-001 的 `student_knowledge_mastery` 與 `learning_events` 讀取 learning analytics，建立弱點知識點偵測、knowledge gap、難度建議、教材推薦與 learning path foundation。
+- `lib/adaptive-learning/` 的 domain function 保持 framework-neutral，不依賴 UI、OpenAI、Next.js route 或 Supabase。
+- `learning_recommendations` 與 `learning_paths` 是推薦 projection；教材生成仍由 AI-001 負責，本 Sprint 只保留 AI-001 handoff interface，不直接呼叫 AI。
+- Student 只能查看自己的 recommendation；Teacher 只能查看自己班級；Organization Owner/Admin 可查看機構內 recommendation。跨 tenant 由 service layer 與 RLS fail closed。
+- AI-002 不建立 Dashboard、Charts、Parent Report、Teacher Dashboard、Organization Dashboard、Notification 或 Background Scheduler。
+
 ### 後續 Sprint 銜接
 
 - 新版 Roadmap 的 Sprint 7 改為 Curriculum Foundation；原先規劃的 branch Sprint 尚未執行，active branch 仍只保留架構延伸點。

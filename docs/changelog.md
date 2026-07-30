@@ -1,6 +1,21 @@
 # Changelog
 
-## 2026-07-30 — AN-001：Student Learning Analytics Foundation（Awaiting Product Review）
+## 2026-07-30 — AI-002：Adaptive Learning Engine（Awaiting Product Review）
+
+### Adaptive learning foundation
+
+- 新增 `lib/adaptive-learning/`，包含 Weak Knowledge Detection、Knowledge Gap Analysis、Adaptive Difficulty、Learning Recommendation、Learning Path Recommendation、AI-001 handoff interface 與 server-side recommendation service。
+- 新增 `learning_recommendations`、`learning_paths` 與 `learning_recommendation_audit_events` additive migration。
+- 新增 `/api/recommendations/student`、`/api/recommendations/path`、`/api/recommendations/weak-knowledge` 與 `/api/recommendations/difficulty` server-side API。
+- Recommendation 依 AN-001 Learning Analytics 產生；本 Sprint 不直接呼叫 AI-001 或 OpenAI，不生成教材。
+- 新增 `LEARNING_RECOMMENDATION_CREATED` 與 `LEARNING_PATH_VIEWED` audit events。
+
+### Boundaries
+
+- 未建立 Dashboard、Charts、Parent Report、Teacher Dashboard、Organization Dashboard、Notification、Background Scheduler、AI provider call、教材自動生成或完整 Knowledge Graph prerequisite engine。
+- 未修改 AI-001、EX-001、PB-001、AS-001、CL-001 或 AN-001 既有流程；未 commit、push、deploy 或操作 Production。
+
+## 2026-07-30 — AN-001：Student Learning Analytics Foundation（Completed and Git Sealed）
 
 ### Learning analytics foundation
 

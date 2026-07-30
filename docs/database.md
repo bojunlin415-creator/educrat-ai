@@ -278,6 +278,7 @@ AP-002 Amendment 不改變上述 Migration Design。Account／Person linking、P
 - Sprint 8：`20260715160000_s08_extend_curriculum_editor.sql`，新增章狀態、課次教學備註與八個受控 CRUD／排序 RPC；已套用至 `educrat-development`，並完成真實 Editor E2E 與隔離本機四角色 rollback RLS 驗收。
 - Sprint 8 AI-ready reserve：`20260715183000_s08_add_lesson_ai_ready_fields.sql`，新增 optional difficulty、受限 keywords 與 immutable constraint helper；不含 AI 執行物件，已套用 Development，並完成 backward-compatibility RLS 驗收。
 - AN-001：`20260730130000_an001_create_learning_analytics_foundation.sql`，新增 `learning_events`、`student_knowledge_mastery`、`student_subject_summary`、`teacher_class_summary` 與 `learning_audit_events`。`learning_events` 為 append-only，summary tables 是可重建 projection；全部新表啟用 RLS 與 FORCE RLS。Production 未套用。
+- AI-002：`20260730160000_ai002_create_adaptive_learning_foundation.sql`，新增 `learning_recommendations`、`learning_paths` 與 `learning_recommendation_audit_events`。Recommendation 必須基於既有 learning analytics；全部新表啟用 RLS 與 FORCE RLS。Production 未套用。
 
 目前 Development migration history 需依已 Git Sealed package 逐次確認；Production 不得由開發代理自動套用任何本專案 Migration。
 
