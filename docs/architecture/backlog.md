@@ -28,11 +28,19 @@
 
 ## AI-002：Adaptive Learning Engine
 
-- 狀態：**Implementation Completed — Awaiting Product Review**；產品 foundation 已完成，尚未 Git Seal。
+- 狀態：**Completed and Git Sealed**；產品 foundation 已完成並封板。
 - 已完成：Weak Knowledge Detection、Knowledge Gap Analysis、Adaptive Difficulty、Learning Recommendation、Learning Path Recommendation、AI-001 handoff interface、server-side Recommendation API、tenant-scoped RLS 與 recommendation audit events。
 - Database：新增 additive migration `20260730160000_ai002_create_adaptive_learning_foundation.sql`，建立 `learning_recommendations`、`learning_paths` 與 `learning_recommendation_audit_events`；不修改歷史 Migration。
 - 安全：Recommendation 必須以既有 learning analytics 為基礎；Student 只能查看自己；Teacher 只能查看自己班級；Organization Owner/Admin 可查看機構內 recommendation；cross tenant fail closed。
 - 明確未完成：Dashboard、Charts、Parent Report、Teacher Dashboard、Organization Dashboard、Notification、Background Scheduler、AI-001 direct generation call、完整 Knowledge Graph prerequisite engine 與 production migration。
+
+## RP-001：Reporting Foundation
+
+- 狀態：**Implementation Completed — Awaiting Product Review**；產品 foundation 已完成，尚未 Git Seal。
+- 已完成：Reporting Domain、Student／Teacher／Organization report view model、server-side Reporting Service、Shared Reporting API、Report Export Contract foundation、report audit events 與 optional report cache。
+- Database：新增 additive migration `20260730190000_rp001_create_reporting_foundation.sql`，建立 `report_audit_events` 與 optional `report_cache`；不新增新的 analytics source table、不修改 `learning_events` 或 summary tables。
+- 安全：Student 只能看自己 report；Teacher 只能看自己負責班級與班級學生；Organization Owner/Admin 可看 organization report；cross tenant fail closed。
+- 明確未完成：Teacher Dashboard UI、Parent Dashboard UI、Organization Dashboard UI、Charts、real PDF／Excel／CSV export rendering、Scheduled Reports、Email Reports、Notification、cache invalidation job 與 production migration。
 
 ## EX-001：Curriculum Export Foundation
 

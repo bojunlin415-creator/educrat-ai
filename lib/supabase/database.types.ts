@@ -586,6 +586,52 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      report_audit_events: {
+        Row: {
+          action: "REPORT_EXPORTED" | "REPORT_VIEWED";
+          actor_id: string;
+          created_at: string;
+          id: string;
+          metadata: Json;
+          organization_id: string;
+        };
+        Insert: {
+          action: "REPORT_EXPORTED" | "REPORT_VIEWED";
+          actor_id: string;
+          created_at?: string;
+          id?: string;
+          metadata?: Json;
+          organization_id: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
+      report_cache: {
+        Row: {
+          expires_at: string | null;
+          generated_at: string;
+          id: string;
+          organization_id: string;
+          payload: Json;
+          report_type: "organization" | "student" | "teacher";
+          scope_key: string;
+        };
+        Insert: {
+          expires_at?: string | null;
+          generated_at?: string;
+          id?: string;
+          organization_id: string;
+          payload?: Json;
+          report_type: "organization" | "student" | "teacher";
+          scope_key: string;
+        };
+        Update: {
+          expires_at?: string | null;
+          generated_at?: string;
+          payload?: Json;
+        };
+        Relationships: [];
+      };
       curriculum_versions: {
         Row: {
           created_at: string;

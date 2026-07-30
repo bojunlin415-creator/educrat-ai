@@ -1,6 +1,21 @@
 # Changelog
 
-## 2026-07-30 — AI-002：Adaptive Learning Engine（Awaiting Product Review）
+## 2026-07-30 — RP-001：Reporting Foundation（Awaiting Product Review）
+
+### Reporting foundation
+
+- 新增 `lib/reporting/`，包含 Student／Teacher／Organization report view model、mastery summary aggregation、average calculation 與 PDF／Excel／CSV export contract foundation。
+- 新增 `report_audit_events` 與 optional `report_cache` additive migration；Reporting 不新增新的 analytics source table，也不修改 AN-001 Learning tables。
+- 新增 `/api/reports/student`、`/api/reports/teacher`、`/api/reports/organization` 與 `/api/reports/export-options` server-side API。
+- Dashboard 與未來 report consumer 必須透過 Reporting Service，不得直接查詢 Learning Analytics tables。
+- 新增 `REPORT_VIEWED` 與 `REPORT_EXPORTED` audit event vocabulary；目前 view endpoints 寫入 `REPORT_VIEWED`，真正 export execution 留待後續 package。
+
+### Boundaries
+
+- 未建立 Teacher Dashboard UI、Parent Dashboard UI、Organization Dashboard UI、Charts、real PDF／Excel／CSV renderer、Scheduled Reports、Email Reports、Notification、cache invalidation job 或 Production migration。
+- 未修改 AI-001、EX-001、PB-001、AS-001、CL-001、AN-001 或 AI-002 既有流程；未 commit、push、deploy 或操作 Production。
+
+## 2026-07-30 — AI-002：Adaptive Learning Engine（Completed and Git Sealed）
 
 ### Adaptive learning foundation
 
@@ -13,7 +28,7 @@
 ### Boundaries
 
 - 未建立 Dashboard、Charts、Parent Report、Teacher Dashboard、Organization Dashboard、Notification、Background Scheduler、AI provider call、教材自動生成或完整 Knowledge Graph prerequisite engine。
-- 未修改 AI-001、EX-001、PB-001、AS-001、CL-001 或 AN-001 既有流程；未 commit、push、deploy 或操作 Production。
+- 未修改 AI-001、EX-001、PB-001、AS-001、CL-001 或 AN-001 既有流程；已 Git Sealed；未 deploy 或操作 Production。
 
 ## 2026-07-30 — AN-001：Student Learning Analytics Foundation（Completed and Git Sealed）
 

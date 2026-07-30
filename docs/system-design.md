@@ -156,6 +156,14 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - Student 只能查看自己的 recommendation；Teacher 只能查看自己班級；Organization Owner/Admin 可查看機構內 recommendation。跨 tenant 由 service layer 與 RLS fail closed。
 - AI-002 不建立 Dashboard、Charts、Parent Report、Teacher Dashboard、Organization Dashboard、Notification 或 Background Scheduler。
 
+### Reporting Foundation（RP-001）
+
+- RP-001 建立 Teacher、Parent 與 Organization Dashboard 未來共用的 reporting data layer；Dashboard 不得直接查詢 Learning Analytics tables，必須透過 Reporting Service。
+- `lib/reporting/` 提供 framework-neutral view model 與 aggregation helper；server-side service 從 AN-001／AI-002 projection 讀取資料並產生 Student、Teacher、Organization report。
+- Shared Reporting API 包含 `GET /api/reports/student`、`GET /api/reports/teacher`、`GET /api/reports/organization` 與 `GET /api/reports/export-options`；本 Sprint 不建立 Dashboard UI 或 charts。
+- RP-001 新增 `report_audit_events` 與 optional `report_cache` foundation；不新增新的 analytics source table，也不修改 `learning_events` 或 summary tables。
+- Export model 僅提供 PDF／Excel／CSV interface contract；不實作 renderer、storage、scheduled reports、email reports 或 notification。
+
 ### 後續 Sprint 銜接
 
 - 新版 Roadmap 的 Sprint 7 改為 Curriculum Foundation；原先規劃的 branch Sprint 尚未執行，active branch 仍只保留架構延伸點。
