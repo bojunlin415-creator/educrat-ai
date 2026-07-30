@@ -25,12 +25,15 @@ import {
 type AssignmentRow = Database["public"]["Tables"]["assignments"]["Row"];
 type AssignmentStudentRow =
   Database["public"]["Tables"]["assignment_students"]["Row"];
+type AssignmentClassRow =
+  Database["public"]["Tables"]["assignment_classes"]["Row"];
 type AssignmentSubmissionRow =
   Database["public"]["Tables"]["assignment_submissions"]["Row"];
 type CurriculumVersionRow =
   Database["public"]["Tables"]["curriculum_versions"]["Row"];
 
 export interface AssignmentDetail extends AssignmentRow {
+  readonly classes: readonly AssignmentClassRow[];
   readonly students: readonly AssignmentStudentRow[];
 }
 
@@ -47,6 +50,9 @@ function mapDatabaseError(error: { code?: string; message?: string } | null) {
   }
   if (error.message?.includes("submission_locked")) {
     return new AssignmentError("submission_locked");
+  }
+  if (error.message?.includes("assignment_invalid_class")) {
+    return new AssignmentError("invalid_input");
   }
   if (error.code === "23505") {
     return new AssignmentError("duplicate_assignment_student");
@@ -199,6 +205,9 @@ export async function createAssignment(
     .single();
   if (error) throw mapDatabaseError(error);
 
+  if (parsed.data.classIds?.length) {
+    await assignClasses(data.id, parsed.data.classIds);
+  }
   if (parsed.data.studentIds?.length) {
     await assignStudents(data.id, { studentIds: parsed.data.studentIds });
   }
@@ -288,6 +297,13 @@ export async function getAssignment(id: string): Promise<AssignmentDetail> {
     .eq("organization_id", context.organization.id)
     .order("assigned_at", { ascending: true });
   if (studentsError) throw mapDatabaseError(studentsError);
+  const { data: classes, error: classesError } = await supabase
+    .from("assignment_classes")
+    .select("*")
+    .eq("assignment_id", data.id)
+    .eq("organization_id", context.organization.id)
+    .order("assigned_at", { ascending: true });
+  if (classesError) throw mapDatabaseError(classesError);
   if (isStudent(context.membership.role)) {
     if (
       !students.some(
@@ -298,12 +314,13 @@ export async function getAssignment(id: string): Promise<AssignmentDetail> {
     }
     return {
       ...data,
+      classes,
       students: students.filter(
         (student) => student.student_id === context.membership.user_id,
       ),
     };
   }
-  return { ...data, students };
+  return { ...data, classes, students };
 }
 
 export async function listAssignments(): Promise<readonly AssignmentRow[]> {
@@ -366,6 +383,12 @@ export async function assignStudents(
   if (assignment.status === "cancelled" || assignment.status === "closed") {
     throw new AssignmentError("invalid_assignment_state");
   }
+  if (parsed.data.classIds?.length) {
+    await assignClasses(parsedId.data, parsed.data.classIds);
+  }
+  if (!parsed.data.studentIds?.length) {
+    return getAssignment(parsedId.data).then((detail) => detail.students);
+  }
   const supabase = await createClient();
   const rows = parsed.data.studentIds.map((studentId) => ({
     assignment_id: parsedId.data,
@@ -384,6 +407,60 @@ export async function assignStudents(
     organizationId: context.organization.id,
     userId: user.id,
   });
+  return data;
+}
+
+async function assignClasses(
+  assignmentId: string,
+  classIds: readonly string[],
+): Promise<readonly AssignmentClassRow[]> {
+  const context = await requireTeacherManager();
+  const user = await requireAssignmentActor();
+  const uniqueClassIds = [...new Set(classIds)];
+  const supabase = await createClient();
+  const { data: classes, error: classesError } = await supabase
+    .from("classes")
+    .select("*")
+    .in("id", uniqueClassIds)
+    .eq("organization_id", context.organization.id)
+    .eq("status", "active");
+  if (classesError) throw mapDatabaseError(classesError);
+  if (classes.length !== uniqueClassIds.length) {
+    throw new AssignmentError("invalid_input");
+  }
+  if (
+    context.membership.role === "teacher" &&
+    classes.some((classroom) => classroom.teacher_id !== user.id)
+  ) {
+    throw new AssignmentError("forbidden");
+  }
+
+  const classRows = classes.map((classroom) => ({
+    assignment_id: assignmentId,
+    class_id: classroom.id,
+    organization_id: context.organization.id,
+  }));
+  const { data, error } = await supabase
+    .from("assignment_classes")
+    .upsert(classRows, { onConflict: "assignment_id,class_id" })
+    .select("*");
+  if (error) throw mapDatabaseError(error);
+
+  const { data: enrollments, error: enrollmentError } = await supabase
+    .from("class_enrollments")
+    .select("student_id")
+    .in(
+      "class_id",
+      classes.map((classroom) => classroom.id),
+    )
+    .eq("organization_id", context.organization.id)
+    .eq("status", "active");
+  if (enrollmentError) throw mapDatabaseError(enrollmentError);
+
+  const studentIds = [...new Set(enrollments.map((row) => row.student_id))];
+  if (studentIds.length > 0) {
+    await assignStudents(assignmentId, { studentIds });
+  }
   return data;
 }
 

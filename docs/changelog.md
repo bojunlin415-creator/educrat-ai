@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-07-30 — CL-001：Class & Enrollment Foundation（Awaiting Product Review）
+
+### Class and enrollment foundation
+
+- 新增 `lib/classroom/`，包含 Class domain、Enrollment domain、validation、service 與 safe API response boundary。
+- 新增 `classes`、`class_enrollments`、`assignment_classes` 與 `classroom_audit_events` additive migration。
+- 新增 `/api/classes`、`/api/classes/[id]`、`/api/classes/[id]/enrollments`、`/api/classes/[id]/enrollments/[studentId]`、`/api/classes/teacher` 與 `/api/classes/student` server-side API。
+- Assignment integration 新增 `classIds` target，班級派發會 materialize active class enrollments 到 `assignment_students`；Assignment 仍固定綁定 published Curriculum Version。
+- 新增 `CLASS_CREATED`、`CLASS_UPDATED`、`CLASS_ARCHIVED`、`ENROLLMENT_CREATED` 與 `ENROLLMENT_REMOVED` audit events。
+
+### Boundaries
+
+- 未建立 Attendance、Timetable、Learning Analytics、Dashboard、Parent Portal、AI Recommendation、Assistant Teacher、批改或報表流程。
+- 未修改 AI-001、EX-001、PB-001 既有流程；AS-001 僅做 class target integration；未 commit、push、deploy 或操作 Production。
+
 ## 2026-07-29 — AS-001：Assignment Foundation（Awaiting Product Review）
 
 ### Assignment foundation

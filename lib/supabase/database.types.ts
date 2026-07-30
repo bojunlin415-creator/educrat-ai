@@ -77,6 +77,22 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      assignment_classes: {
+        Row: {
+          assigned_at: string;
+          assignment_id: string;
+          class_id: string;
+          organization_id: string;
+        };
+        Insert: {
+          assigned_at?: string;
+          assignment_id: string;
+          class_id: string;
+          organization_id: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
       assignment_students: {
         Row: {
           assigned_at: string;
@@ -164,6 +180,107 @@ export interface Database {
           status?: "draft" | "active" | "archived";
           title?: string;
         };
+        Relationships: [];
+      };
+      classes: {
+        Row: {
+          code: string;
+          created_at: string;
+          description: string | null;
+          grade: string;
+          id: string;
+          name: string;
+          organization_id: string;
+          school_year: number;
+          semester: 1 | 2;
+          status: "active" | "archived" | "inactive";
+          subject: string;
+          teacher_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          code: string;
+          created_at?: string;
+          description?: string | null;
+          grade: string;
+          id?: string;
+          name: string;
+          organization_id: string;
+          school_year: number;
+          semester: 1 | 2;
+          status?: "active" | "archived" | "inactive";
+          subject: string;
+          teacher_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          code?: string;
+          description?: string | null;
+          grade?: string;
+          name?: string;
+          school_year?: number;
+          semester?: 1 | 2;
+          status?: "active" | "archived" | "inactive";
+          subject?: string;
+          teacher_id?: string;
+        };
+        Relationships: [];
+      };
+      class_enrollments: {
+        Row: {
+          class_id: string;
+          id: string;
+          joined_at: string;
+          left_at: string | null;
+          organization_id: string;
+          status: "active" | "inactive" | "left";
+          student_id: string;
+        };
+        Insert: {
+          class_id: string;
+          id?: string;
+          joined_at?: string;
+          left_at?: string | null;
+          organization_id: string;
+          status?: "active" | "inactive" | "left";
+          student_id: string;
+        };
+        Update: {
+          left_at?: string | null;
+          status?: "active" | "inactive" | "left";
+        };
+        Relationships: [];
+      };
+      classroom_audit_events: {
+        Row: {
+          action:
+            | "CLASS_ARCHIVED"
+            | "CLASS_CREATED"
+            | "CLASS_UPDATED"
+            | "ENROLLMENT_CREATED"
+            | "ENROLLMENT_REMOVED";
+          actor_id: string;
+          class_id: string;
+          created_at: string;
+          id: string;
+          metadata: Json;
+          organization_id: string;
+        };
+        Insert: {
+          action:
+            | "CLASS_ARCHIVED"
+            | "CLASS_CREATED"
+            | "CLASS_UPDATED"
+            | "ENROLLMENT_CREATED"
+            | "ENROLLMENT_REMOVED";
+          actor_id: string;
+          class_id: string;
+          created_at?: string;
+          id?: string;
+          metadata?: Json;
+          organization_id: string;
+        };
+        Update: never;
         Relationships: [];
       };
       curriculum_versions: {

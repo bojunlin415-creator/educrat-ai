@@ -133,6 +133,13 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - Teacher 可建立與管理自己建立的 assignment；Organization Owner/Admin 可管理機構內全部 assignment；Student 只能查看與提交自己的 assignment。跨 tenant 由 service layer 與 RLS fail closed。
 - AS-001 僅建立 API 與資料 foundation；不建立 Dashboard、Learning Analytics、AI 推薦、家長報表、Class／Enrollment persistence、通知或批改流程。
 
+### Class & Enrollment Foundation（CL-001）
+
+- CL-001 建立 `classes` 與 `class_enrollments`，讓 Organization Owner/Admin 管理機構內班級，Teacher 管理自己負責的班級，Student 只能查看自己的 active enrollment。
+- 每個 Class 只有一位 Primary Teacher；Assistant Teacher 保留為未來 package，不在本 Sprint 建立。
+- `assignment_classes` 將 Assignment target 擴充為單一班級或多班級。班級派發時會把 active enrollments materialize 到 `assignment_students`，Assignment 仍固定綁定 published Curriculum Version，且不解析 `latest`。
+- CL-001 不建立 Attendance、Timetable、Learning Analytics、Dashboard、Parent Portal、AI Recommendation、批改或報表流程。
+
 ### 後續 Sprint 銜接
 
 - 新版 Roadmap 的 Sprint 7 改為 Curriculum Foundation；原先規劃的 branch Sprint 尚未執行，active branch 仍只保留架構延伸點。

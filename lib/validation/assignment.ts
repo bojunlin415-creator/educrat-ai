@@ -15,6 +15,7 @@ const uuidArraySchema = z.array(z.uuid()).min(1).max(200);
 
 export const createAssignmentSchema = z
   .object({
+    classIds: uuidArraySchema.optional(),
     curriculumId: z.uuid(),
     curriculumVersionId: z.uuid(),
     description: z.string().trim().max(1000).optional(),
@@ -51,9 +52,17 @@ export const updateAssignmentSchema = z
 
 export const assignStudentsSchema = z
   .object({
-    studentIds: uuidArraySchema,
+    classIds: uuidArraySchema.optional(),
+    studentIds: uuidArraySchema.optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (value) => Boolean(value.studentIds?.length || value.classIds?.length),
+    {
+      message: "At least one student or class target is required.",
+      path: ["studentIds"],
+    },
+  );
 
 export const submissionContentSchema = z
   .record(z.string().min(1).max(120), z.unknown())

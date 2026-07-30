@@ -3,6 +3,7 @@ import {
   isStudentSubmissionEditable,
 } from "@/lib/assignment";
 import {
+  assignStudentsSchema,
   createAssignmentSchema,
   saveSubmissionSchema,
   updateAssignmentSchema,
@@ -28,6 +29,22 @@ describe("AS-001 assignment foundation", () => {
         curriculumVersionId: "latest",
       }).success,
     ).toBe(false);
+  });
+
+  it("allows class assignment targets while keeping fixed curriculum versions", () => {
+    expect(
+      createAssignmentSchema.safeParse({
+        ...publishedVersionPayload,
+        classIds: ["10000000-0000-4000-8000-000000000004"],
+        studentIds: undefined,
+      }).success,
+    ).toBe(true);
+    expect(
+      assignStudentsSchema.safeParse({
+        classIds: ["10000000-0000-4000-8000-000000000004"],
+      }).success,
+    ).toBe(true);
+    expect(assignStudentsSchema.safeParse({}).success).toBe(false);
   });
 
   it("rejects due dates before publish dates", () => {
