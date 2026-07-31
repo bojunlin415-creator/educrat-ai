@@ -38,6 +38,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 - `/settings/profile`：個人資料與 Avatar 管理
 - `/settings/organization`：目前機構資料與使用者角色
 - `/dashboard`：受保護、具 active organization context 的教材工作台
+- `/dashboard/teacher`：teacher／owner／admin 的教師儀表板
 - `/curriculums`：目前機構的教材列表
 - `/curriculums/recycle-bin`：owner/admin 查看教材回收桶、還原或永久刪除
 - `/curriculums/new`：owner/admin 手動建立教材與初始版本；owner/admin/teacher 可用 AI Generate 建立原創教材草稿
@@ -83,6 +84,7 @@ lib/classroom/       Class、Enrollment、Teacher-Class、Student-Class foundati
 lib/learning-analytics/ Learning Event、Knowledge Mastery、Subject Summary 與 Teacher Class Summary foundation
 lib/adaptive-learning/ Weak Knowledge Detection、Knowledge Gap、Difficulty 與 Learning Recommendation foundation
 lib/reporting/      Student／Teacher／Organization report view model、aggregation 與 export contract foundation
+lib/teacher-dashboard/ Teacher Dashboard view model、rule-based insight、chart adapter 與 server-side orchestration
 lib/ai-curriculum/   無框架 AI 原創教材生成輸入、prompt、template、layout、validation 與 preview foundation
 lib/ai-generation/   AI provider、structured output、prompt/generation pipeline、validation、retry、usage 與 OpenAI Responses provider
 tests/e2e/           Playwright 測試
@@ -182,6 +184,7 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - [AN-001 Student Learning Analytics Foundation](docs/product/an-001-student-learning-analytics-foundation.md)：已完成並 Git Sealed 的 Learning Event、Knowledge Mastery、Subject Summary、Timeline 與 Teacher Summary API
 - [AI-002 Adaptive Learning Engine](docs/product/ai-002-adaptive-learning-engine.md)：已完成並 Git Sealed 的 Weak Knowledge Detection、Knowledge Gap、Difficulty Recommendation、Learning Recommendation 與 Learning Path foundation
 - [RP-001 Reporting Foundation](docs/product/rp-001-reporting-foundation.md)：已完成實作、等待產品審查的 Student／Teacher／Organization report aggregation、shared Reporting API、report audit 與 export contract foundation
+- [TD-001 Teacher Dashboard](docs/product/td-001-teacher-dashboard.md)：已完成實作、等待產品審查的 Teacher Dashboard UI、Teaching Insight、Student／Class overview、Weak Knowledge、Assignment Status 與 Recommendation panel
 - [Permission Catalog](docs/security/permission-catalog.md)：已核准但尚未 runtime 化的 224 個 `resource.action` 權限鍵與版本規則
 - [Authorization Security](docs/security/authorization-security-model.md)：已核准的 trust boundary、delegation、re-auth、CASE、Service Principal 與 AI 授權限制
 - [Authorization Migration Design](docs/data/authorization-migration-design.md)：已核准但未執行的 versioned hybrid、legacy role backfill 與 additive rollout

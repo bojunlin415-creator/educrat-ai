@@ -36,11 +36,19 @@
 
 ## RP-001：Reporting Foundation
 
-- 狀態：**Implementation Completed — Awaiting Product Review**；產品 foundation 已完成，尚未 Git Seal。
+- 狀態：**Completed and Git Sealed**；產品 foundation 已完成並封板。
 - 已完成：Reporting Domain、Student／Teacher／Organization report view model、server-side Reporting Service、Shared Reporting API、Report Export Contract foundation、report audit events 與 optional report cache。
 - Database：新增 additive migration `20260730190000_rp001_create_reporting_foundation.sql`，建立 `report_audit_events` 與 optional `report_cache`；不新增新的 analytics source table、不修改 `learning_events` 或 summary tables。
 - 安全：Student 只能看自己 report；Teacher 只能看自己負責班級與班級學生；Organization Owner/Admin 可看 organization report；cross tenant fail closed。
 - 明確未完成：Teacher Dashboard UI、Parent Dashboard UI、Organization Dashboard UI、Charts、real PDF／Excel／CSV export rendering、Scheduled Reports、Email Reports、Notification、cache invalidation job 與 production migration。
+
+## TD-001：Teacher Dashboard
+
+- 狀態：**Implementation Completed — Awaiting Product Review**；產品 dashboard 已完成，尚未 Git Seal。
+- 已完成：Teacher Dashboard UI、Today's Overview、Teaching Insight Panel、Class／Student Performance、Weak Knowledge、Assignment Status、Recommendation Panel、Chart Adapter model 與 shared Dashboard API。
+- Database：新增 additive migration `20260730210000_td001_create_teacher_dashboard_audit.sql`，建立 `teacher_dashboard_audit_events`；不新增 Learning tables、不修改 Analytics schema。
+- 安全：Teacher 只能看自己班級；Organization Owner/Admin 可看機構內 teacher dashboard；Student 不得存取；dashboard data 必須經由 RP-001 Reporting Service。
+- 明確未完成：Parent Dashboard、Organization Dashboard、Email Report、Notification、Scheduled Report、real chart library adapter、AI-generated teaching insight 與 dashboard cache invalidation policy。
 
 ## EX-001：Curriculum Export Foundation
 

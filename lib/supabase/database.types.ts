@@ -632,6 +632,26 @@ export interface Database {
         };
         Relationships: [];
       };
+      teacher_dashboard_audit_events: {
+        Row: {
+          action: "TEACHER_DASHBOARD_VIEWED" | "TEACHING_INSIGHT_VIEWED";
+          actor_id: string;
+          created_at: string;
+          id: string;
+          metadata: Json;
+          organization_id: string;
+        };
+        Insert: {
+          action: "TEACHER_DASHBOARD_VIEWED" | "TEACHING_INSIGHT_VIEWED";
+          actor_id: string;
+          created_at?: string;
+          id?: string;
+          metadata?: Json;
+          organization_id: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
       curriculum_versions: {
         Row: {
           created_at: string;

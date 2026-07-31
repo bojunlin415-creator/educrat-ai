@@ -280,6 +280,7 @@ AP-002 Amendment 不改變上述 Migration Design。Account／Person linking、P
 - AN-001：`20260730130000_an001_create_learning_analytics_foundation.sql`，新增 `learning_events`、`student_knowledge_mastery`、`student_subject_summary`、`teacher_class_summary` 與 `learning_audit_events`。`learning_events` 為 append-only，summary tables 是可重建 projection；全部新表啟用 RLS 與 FORCE RLS。Production 未套用。
 - AI-002：`20260730160000_ai002_create_adaptive_learning_foundation.sql`，新增 `learning_recommendations`、`learning_paths` 與 `learning_recommendation_audit_events`。Recommendation 必須基於既有 learning analytics；全部新表啟用 RLS 與 FORCE RLS。Production 未套用。
 - RP-001：`20260730190000_rp001_create_reporting_foundation.sql`，新增 `report_audit_events` 與 optional `report_cache`。Reporting 不新增新的 analytics source table、不修改 `learning_events`／summary tables；全部新表啟用 RLS 與 FORCE RLS。Production 未套用。
+- TD-001：`20260730210000_td001_create_teacher_dashboard_audit.sql`，新增 `teacher_dashboard_audit_events`。Teacher Dashboard 不新增 Learning tables、不修改 Analytics schema；新表啟用 RLS 與 FORCE RLS。Production 未套用。
 
 目前 Development migration history 需依已 Git Sealed package 逐次確認；Production 不得由開發代理自動套用任何本專案 Migration。
 

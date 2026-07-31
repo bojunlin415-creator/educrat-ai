@@ -164,6 +164,14 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - RP-001 新增 `report_audit_events` 與 optional `report_cache` foundation；不新增新的 analytics source table，也不修改 `learning_events` 或 summary tables。
 - Export model 僅提供 PDF／Excel／CSV interface contract；不實作 renderer、storage、scheduled reports、email reports 或 notification。
 
+### Teacher Dashboard（TD-001）
+
+- TD-001 建立 Teacher Dashboard UI 與 `GET /api/dashboard/teacher*` server-side API；Dashboard data 必須經由 RP-001 Reporting Service，不得直接查詢 Learning tables。
+- Dashboard 包含 Today's Overview、Teaching Insights、Class Performance、Student Performance、Weak Knowledge、Assignment Status 與 Recommendation Panel。
+- Teaching Insight 目前為 rule-based，不呼叫 OpenAI；Recommendation Panel 只呈現 AI-002 recommendation vocabulary 與 weak knowledge aggregation，不建立新教材。
+- Chart 以 framework-neutral chart adapter model 表示，不綁定 Recharts、Chart.js 或 ECharts。
+- TD-001 新增 `teacher_dashboard_audit_events`；不新增 Learning tables、不修改 Analytics schema、不建立 Parent Dashboard／Organization Dashboard／Email Report／Notification／Scheduled Report。
+
 ### 後續 Sprint 銜接
 
 - 新版 Roadmap 的 Sprint 7 改為 Curriculum Foundation；原先規劃的 branch Sprint 尚未執行，active branch 仍只保留架構延伸點。

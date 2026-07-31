@@ -1,6 +1,21 @@
 # Changelog
 
-## 2026-07-30 — RP-001：Reporting Foundation（Awaiting Product Review）
+## 2026-07-30 — TD-001：Teacher Dashboard（Awaiting Product Review）
+
+### Teacher dashboard
+
+- 新增 `lib/teacher-dashboard/`，包含 Dashboard view model、Today's Overview、Teaching Insight、Student Ranking、Weak Knowledge、Recommendation Panel 與 chart adapter model。
+- 新增 `components/teacher-dashboard/teacher-dashboard.tsx`，在教師／owner／admin 工作台顯示 Teacher Dashboard。
+- 新增 `/api/dashboard/teacher`、`/api/dashboard/teacher/classes`、`/api/dashboard/teacher/students` 與 `/api/dashboard/teacher/insights` server-side API。
+- 新增 `teacher_dashboard_audit_events` additive migration，記錄 `TEACHER_DASHBOARD_VIEWED` 與 `TEACHING_INSIGHT_VIEWED`。
+- Dashboard data 經由 RP-001 Reporting Service；Teaching Insight 為 rule-based，不呼叫 OpenAI。
+
+### Boundaries
+
+- 未建立 Parent Dashboard、Organization Dashboard、Email Report、Notification、Scheduled Report、real chart library adapter、AI-generated insight 或 Production migration。
+- 未修改 AI-001、EX-001、PB-001、AS-001、CL-001、AN-001、AI-002 或 RP-001 既有資料流程；未 commit、push、deploy 或操作 Production。
+
+## 2026-07-30 — RP-001：Reporting Foundation（Completed and Git Sealed）
 
 ### Reporting foundation
 
@@ -13,7 +28,7 @@
 ### Boundaries
 
 - 未建立 Teacher Dashboard UI、Parent Dashboard UI、Organization Dashboard UI、Charts、real PDF／Excel／CSV renderer、Scheduled Reports、Email Reports、Notification、cache invalidation job 或 Production migration。
-- 未修改 AI-001、EX-001、PB-001、AS-001、CL-001、AN-001 或 AI-002 既有流程；未 commit、push、deploy 或操作 Production。
+- 未修改 AI-001、EX-001、PB-001、AS-001、CL-001、AN-001 或 AI-002 既有流程；已 Git Sealed；未 deploy 或操作 Production。
 
 ## 2026-07-30 — AI-002：Adaptive Learning Engine（Completed and Git Sealed）
 
