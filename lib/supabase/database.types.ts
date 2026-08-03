@@ -632,6 +632,248 @@ export interface Database {
         };
         Relationships: [];
       };
+      parent_portal_audit_events: {
+        Row: {
+          action:
+            | "GUARDIAN_CONSENT_GRANTED"
+            | "GUARDIAN_INVITATION_ACCEPTED"
+            | "GUARDIAN_INVITATION_CREATED"
+            | "GUARDIAN_RELATIONSHIP_CREATED"
+            | "GUARDIAN_RELATIONSHIP_REVOKED"
+            | "PARENT_DASHBOARD_VIEWED"
+            | "PARENT_STUDENT_REPORT_VIEWED";
+          actor_id: string;
+          created_at: string;
+          id: string;
+          metadata: Json;
+          organization_id: string;
+        };
+        Insert: {
+          action:
+            | "GUARDIAN_CONSENT_GRANTED"
+            | "GUARDIAN_INVITATION_ACCEPTED"
+            | "GUARDIAN_INVITATION_CREATED"
+            | "GUARDIAN_RELATIONSHIP_CREATED"
+            | "GUARDIAN_RELATIONSHIP_REVOKED"
+            | "PARENT_DASHBOARD_VIEWED"
+            | "PARENT_STUDENT_REPORT_VIEWED";
+          actor_id: string;
+          created_at?: string;
+          id?: string;
+          metadata?: Json;
+          organization_id: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
+      access_control_audit_events: {
+        Row: {
+          action:
+            | "ACCESS_SETTINGS_VIEWED"
+            | "MEMBER_DISABLED"
+            | "MEMBER_ENABLED"
+            | "ROLE_ASSIGNED"
+            | "ROLE_CONTEXT_SWITCHED"
+            | "ROLE_REMOVED";
+          actor_id: string;
+          created_at: string;
+          id: string;
+          metadata: Json;
+          organization_id: string;
+          target_membership_id: string | null;
+        };
+        Insert: {
+          action:
+            | "ACCESS_SETTINGS_VIEWED"
+            | "MEMBER_DISABLED"
+            | "MEMBER_ENABLED"
+            | "ROLE_ASSIGNED"
+            | "ROLE_CONTEXT_SWITCHED"
+            | "ROLE_REMOVED";
+          actor_id: string;
+          created_at?: string;
+          id?: string;
+          metadata?: Json;
+          organization_id: string;
+          target_membership_id?: string | null;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "access_control_audit_events_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "access_control_audit_events_target_membership_id_fkey";
+            columns: ["target_membership_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_members";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      guardian_invitations: {
+        Row: {
+          accepted_at: string | null;
+          consent_version: string | null;
+          consumed_by_account_id: string | null;
+          created_at: string;
+          created_by: string;
+          expires_at: string;
+          guardian_email_normalized: string;
+          id: string;
+          organization_id: string;
+          relationship_type:
+            | "authorized_caregiver"
+            | "legal_guardian"
+            | "other_verified_guardian"
+            | "parent";
+          status: "accepted" | "expired" | "pending" | "revoked";
+          student_id: string;
+          token_hash: string;
+          updated_at: string;
+        };
+        Insert: {
+          accepted_at?: string | null;
+          consent_version?: string | null;
+          consumed_by_account_id?: string | null;
+          created_at?: string;
+          created_by: string;
+          expires_at: string;
+          guardian_email_normalized: string;
+          id?: string;
+          organization_id: string;
+          relationship_type:
+            | "authorized_caregiver"
+            | "legal_guardian"
+            | "other_verified_guardian"
+            | "parent";
+          status?: "accepted" | "expired" | "pending" | "revoked";
+          student_id: string;
+          token_hash: string;
+          updated_at?: string;
+        };
+        Update: {
+          accepted_at?: string | null;
+          consent_version?: string | null;
+          consumed_by_account_id?: string | null;
+          status?: "accepted" | "expired" | "pending" | "revoked";
+        };
+        Relationships: [
+          {
+            foreignKeyName: "guardian_invitations_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "guardian_invitations_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      student_guardians: {
+        Row: {
+          activated_at: string | null;
+          activated_by: string | null;
+          consent_granted_at: string | null;
+          consent_version: string | null;
+          created_at: string;
+          expires_at: string | null;
+          guardian_account_id: string;
+          guardian_user_id: string;
+          id: string;
+          organization_id: string;
+          relationship_type:
+            | "authorized_caregiver"
+            | "legal_guardian"
+            | "other_verified_guardian"
+            | "parent";
+          requested_at: string;
+          requested_by: string | null;
+          revocation_reason: string | null;
+          revoked_at: string | null;
+          revoked_by: string | null;
+          status: "active" | "pending" | "revoked" | "verified";
+          student_id: string;
+          updated_at: string;
+          verified_at: string | null;
+          verified_by: string | null;
+          verification_method: string | null;
+        };
+        Insert: {
+          activated_at?: string | null;
+          activated_by?: string | null;
+          consent_granted_at?: string | null;
+          consent_version?: string | null;
+          created_at?: string;
+          expires_at?: string | null;
+          guardian_account_id: string;
+          guardian_user_id: string;
+          id?: string;
+          organization_id: string;
+          relationship_type:
+            | "authorized_caregiver"
+            | "legal_guardian"
+            | "other_verified_guardian"
+            | "parent";
+          requested_at?: string;
+          requested_by?: string | null;
+          revocation_reason?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          status?: "active" | "pending" | "revoked" | "verified";
+          student_id: string;
+          updated_at?: string;
+          verified_at?: string | null;
+          verified_by?: string | null;
+          verification_method?: string | null;
+        };
+        Update: {
+          activated_at?: string | null;
+          activated_by?: string | null;
+          consent_granted_at?: string | null;
+          consent_version?: string | null;
+          expires_at?: string | null;
+          relationship_type?:
+            | "authorized_caregiver"
+            | "legal_guardian"
+            | "other_verified_guardian"
+            | "parent";
+          requested_at?: string;
+          requested_by?: string | null;
+          revocation_reason?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          status?: "active" | "pending" | "revoked" | "verified";
+          verified_at?: string | null;
+          verified_by?: string | null;
+          verification_method?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "student_guardians_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "student_guardians_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       teacher_dashboard_audit_events: {
         Row: {
           action: "TEACHER_DASHBOARD_VIEWED" | "TEACHING_INSIGHT_VIEWED";
@@ -1121,6 +1363,40 @@ export interface Database {
     };
     Views: { [_ in never]: never };
     Functions: {
+      accept_guardian_invitation: {
+        Args: { p_consent_version: string; p_token_hash: string };
+        Returns: string;
+      };
+      assign_organization_member_role: {
+        Args: { p_membership_id: string; p_reason: string; p_role: string };
+        Returns: string;
+      };
+      revoke_guardian_relationship: {
+        Args: { p_reason: string; p_relationship_id: string };
+        Returns: string;
+      };
+      remove_organization_member_role: {
+        Args: { p_membership_id: string; p_reason: string };
+        Returns: string;
+      };
+      set_organization_member_access_status: {
+        Args: {
+          p_membership_id: string;
+          p_reason: string;
+          p_status: string;
+        };
+        Returns: string;
+      };
+      write_access_control_audit: {
+        Args: {
+          p_action: string;
+          p_actor_id: string;
+          p_metadata?: Json;
+          p_organization_id: string;
+          p_target_membership_id?: string | null;
+        };
+        Returns: string;
+      };
       create_chapter: {
         Args: {
           p_chapter_no: number;

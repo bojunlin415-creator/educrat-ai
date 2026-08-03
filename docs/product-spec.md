@@ -103,7 +103,7 @@ Identity Concept 進一步區分 Authentication Account、Auth Identity、Person
 
 Sprint 6 建立商用 SaaS 的租戶邊界：完成 Profile onboarding 的使用者可建立第一個機構，建立者由資料庫原子流程自動成為 `organization_owner`，並將該機構設為 active organization。使用者可屬於多個機構，但每次 server request 都必須重新確認 active membership，不能信任瀏覽器傳入的角色或 organization id。
 
-目前開放角色為機構擁有者、機構管理員、教師與審核者；`branch_manager`、`student`、`guardian` 只在資料庫受控值中預留，尚未提供操作介面。Sprint 6 只建立建立者 membership；成員邀請與細緻 RBAC 必須由後續明確授權的 Sprint 實作，Curriculum Editor 不放寬 membership write。
+目前開放角色為機構擁有者、機構管理員、教師與審核者；`guardian` 已由 PP-001/GV-001 開放受限 Parent Portal 入口，並支援 organization-issued invitation、verified email、explicit consent、active relationship 與 revocation foundation。UX-001 補上 Owner/Admin 的 `/settings/access` 使用者與權限管理、role-aware navigation、post-login destination 與 trusted context switch。guardian self-claim、legal document verification、同 organization true multi-role cutover 與完整 RBAC 仍未實作。`branch_manager` 與 `student` 仍主要為資料庫受控值預留；UX-001 僅提供 `/dashboard/student` 空狀態目的地，不建立學生端完整產品。Sprint 6 只建立建立者 membership；細緻 RBAC 必須由後續明確授權的 Sprint 實作，Curriculum Editor 不放寬 membership write。
 
 ## 教材核心結構
 

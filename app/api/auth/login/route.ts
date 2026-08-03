@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { authError, authSuccess, parseAuthJson } from "@/lib/auth/api";
+import { resolvePostLoginDestination } from "@/lib/auth/destination";
 import { getSafeAuthErrorMessage } from "@/lib/auth/errors";
 import { checkAuthRateLimit } from "@/lib/auth/rate-limit";
 import { createClient } from "@/lib/supabase/server";
@@ -27,7 +28,9 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      authSuccess("登入成功。", { redirectTo: "/dashboard" }),
+      authSuccess("登入成功。", {
+        redirectTo: await resolvePostLoginDestination(),
+      }),
     );
   } catch {
     return NextResponse.json(authError("登入服務尚未設定或暫時無法使用。"), {

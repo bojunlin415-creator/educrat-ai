@@ -99,6 +99,10 @@ function isStudent(role: string): boolean {
   return role === "student";
 }
 
+function isGuardian(role: string): boolean {
+  return role === "guardian";
+}
+
 async function loadTeacherClassIds(
   teacherId: string,
   organizationId: string,
@@ -114,6 +118,24 @@ async function loadTeacherClassIds(
   return data.map((row) => row.id);
 }
 
+async function requireGuardianStudentRelationship(input: {
+  readonly guardianId: string;
+  readonly organizationId: string;
+  readonly studentId: string;
+}) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("student_guardians")
+    .select("id")
+    .eq("organization_id", input.organizationId)
+    .eq("guardian_user_id", input.guardianId)
+    .eq("student_id", input.studentId)
+    .eq("status", "active")
+    .limit(1);
+  if (error) throw mapDatabaseError(error);
+  if (data.length === 0) throw new ReportingError("forbidden");
+}
+
 async function resolveReadableStudentScope(studentId?: string) {
   const context = await requireReportingMembership();
   const user = await requireReportingActor();
@@ -122,6 +144,14 @@ async function resolveReadableStudentScope(studentId?: string) {
     throw new ReportingError("forbidden");
   }
   if (canReadAll(context.membership.role) || resolvedStudentId === user.id) {
+    return { context, studentId: resolvedStudentId, user };
+  }
+  if (isGuardian(context.membership.role)) {
+    await requireGuardianStudentRelationship({
+      guardianId: user.id,
+      organizationId: context.organization.id,
+      studentId: resolvedStudentId,
+    });
     return { context, studentId: resolvedStudentId, user };
   }
   if (context.membership.role !== "teacher") {

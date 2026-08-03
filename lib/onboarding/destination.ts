@@ -8,7 +8,14 @@ export type WorkspaceDestination =
   | "/login?notice=authentication_required"
   | "/onboarding"
   | "/onboarding/organization"
-  | "/dashboard";
+  | RoleHomeDestination;
+
+export type RoleHomeDestination =
+  | "/dashboard"
+  | "/dashboard/parent"
+  | "/dashboard/student"
+  | "/dashboard/teacher"
+  | "/settings/access";
 
 export function resolveWorkspaceDestination(
   state: WorkspaceState,
@@ -17,4 +24,21 @@ export function resolveWorkspaceDestination(
   if (!state.profileCompleted) return "/onboarding";
   if (!state.hasOrganization) return "/onboarding/organization";
   return "/dashboard";
+}
+
+export function resolveRoleHomeDestination(role: string): RoleHomeDestination {
+  switch (role) {
+    case "organization_owner":
+    case "organization_admin":
+      return "/settings/access";
+    case "teacher":
+    case "reviewer":
+      return "/dashboard/teacher";
+    case "guardian":
+      return "/dashboard/parent";
+    case "student":
+      return "/dashboard/student";
+    default:
+      return "/dashboard";
+  }
 }

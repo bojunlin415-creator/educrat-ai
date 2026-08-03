@@ -24,7 +24,7 @@ export const ORGANIZATION_ROLE_LABELS: Record<OrganizationRole, string> = {
   reviewer: "教材審核者",
   branch_manager: "分校主管（尚未開放）",
   student: "學生（尚未開放）",
-  guardian: "家長（尚未開放）",
+  guardian: "家長",
 };
 
 export function getOrganizationRoleLabel(role: OrganizationRole): string {

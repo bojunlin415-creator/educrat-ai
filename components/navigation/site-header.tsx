@@ -1,14 +1,26 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth/session";
+import type { OrganizationRole } from "@/lib/organization/constants";
+import { getCurrentOrganization } from "@/lib/organization/service";
 
 export async function SiteHeader() {
   let authenticated = false;
+  let role: OrganizationRole | null = null;
   try {
     authenticated = Boolean(await getCurrentUser());
+    if (authenticated) {
+      role = (await getCurrentOrganization())?.membership.role ?? null;
+    }
   } catch {
     authenticated = false;
+    role = null;
   }
+  const canManageAccess =
+    role === "organization_owner" || role === "organization_admin";
+  const canUseTeacherDashboard =
+    canManageAccess || role === "teacher" || role === "reviewer";
+  const canUseParentPortal = role === "guardian";
 
   return (
     <header className="border-b border-emerald-950/10 bg-white/85 backdrop-blur">
@@ -31,6 +43,30 @@ export async function SiteHeader() {
         >
           {authenticated ? (
             <>
+              {canUseTeacherDashboard ? (
+                <Link
+                  className="hidden rounded-lg px-2 py-2 hover:bg-emerald-50 sm:block sm:px-3"
+                  href="/dashboard/teacher"
+                >
+                  教師儀表板
+                </Link>
+              ) : null}
+              {canUseParentPortal ? (
+                <Link
+                  className="hidden rounded-lg px-2 py-2 hover:bg-emerald-50 sm:block sm:px-3"
+                  href="/dashboard/parent"
+                >
+                  家長入口
+                </Link>
+              ) : null}
+              {canManageAccess ? (
+                <Link
+                  className="hidden rounded-lg px-2 py-2 hover:bg-emerald-50 sm:px-3 lg:block"
+                  href="/settings/access"
+                >
+                  使用者與權限
+                </Link>
+              ) : null}
               <Link
                 className="rounded-lg px-2 py-2 hover:bg-emerald-50 sm:px-3"
                 href="/curriculums"

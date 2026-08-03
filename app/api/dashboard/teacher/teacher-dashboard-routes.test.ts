@@ -52,14 +52,31 @@ describe("TD-001 teacher dashboard API", () => {
 
   it("returns safe forbidden errors without stack traces", async () => {
     serviceMocks.getTeacherDashboard.mockRejectedValue(
-      new TeacherDashboardError("forbidden"),
+      new TeacherDashboardError("forbidden", "td-ref-1"),
     );
     const response = await getTeacherDashboard(
       new Request("http://localhost/api/dashboard/teacher"),
     );
 
     expect(response.status).toBe(403);
-    expect(await response.text()).not.toContain("stack");
+    const body = await response.text();
+    expect(body).toContain("td-ref-1");
+    expect(body).not.toContain("stack");
+  });
+
+  it("maps missing infrastructure to a safe service unavailable response", async () => {
+    serviceMocks.getTeacherDashboard.mockRejectedValue(
+      new TeacherDashboardError("service_unavailable", "td-ref-2"),
+    );
+    const response = await getTeacherDashboard(
+      new Request("http://localhost/api/dashboard/teacher"),
+    );
+
+    const body = await response.text();
+    expect(response.status).toBe(503);
+    expect(body).toContain("td-ref-2");
+    expect(body).not.toContain("teacher_dashboard_audit_events");
+    expect(body).not.toContain("relation");
   });
 
   it("loads classes, students, and insights endpoints", async () => {

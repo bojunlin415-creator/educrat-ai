@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { resolvePostLoginDestination } from "@/lib/auth/destination";
 import { getApplicationUrl } from "@/lib/env/public";
 import { createClient } from "@/lib/supabase/server";
 import { authCallbackSchema } from "@/lib/validation/auth";
@@ -30,7 +31,11 @@ export async function GET(request: Request) {
       parsed.data.code,
     );
     if (!error) {
-      return NextResponse.redirect(`${appUrl}${parsed.data.next}`, 303);
+      const destination =
+        parsed.data.next === "/dashboard"
+          ? await resolvePostLoginDestination()
+          : parsed.data.next;
+      return NextResponse.redirect(`${appUrl}${destination}`, 303);
     }
   } catch {
     // Fall through to a user-safe error redirect.

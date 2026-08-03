@@ -1,5 +1,4 @@
 import { OrganizationError } from "@/lib/organization/errors";
-import { TeacherDashboardError } from "@/lib/teacher-dashboard/errors";
 import {
   getTeacherDashboard,
   getTeacherDashboardInsights,
@@ -169,11 +168,18 @@ describe("TD-001 teacher dashboard service", () => {
     dependencyMocks.requireOrganizationRole.mockRejectedValue(
       new OrganizationError("forbidden"),
     );
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    await expect(getTeacherDashboard()).rejects.toEqual(
-      new TeacherDashboardError("forbidden"),
-    );
+    await expect(getTeacherDashboard()).rejects.toMatchObject({
+      code: "forbidden",
+      name: "TeacherDashboardError",
+      referenceId: expect.any(String),
+    });
     expect(dependencyMocks.getTeacherReport).not.toHaveBeenCalled();
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "[teacher-dashboard] operation failed",
+      expect.stringContaining("resolve_trusted_account_context"),
+    );
   });
 
   it("writes teaching insight audit separately", async () => {
@@ -190,5 +196,89 @@ describe("TD-001 teacher dashboard service", () => {
           "TEACHING_INSIGHT_VIEWED",
       ),
     ).toBe(true);
+  });
+
+  it("returns a valid empty dashboard when teacher has no classes or analytics", async () => {
+    installAccess();
+    dependencyMocks.listTeacherClasses.mockResolvedValue([]);
+    dependencyMocks.listAssignments.mockResolvedValue([]);
+    dependencyMocks.listStudentAssignments.mockResolvedValue([]);
+    installAuditMock();
+
+    const dashboard = await getTeacherDashboard();
+
+    expect(dashboard.classPerformance).toEqual([]);
+    expect(dashboard.studentPerformance).toEqual([]);
+    expect(dashboard.weakKnowledge).toEqual([]);
+    expect(dashboard.recommendations).toEqual([]);
+    expect(dashboard.assignmentStatus).toEqual({
+      inProgress: 0,
+      overdue: 0,
+      pending: 0,
+      submitted: 0,
+    });
+    expect(dashboard.todayOverview).toEqual({
+      assignmentCompletionRate: 0,
+      assignmentsDue: 0,
+      averageAccuracy: 0,
+      recentLearningActivity: 0,
+      todaysActiveStudents: 0,
+    });
+    expect(dashboard.insights[0]).toEqual(
+      expect.objectContaining({
+        severity: "low",
+        title: "學習狀態穩定",
+      }),
+    );
+    expect(dependencyMocks.getTeacherReport).not.toHaveBeenCalled();
+    expect(dependencyMocks.getStudentReport).not.toHaveBeenCalled();
+  });
+
+  it("logs but does not crash when dashboard view audit is unavailable", async () => {
+    installAccess();
+    installDashboardData();
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    dependencyMocks.createClient.mockResolvedValue({
+      from: () => ({
+        insert: () =>
+          Promise.resolve({
+            error: {
+              code: "42P01",
+              message: 'relation "teacher_dashboard_audit_events" missing',
+            },
+          }),
+      }),
+    });
+
+    const dashboard = await getTeacherDashboard();
+
+    expect(dashboard.classPerformance).toHaveLength(1);
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "[teacher-dashboard] operation failed",
+      expect.stringContaining("write_teacher_dashboard_audit"),
+    );
+    expect(JSON.stringify(consoleSpy.mock.calls)).not.toContain("token");
+    expect(JSON.stringify(consoleSpy.mock.calls)).not.toContain("cookie");
+  });
+
+  it("maps assignment service failures to a safe teacher dashboard error", async () => {
+    installAccess();
+    dependencyMocks.listTeacherClasses.mockResolvedValue([]);
+    dependencyMocks.listAssignments.mockRejectedValue(
+      new Error("raw database connection failure"),
+    );
+    dependencyMocks.listStudentAssignments.mockResolvedValue([]);
+    installAuditMock();
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(getTeacherDashboard()).rejects.toMatchObject({
+      code: "service_unavailable",
+      name: "TeacherDashboardError",
+      referenceId: expect.any(String),
+    });
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "[teacher-dashboard] operation failed",
+      expect.stringContaining("load_assignments"),
+    );
   });
 });

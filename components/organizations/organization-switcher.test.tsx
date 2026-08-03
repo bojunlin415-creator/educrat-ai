@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { OrganizationSwitcher } from "./organization-switcher";
 
-const routerMocks = vi.hoisted(() => ({ refresh: vi.fn() }));
+const routerMocks = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => routerMocks }));
 
 const organizations = [
@@ -42,14 +42,16 @@ describe("OrganizationSwitcher", () => {
 
   it("switches through the server endpoint and refreshes scoped data", async () => {
     const user = userEvent.setup();
-    const fetchMock = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({ success: true, message: "目前機構已切換。" }),
-          { headers: { "content-type": "application/json" }, status: 200 },
-        ),
-      );
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: { redirectTo: "/dashboard/teacher" },
+          message: "工作區已切換。",
+          success: true,
+        }),
+        { headers: { "content-type": "application/json" }, status: 200 },
+      ),
+    );
     vi.stubGlobal("fetch", fetchMock);
     render(
       <OrganizationSwitcher
@@ -64,11 +66,18 @@ describe("OrganizationSwitcher", () => {
     );
     await user.click(screen.getByRole("button", { name: "切換機構" }));
 
-    expect(await screen.findByText("目前機構已切換。")).toBeInTheDocument();
+    expect(await screen.findByText("工作區已切換。")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/organizations/active",
-      expect.objectContaining({ method: "PUT" }),
+      "/api/access/context/switch",
+      expect.objectContaining({
+        body: JSON.stringify({
+          organizationId: secondaryOrganization.id,
+          role: secondaryOrganization.role,
+        }),
+        method: "POST",
+      }),
     );
+    expect(routerMocks.push).toHaveBeenCalledWith("/dashboard/teacher");
     expect(routerMocks.refresh).toHaveBeenCalled();
   });
 });

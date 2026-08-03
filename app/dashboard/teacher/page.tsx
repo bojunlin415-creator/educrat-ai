@@ -1,13 +1,28 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { TeacherDashboard } from "@/components/teacher-dashboard/teacher-dashboard";
 import { Alert } from "@/components/ui/alert";
+import { TeacherDashboardError } from "@/lib/teacher-dashboard/errors";
 import { getTeacherDashboard } from "@/lib/teacher-dashboard/service";
 
 export const metadata: Metadata = { title: "教師儀表板" };
 
 export default async function TeacherDashboardPage() {
-  const dashboard = await getTeacherDashboard();
+  let dashboard = null;
+  let dashboardError: string | null = null;
+  let dashboardReferenceId: string | null = null;
+
+  try {
+    dashboard = await getTeacherDashboard();
+  } catch (error: unknown) {
+    if (!(error instanceof TeacherDashboardError)) throw error;
+    if (error.code === "not_authenticated") {
+      redirect("/login?notice=authentication_required");
+    }
+    dashboardError = error.message;
+    dashboardReferenceId = error.referenceId ?? null;
+  }
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
@@ -32,7 +47,18 @@ export default async function TeacherDashboardPage() {
         Dashboard data 由 RP-001 Reporting Service 聚合；本頁不直接查詢 Learning
         tables，也不呼叫 OpenAI。
       </Alert>
-      <TeacherDashboard dashboard={dashboard} />
+      {dashboard ? (
+        <TeacherDashboard dashboard={dashboard} />
+      ) : (
+        <Alert className="mt-6" title="教師儀表板暫時無法載入" variant="error">
+          {dashboardError ?? "目前沒有可顯示的教師儀表板資料。"}
+          {dashboardReferenceId ? (
+            <span className="mt-2 block font-mono text-xs">
+              Reference ID: {dashboardReferenceId}
+            </span>
+          ) : null}
+        </Alert>
+      )}
     </main>
   );
 }

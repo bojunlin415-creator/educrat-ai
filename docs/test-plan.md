@@ -48,8 +48,10 @@
 - 教材建立、AI 工作狀態、編輯、品質確認與匯出。
 - 額度不足、provider 失敗、資料為空與權限拒絕。
 - 跨租戶 URL 或識別碼存取被拒絕。
+- Guardian lifecycle：Organization Admin 建立 invitation、Guardian verified email 接受、explicit consent、Parent Portal linked child、multi-child selector、revocation immediate denial、wrong email、replay token、cross-tenant、direct mutation denial。
 
 正式瀏覽器測試不得依賴不穩定的真實 AI 或付款服務，應使用可控測試 provider。
+Guardian E2E 必須使用 Development fixture accounts 與假學生 membership，不得使用 Service Role、production data、direct active relationship insert、RLS disablement 或測試後門。
 
 ### 人工與領域驗證
 
@@ -203,6 +205,10 @@ AP-002 本身只修改文件，沒有 Governance 功能可執行 E2E。後續 im
 - Dependency decision 的 allowed/warning/reassignment/export/reauth/platform approval 與所有 blocked result。
 - Retention policy priority、version snapshot、Organization 不可低於 platform minimum、legal hold apply/release。
 - Recycle Bin restore 的唯一性、parent state、permission、deadline、dependency 與不可還原案例。
+- PP-001 Parent Portal 必須驗證 guardian 只能查看 active verified linked child；unlinked、revoked、cross-tenant、anonymous、teacher-as-guardian 與 student-other-child access 皆 fail closed。Parent-specific view model 不得暴露 raw learning tables、assignment submission content、internal score reason、prompt 或 provider response。
+- GV-001 Guardian Verification 必須驗證 invitation 只保存 token hash、owner/admin 才能建立、target student 必須是同機構 active student membership、guardian preview 需登入且 Email match、accept 只傳 token hash + consent version 給 RPC、expired/revoked/accepted/wrong-email fail closed、重複接受不產生重複 active relationship，且 audit 不保存 raw token。
+- UX-001 Role Access 必須驗證 Owner/Admin 可開啟 `/settings/access`，Teacher/Guardian/Student 不可開啟；role assignment、member disable/enable、guardian revocation 都走 server-side API/RPC 並寫入 access audit。Navigation 必須依 server-resolved role 顯示；post-login destination 需覆蓋 owner/admin、teacher/reviewer、guardian、student。Client forged role/context switch、self-elevation、admin assign owner/admin、cross-tenant mutation、direct DB role update 均 fail closed。
+- UX-001 multi-role E2E 若遇 legacy `organization_members` single-role schema，必須標記為已知 schema blocker，不得以額外 client state 假裝支援同 organization true multi-role。
 - Account deletion 的多 Organization、唯一 Owner、content ownership、actor tombstone、PII redaction 與 Auth removal 順序。
 - Audit append-only、失敗 high-risk action、Support access、export、metadata allowlist、Secret/PII negative scan。
 - Deletion job idempotency、checkpoint、final dependency scan、cancel boundary、partial failure 與 forward correction。

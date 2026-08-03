@@ -1,4 +1,7 @@
-import { resolveWorkspaceDestination } from "@/lib/onboarding/destination";
+import {
+  resolveRoleHomeDestination,
+  resolveWorkspaceDestination,
+} from "@/lib/onboarding/destination";
 
 describe("workspace onboarding precedence", () => {
   it.each([
@@ -18,4 +21,18 @@ describe("workspace onboarding precedence", () => {
       ).toBe(destination);
     },
   );
+});
+
+describe("role home destination", () => {
+  it.each([
+    ["organization_owner", "/settings/access"],
+    ["organization_admin", "/settings/access"],
+    ["teacher", "/dashboard/teacher"],
+    ["reviewer", "/dashboard/teacher"],
+    ["guardian", "/dashboard/parent"],
+    ["student", "/dashboard/student"],
+    ["branch_manager", "/dashboard"],
+  ] as const)("resolves %s", (role, destination) => {
+    expect(resolveRoleHomeDestination(role)).toBe(destination);
+  });
 });

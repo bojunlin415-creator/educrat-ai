@@ -2,6 +2,31 @@
 
 本文件只記錄尚待獨立 Architecture Request 審查的架構議題。Backlog 項目不代表已實作、已排入目前 Sprint 或已取得資料庫變更授權。
 
+## UX-001：Role Access, Navigation & Admin Control Completion
+
+- 狀態：**Implementation Completed — Awaiting Product Verification**；角色入口、Owner/Admin 權限管理、家長入口提示與 Teacher Dashboard fail-closed recovery 已完成，尚未 Git Seal。
+- 已完成：`/settings/access`、Access Control API、role assignment/member status RPC、access audit events、role-aware navigation、role home destination resolver、trusted context switch、student role empty destination 與 guardian invitation login/register guidance。
+- Database：新增 additive migration `20260803140000_ux001_create_access_control_management.sql`，建立 `access_control_audit_events` 與 access-management RPC；不修改歷史 Migration。
+- 安全：Client 不可直接更新 `organization_members.role`；role/status mutation 需 owner/admin server RPC、理由與 audit。Owner protected、self-elevation forbidden、admin cannot assign admin、guardian relationship 不等於 staff role。
+- 明確限制：目前 `organization_members` 仍是 `(organization_id, user_id)` single-role schema；true same-organization multi-role 需要後續 additive role-assignment migration，不得在 UX-001 硬塞。
+- 明確未完成：CX-001、OD-001、AI package、學生完整工作區、Class/Teacher/Student dedicated management screens、multi-role DB cutover、Production migration、commit、push、deploy。
+
+## PP-001：Parent Portal
+
+- 狀態：**Implementation Completed — Final External Verification Required**；家長入口與 GV-001E E2E coverage 已完成，尚未 Git Seal。
+- 已完成：Parent Portal UI、Child Selector、parent-specific report projection、Learning Progress、Assignment Summary、Weak Knowledge、Recommended Practice、Parent Insight、server-side Parent Portal API、minimal guardian-child relationship boundary 與 parent portal audit events。
+- Database：新增 additive migration `20260803110000_pp001_create_parent_portal_foundation.sql`，建立 `student_guardians` 與 `parent_portal_audit_events`；不修改 Learning tables、Assignment submissions 或 RP-001 source tables。
+- 安全：guardian 只能查看自己 active verified relationship 的 child；revoked、unlinked、cross-tenant、anonymous、teacher-as-guardian 與 student-other-child 皆 fail closed。Parent Portal 不顯示 raw learning rows、internal recommendation reason、prompt、provider response 或其他學生資料。
+- 明確未完成：guardian self-claim、legal-document verification、consent revocation UI、parent messaging、notifications、email/scheduled reports、payment、AI tutor、Parent Dashboard charts 與 Production migration。
+
+## GV-001：Guardian Verification & Consent
+
+- 狀態：**Implementation Completed — Final External Verification Required**；PP-001 補完 package 與 formal Guardian E2E coverage 已完成，尚未 Git Seal。
+- 已完成：organization-issued guardian invitation、hash-only token storage、verified email matching、explicit consent、server-side `accept_guardian_invitation()` RPC、server-side `revoke_guardian_relationship()` RPC、guardian membership activation、active relationship creation、revocation、accept page、safe API response boundary 與 `tests/e2e/guardian-parent-portal.spec.ts`。
+- Database：新增 additive migration `20260803113000_gv001_create_guardian_verification_consent.sql`，擴充 `student_guardians` lifecycle/consent/revocation 欄位，建立 `guardian_invitations` 與 RPC；不修改歷史 Migration。
+- 安全：raw token 不落庫、不入 audit；client 不能自行建立 active relationship；wrong email、expired/revoked/accepted token、role conflict、unconfirmed email、malformed token 都 fail closed。Teacher/Admin 不會自動變 guardian。
+- 明確未完成：Email provider、guardian self-claim、legal document upload、consent revocation UI、multi-role same-organization account support、parent messaging、notification、billing 與 Production migration。
+
 ## AS-001：Assignment Foundation
 
 - 狀態：**Completed and Git Sealed**；產品 foundation 已完成並封板。

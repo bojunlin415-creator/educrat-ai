@@ -1,8 +1,10 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
 import type { User } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { getCurrentUser } from "@/lib/auth/session";
+import { AssignmentError } from "@/lib/assignment/errors";
 import {
   listAssignments,
   listStudentAssignments,
@@ -45,6 +47,25 @@ type ClassRow = Database["public"]["Tables"]["classes"]["Row"];
 interface TeacherDashboardAccess {
   readonly organizationId: string;
   readonly user: User;
+}
+
+type TeacherDashboardOperation =
+  | "resolve_trusted_account_context"
+  | "load_scoped_classes"
+  | "get_teacher_report"
+  | "load_student_reports"
+  | "load_assignments"
+  | "load_assignment_students"
+  | "write_teacher_dashboard_audit"
+  | "write_teaching_insight_audit";
+
+interface TeacherDashboardDiagnostics {
+  readonly actorId?: string;
+  readonly correlationId: string;
+  readonly operation: TeacherDashboardOperation;
+  readonly organizationId?: string;
+  readonly queryName?: string;
+  readonly table?: string;
 }
 
 function mapDatabaseError(error: { code?: string; message?: string } | null) {
@@ -91,6 +112,117 @@ function mapClassroomError(error: ClassroomError): TeacherDashboardError {
       return new TeacherDashboardError("invalid_input");
     default:
       return new TeacherDashboardError("service_unavailable");
+  }
+}
+
+function mapReportingError(error: ReportingError): TeacherDashboardError {
+  switch (error.code) {
+    case "not_authenticated":
+      return new TeacherDashboardError("not_authenticated");
+    case "organization_required":
+      return new TeacherDashboardError("organization_required");
+    case "not_found":
+      return new TeacherDashboardError("not_found");
+    case "forbidden":
+      return new TeacherDashboardError("forbidden");
+    case "invalid_input":
+      return new TeacherDashboardError("invalid_input");
+    default:
+      return new TeacherDashboardError("service_unavailable");
+  }
+}
+
+function mapAssignmentError(error: AssignmentError): TeacherDashboardError {
+  switch (error.code) {
+    case "not_authenticated":
+      return new TeacherDashboardError("not_authenticated");
+    case "organization_required":
+      return new TeacherDashboardError("organization_required");
+    case "not_found":
+      return new TeacherDashboardError("not_found");
+    case "forbidden":
+      return new TeacherDashboardError("forbidden");
+    case "invalid_input":
+      return new TeacherDashboardError("invalid_input");
+    default:
+      return new TeacherDashboardError("service_unavailable");
+  }
+}
+
+function getSafeErrorDetails(error: unknown) {
+  if (error instanceof Error) {
+    const maybeCode =
+      "code" in error && typeof error.code === "string" ? error.code : null;
+    return {
+      code: maybeCode,
+      message: error.message,
+      name: error.name,
+    };
+  }
+  if (typeof error === "object" && error !== null) {
+    const code =
+      "code" in error && typeof error.code === "string" ? error.code : null;
+    const message =
+      "message" in error && typeof error.message === "string"
+        ? error.message
+        : "Unknown non-error object";
+    return { code, message, name: "UnknownErrorObject" };
+  }
+  return { code: null, message: "Unknown non-error thrown", name: "Unknown" };
+}
+
+function logTeacherDashboardDiagnostic(
+  diagnostics: TeacherDashboardDiagnostics,
+  error: unknown,
+) {
+  const safeError = getSafeErrorDetails(error);
+  console.error(
+    "[teacher-dashboard] operation failed",
+    JSON.stringify({
+      actorId: diagnostics.actorId ?? null,
+      code: safeError.code,
+      correlationId: diagnostics.correlationId,
+      message: safeError.message,
+      name: safeError.name,
+      operation: diagnostics.operation,
+      organizationId: diagnostics.organizationId ?? null,
+      queryName: diagnostics.queryName ?? null,
+      table: diagnostics.table ?? null,
+    }),
+  );
+}
+
+function withReference(error: TeacherDashboardError, referenceId: string) {
+  return new TeacherDashboardError(
+    error.code,
+    error.referenceId ?? referenceId,
+  );
+}
+
+async function runTeacherDashboardOperation<T>(
+  diagnostics: TeacherDashboardDiagnostics,
+  operation: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error: unknown) {
+    logTeacherDashboardDiagnostic(diagnostics, error);
+    if (error instanceof TeacherDashboardError) {
+      throw withReference(error, diagnostics.correlationId);
+    }
+    if (error instanceof ReportingError) {
+      throw withReference(mapReportingError(error), diagnostics.correlationId);
+    }
+    if (error instanceof ClassroomError) {
+      throw withReference(mapClassroomError(error), diagnostics.correlationId);
+    }
+    if (error instanceof AssignmentError) {
+      throw withReference(mapAssignmentError(error), diagnostics.correlationId);
+    }
+    throw new TeacherDashboardError(
+      "service_unavailable",
+      diagnostics.correlationId,
+    );
   }
 }
 
@@ -349,15 +481,70 @@ async function buildTeacherDashboard(
 ): Promise<TeacherDashboardViewModel> {
   const parsed = teacherDashboardQuerySchema.safeParse(input);
   if (!parsed.success) throw new TeacherDashboardError("invalid_input");
-  const access = await requireTeacherDashboardAccess();
-  const classes = await loadScopedClasses(parsed.data.classId);
-  const [reports, students, assignments, assignmentStudents] =
-    await Promise.all([
-      loadClassReports(classes),
-      loadStudentReports(classes),
-      listAssignments(),
-      listStudentAssignments(),
-    ]);
+  const correlationId = randomUUID();
+  const access = await runTeacherDashboardOperation(
+    {
+      correlationId,
+      operation: "resolve_trusted_account_context",
+      queryName: "requireOrganizationRole",
+    },
+    requireTeacherDashboardAccess,
+  );
+  const classes = await runTeacherDashboardOperation(
+    {
+      actorId: access.user.id,
+      correlationId,
+      operation: "load_scoped_classes",
+      organizationId: access.organizationId,
+      queryName: parsed.data.classId ? "getClass" : "listTeacherClasses",
+      table: "classes",
+    },
+    () => loadScopedClasses(parsed.data.classId),
+  );
+  const reports = await runTeacherDashboardOperation(
+    {
+      actorId: access.user.id,
+      correlationId,
+      operation: "get_teacher_report",
+      organizationId: access.organizationId,
+      queryName: "getTeacherReport",
+      table: "teacher_class_summary",
+    },
+    () => loadClassReports(classes),
+  );
+  const students = await runTeacherDashboardOperation(
+    {
+      actorId: access.user.id,
+      correlationId,
+      operation: "load_student_reports",
+      organizationId: access.organizationId,
+      queryName: "getStudentReport",
+      table: "student_subject_summary",
+    },
+    () => loadStudentReports(classes),
+  );
+  const assignments = await runTeacherDashboardOperation(
+    {
+      actorId: access.user.id,
+      correlationId,
+      operation: "load_assignments",
+      organizationId: access.organizationId,
+      queryName: "listAssignments",
+      table: "assignments",
+    },
+    listAssignments,
+  );
+  const assignmentStudents = await runTeacherDashboardOperation(
+    {
+      actorId: access.user.id,
+      correlationId,
+      operation: "load_assignment_students",
+      organizationId: access.organizationId,
+      queryName: "listStudentAssignments",
+      table: "assignment_students",
+    },
+    listStudentAssignments,
+  );
   const classPerformance = buildClassPerformance(classes, reports);
   const studentPerformance = buildStudentRanking(students, "needs_attention");
   const assignmentStatus = buildAssignmentStatus(
@@ -383,15 +570,30 @@ async function buildTeacherDashboard(
     weakKnowledge,
   });
 
-  await writeTeacherDashboardAudit({
-    action: "TEACHER_DASHBOARD_VIEWED",
-    actorId: access.user.id,
-    metadata: {
-      classCount: classes.length,
-      scopedClassId: parsed.data.classId ?? null,
-    },
-    organizationId: access.organizationId,
-  });
+  try {
+    await runTeacherDashboardOperation(
+      {
+        actorId: access.user.id,
+        correlationId,
+        operation: "write_teacher_dashboard_audit",
+        organizationId: access.organizationId,
+        queryName: "insertTeacherDashboardAudit",
+        table: "teacher_dashboard_audit_events",
+      },
+      () =>
+        writeTeacherDashboardAudit({
+          action: "TEACHER_DASHBOARD_VIEWED",
+          actorId: access.user.id,
+          metadata: {
+            classCount: classes.length,
+            scopedClassId: parsed.data.classId ?? null,
+          },
+          organizationId: access.organizationId,
+        }),
+    );
+  } catch (error: unknown) {
+    if (!(error instanceof TeacherDashboardError)) throw error;
+  }
 
   return Object.freeze({
     assignmentStatus,
@@ -434,13 +636,37 @@ export async function getTeacherDashboardStudents(
 export async function getTeacherDashboardInsights(
   input: TeacherDashboardQuery = {},
 ) {
-  const access = await requireTeacherDashboardAccess();
+  const accessCorrelationId = randomUUID();
+  const access = await runTeacherDashboardOperation(
+    {
+      correlationId: accessCorrelationId,
+      operation: "resolve_trusted_account_context",
+      queryName: "requireOrganizationRole",
+    },
+    requireTeacherDashboardAccess,
+  );
   const dashboard = await buildTeacherDashboard(input);
-  await writeTeacherDashboardAudit({
-    action: "TEACHING_INSIGHT_VIEWED",
-    actorId: access.user.id,
-    metadata: { insightCount: dashboard.insights.length },
-    organizationId: access.organizationId,
-  });
+  const correlationId = randomUUID();
+  try {
+    await runTeacherDashboardOperation(
+      {
+        actorId: access.user.id,
+        correlationId,
+        operation: "write_teaching_insight_audit",
+        organizationId: access.organizationId,
+        queryName: "insertTeachingInsightAudit",
+        table: "teacher_dashboard_audit_events",
+      },
+      () =>
+        writeTeacherDashboardAudit({
+          action: "TEACHING_INSIGHT_VIEWED",
+          actorId: access.user.id,
+          metadata: { insightCount: dashboard.insights.length },
+          organizationId: access.organizationId,
+        }),
+    );
+  } catch (error: unknown) {
+    if (!(error instanceof TeacherDashboardError)) throw error;
+  }
   return dashboard.insights;
 }

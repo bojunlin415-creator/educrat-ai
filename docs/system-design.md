@@ -65,6 +65,16 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 
 受保護工作區採單一優先規則：未登入導向 `/login?notice=authentication_required`；Profile 未完成導向 `/onboarding`；Profile 已完成但無 active organization 導向 `/onboarding/organization`；兩者皆完成才顯示 Dashboard 或 Organization Settings。Auth callback、登入／註冊與密碼重設不套用 organization guard，避免 redirect loop 或中斷 PKCE。
 
+### Role Access and Navigation（UX-001）
+
+- UX-001 補上 role-aware navigation、post-login role home destination、Owner/Admin access management 與 trusted role context switch。
+- `resolvePostLoginDestination()` 只讀 server-resolved active organization membership；無 active context 時回 `/dashboard` 交由既有 onboarding guard。
+- `/settings/access` 只允許 active `organization_owner`／`organization_admin` 開啟。Teacher、Guardian、Student 與 inactive membership 皆 fail closed。
+- Access mutation 只能透過 `/api/access/*` route handlers 與 fixed-search-path RPC 執行；client 不可直接更新 `organization_members.role`、`status` 或 guardian relationship status。
+- `access_control_audit_events` 只保存 access operation metadata，不保存 password、token、raw invitation token、完整學生資料或 submission content。
+- 目前 membership schema 仍是 legacy single-role；UX-001 支援 active organization/workspace switching，但 true same-organization multi-role 需後續 additive role-assignment migration。
+- `/dashboard/teacher` 在 Reporting Service 不可用或資料缺漏時顯示 fail-closed error state，不再讓 RSC runtime throw 破壞頁面。
+
 ### Curriculum Foundation
 
 - `subjects`、`grades`、`publishers` 是資料庫管理的共用參照資料；只有具有有效 active organization 的 authenticated 使用者可讀，client 無寫入權限。
@@ -171,6 +181,23 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - Teaching Insight 目前為 rule-based，不呼叫 OpenAI；Recommendation Panel 只呈現 AI-002 recommendation vocabulary 與 weak knowledge aggregation，不建立新教材。
 - Chart 以 framework-neutral chart adapter model 表示，不綁定 Recharts、Chart.js 或 ECharts。
 - TD-001 新增 `teacher_dashboard_audit_events`；不新增 Learning tables、不修改 Analytics schema、不建立 Parent Dashboard／Organization Dashboard／Email Report／Notification／Scheduled Report。
+
+### Parent Portal（PP-001）
+
+- PP-001 建立 `/dashboard/parent` 與 `GET /api/dashboard/parent*` server-side API；Parent Portal data 必須經由 RP-001 Reporting Service 形成 parent-specific view model，不得直接查詢 Learning Analytics tables、AI recommendation tables 或 assignment submission content。
+- 新增最小 `student_guardians` relationship boundary；只有 active、verified guardian-child relationship 可查看孩子摘要。Teacher 不會因為班級關係自動成為 guardian。
+- Parent Portal 顯示 Child Selector、Learning Progress、Assignment Summary、Strengths、Needs Improvement、Recommended Practice、Parent Insight 與 Recent Activity；不顯示原始作答、內部分數理由、prompt、provider response 或其他學生資料。
+- Parent Insight 為 rule-based，不呼叫 OpenAI。
+- PP-001 新增 `parent_portal_audit_events`；GV-001E 補足正式 Guardian browser E2E，確認 linked child、multi-child selector、summary、assignments、recommendations、revocation immediate denial 與 negative security boundaries。不建立 Parent messaging、Email Report、Notification、Scheduled Report、Payment 或 AI Tutor。
+
+### Guardian Verification & Consent（GV-001）
+
+- GV-001 建立 Organization-issued guardian invitation flow；owner/admin 建立一次性 invitation link，guardian 必須以相同 verified email 登入、確認最小孩子資訊並明確同意後，才會啟用 active relationship。
+- Raw token 不保存至 Database、Audit 或 Log；資料庫只保存 SHA-256 `token_hash`。Invitation 為 single-use，過期、撤銷、已使用、Email 不一致或 consent version 不合法均 fail closed。
+- `accept_guardian_invitation` RPC 使用 `auth.uid()` 與 `auth.users.email_confirmed_at` 作 authority，不接受 client 傳入 guardian、student、organization、verification status 或 active status。`revoke_guardian_relationship` RPC 只允許 owner/admin 撤銷 active relationship，並寫入 revocation audit；client 不能直接 update relationship status。
+- Development E2E 以正式 `POST /api/guardian-invitations` 回傳的一次性 invitation link 作 retrieval boundary；raw token 不進 database、audit 或 page source hydration payload。
+- GV-001 會在接受邀請時建立／恢復同機構 guardian membership；若該帳號在同一機構已有非 guardian role，因現行 legacy single-role membership 限制，必須 fail closed，等待 AP-003 multi-role role assignment cutover。
+- 本 Sprint 不建立 email provider、guardian self-claim、legal document upload、consent revocation UI、notification、parent messaging 或 billing。
 
 ### 後續 Sprint 銜接
 

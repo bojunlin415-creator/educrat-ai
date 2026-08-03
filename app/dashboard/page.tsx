@@ -28,6 +28,10 @@ export default async function DashboardPage() {
     "organization_admin",
     "teacher",
   ].includes(membership.role);
+  const canViewParentPortal = membership.role === "guardian";
+  const canManageAccess = ["organization_owner", "organization_admin"].includes(
+    membership.role,
+  );
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
@@ -71,6 +75,22 @@ export default async function DashboardPage() {
               href="/dashboard/teacher"
             >
               教師儀表板
+            </Link>
+          ) : null}
+          {canManageAccess ? (
+            <Link
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-sky-300 bg-sky-50 px-5 py-2.5 font-bold text-sky-800 transition-colors hover:bg-sky-100"
+              href="/settings/access"
+            >
+              使用者與權限
+            </Link>
+          ) : null}
+          {canViewParentPortal ? (
+            <Link
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-5 py-2.5 font-bold text-amber-800 transition-colors hover:bg-amber-100"
+              href="/dashboard/parent"
+            >
+              家長入口
             </Link>
           ) : null}
         </div>

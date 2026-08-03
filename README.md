@@ -1,6 +1,6 @@
 # EduCraft AI（Education Intelligence Platform）
 
-為台灣國小補教業者與教師打造的教育智慧平台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構、章節／課次編輯器，以及 Curriculum Reference 相容層。BF-001～BF-003 已建立 AI 原創教材生成 foundation：產品輸入改為學習階段、年級、科目、學習主題、知識點、能力指標、教學目標與教材用途；不再使用任何出版社導向、教材版本、章節 mapping 或 lesson code。AI-001 已接入真實 OpenAI Responses provider、生成 API、建立頁 preview／edit／save flow、AI draft persistence 與 AI audit events。EX-001 已建立已儲存教材版本的 PDF 匯出與 Browser Print foundation。PB-001 已建立 Draft／Review／Published／Archived 發布流程、版本鎖與 publish validation，等待產品審查。AP-002、AP-003A 與 AP-003B 架構皆已核准。AP-004A／B、AP-004C-A／B、AP-002B、AP-002A、AP-002C、AP-002D 與 AP-002E 均已 Accepted and Git Sealed；AP-002F Recycle Bin Foundation 已完成實作、等待架構審查。PI-001 已將 Curriculum-only 的封存、回收桶、還原與受控永久刪除接入產品流程，等待產品審查。其餘跨 Entity Lifecycle、Platform Recycle Bin、Background Job、AI job queue 與 Usage/Billing 尚未開始。
+為台灣國小補教業者與教師打造的教育智慧平台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構、章節／課次編輯器，以及 Curriculum Reference 相容層。BF-001～BF-003 已建立 AI 原創教材生成 foundation：產品輸入改為學習階段、年級、科目、學習主題、知識點、能力指標、教學目標與教材用途；不再使用任何出版社導向、教材版本、章節 mapping 或 lesson code。AI-001 已接入真實 OpenAI Responses provider、生成 API、建立頁 preview／edit／save flow、AI draft persistence 與 AI audit events。EX-001 已建立已儲存教材版本的 PDF 匯出與 Browser Print foundation。PB-001 已建立 Draft／Review／Published／Archived 發布流程、版本鎖與 publish validation，等待產品審查。PP-001/GV-001 已建立 Parent Portal、Guardian invitation、verified email consent、active relationship 與 formal Guardian E2E coverage，等待外部最終驗證。AP-002、AP-003A 與 AP-003B 架構皆已核准。AP-004A／B、AP-004C-A／B、AP-002B、AP-002A、AP-002C、AP-002D 與 AP-002E 均已 Accepted and Git Sealed；AP-002F Recycle Bin Foundation 已完成實作、等待架構審查。PI-001 已將 Curriculum-only 的封存、回收桶、還原與受控永久刪除接入產品流程，等待產品審查。其餘跨 Entity Lifecycle、Platform Recycle Bin、Background Job、AI job queue 與 Usage/Billing 尚未開始。
 
 ## 技術堆疊
 
@@ -37,8 +37,11 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 - `/onboarding/organization`：首次建立機構／補習班
 - `/settings/profile`：個人資料與 Avatar 管理
 - `/settings/organization`：目前機構資料與使用者角色
+- `/settings/access`：owner/admin 的使用者、角色、班級與 guardian 關係管理
 - `/dashboard`：受保護、具 active organization context 的教材工作台
 - `/dashboard/teacher`：teacher／owner／admin 的教師儀表板
+- `/dashboard/parent`：guardian 透過已驗證親子／監護關係查看孩子學習摘要
+- `/guardian-invitations/accept`：受邀 guardian 登入後確認最小孩子資訊並同意啟用家長入口
 - `/curriculums`：目前機構的教材列表
 - `/curriculums/recycle-bin`：owner/admin 查看教材回收桶、還原或永久刪除
 - `/curriculums/new`：owner/admin 手動建立教材與初始版本；owner/admin/teacher 可用 AI Generate 建立原創教材草稿
@@ -61,6 +64,17 @@ pnpm run build
 pnpm exec playwright install chromium
 pnpm run test:e2e
 ```
+
+Guardian / Parent Portal E2E 需使用 Development-only fixture accounts：
+
+```text
+E2E_GUARDIAN_EMAIL
+E2E_GUARDIAN_PASSWORD
+E2E_GV_STUDENT_ID
+E2E_GV_SECOND_STUDENT_ID
+```
+
+可選 `E2E_GV_ORGANIZATION_ID` 用於指定 admin 的目標 Development organization；wrong-email flow 可使用 `E2E_WRONG_GUARDIAN_EMAIL` / `E2E_WRONG_GUARDIAN_PASSWORD`，未設定時沿用 RLS fixture account。不得使用 Production data 或 Service Role。
 
 ## 目錄
 
@@ -85,6 +99,9 @@ lib/learning-analytics/ Learning Event、Knowledge Mastery、Subject Summary 與
 lib/adaptive-learning/ Weak Knowledge Detection、Knowledge Gap、Difficulty 與 Learning Recommendation foundation
 lib/reporting/      Student／Teacher／Organization report view model、aggregation 與 export contract foundation
 lib/teacher-dashboard/ Teacher Dashboard view model、rule-based insight、chart adapter 與 server-side orchestration
+lib/parent-portal/ Parent-specific report projection、guardian-child boundary 與 parent dashboard orchestration
+lib/guardian-verification/ Guardian invitation、token hash、verified-email matching、consent 與 relationship activation service
+lib/access-control/ Owner/Admin access overview、role assignment boundary、trusted role context switch 與 safe API response
 lib/ai-curriculum/   無框架 AI 原創教材生成輸入、prompt、template、layout、validation 與 preview foundation
 lib/ai-generation/   AI provider、structured output、prompt/generation pipeline、validation、retry、usage 與 OpenAI Responses provider
 tests/e2e/           Playwright 測試
@@ -185,6 +202,9 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - [AI-002 Adaptive Learning Engine](docs/product/ai-002-adaptive-learning-engine.md)：已完成並 Git Sealed 的 Weak Knowledge Detection、Knowledge Gap、Difficulty Recommendation、Learning Recommendation 與 Learning Path foundation
 - [RP-001 Reporting Foundation](docs/product/rp-001-reporting-foundation.md)：已完成實作、等待產品審查的 Student／Teacher／Organization report aggregation、shared Reporting API、report audit 與 export contract foundation
 - [TD-001 Teacher Dashboard](docs/product/td-001-teacher-dashboard.md)：已完成實作、等待產品審查的 Teacher Dashboard UI、Teaching Insight、Student／Class overview、Weak Knowledge、Assignment Status 與 Recommendation panel
+- [PP-001 Parent Portal](docs/product/pp-001-parent-portal.md)：已完成實作、等待產品審查的 Parent Portal UI、guardian-child access boundary、child selector、parent-friendly learning／assignment／recommendation summary
+- [GV-001 Guardian Verification & Consent](docs/product/gv-001-guardian-verification-consent.md)：已完成實作、等待產品審查的 organization-issued guardian invitation、verified email matching、explicit consent、active relationship activation 與 audit trail
+- [UX-001 Role Access & Navigation](docs/product/ux-001-role-access-navigation.md)：已完成實作、等待產品驗證的 role-aware navigation、login destination、Owner/Admin access management、guardian entry completion 與 fail-closed dashboard states
 - [Permission Catalog](docs/security/permission-catalog.md)：已核准但尚未 runtime 化的 224 個 `resource.action` 權限鍵與版本規則
 - [Authorization Security](docs/security/authorization-security-model.md)：已核准的 trust boundary、delegation、re-auth、CASE、Service Principal 與 AI 授權限制
 - [Authorization Migration Design](docs/data/authorization-migration-design.md)：已核准但未執行的 versioned hybrid、legacy role backfill 與 additive rollout

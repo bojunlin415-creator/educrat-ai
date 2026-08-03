@@ -1,5 +1,70 @@
 # Changelog
 
+## 2026-08-03 — UX-001：Role Access, Navigation & Admin Control Completion（Awaiting Product Verification）
+
+### Role access and navigation
+
+- 新增 `/settings/access` Owner/Admin 權限管理頁，顯示 Users、Permission Summary、Classes、Guardian Invitations 與 Active/Revoked Guardian Relationships。
+- 新增 `lib/access-control/` 與 `/api/access/*`，將 role assignment、member disable/enable、guardian relationship revocation 與 role context switch 收斂到 server-side API/RPC boundary。
+- 新增 `access_control_audit_events` additive migration 與受控 RPC：`assign_organization_member_role()`、`remove_organization_member_role()`、`set_organization_member_access_status()` 與 `write_access_control_audit()`。
+- 全域導覽改為依 server-resolved active organization membership 顯示教師儀表板、家長入口與使用者權限入口。
+- 登入、註冊 session 與 OAuth callback 在可解析 active membership 時導向角色首頁；無 active organization 時維持既有 Dashboard/onboarding guard。
+- Guardian invitation acceptance 與 signup 加入家長邀請/verified email/consent 提示；不建立 guardian self-claim。
+- `/dashboard/teacher` service error 改為 fail-closed error state，不再由 React Server Component 直接拋出 runtime error。
+- 新增 `/dashboard/student` 作為 student role 正式空狀態目的地；不建立學生作答、學習進度或作業功能。
+
+### Boundaries
+
+- 現行 `organization_members` 仍為 single-role legacy schema；同一 organization 同一 account 的 true multi-role 仍需後續 additive role-assignment migration。
+- 未新增 AI、CX-001、OD-001、報表功能、Production migration、Service Role bypass、deploy、commit 或 push。
+
+## 2026-08-03 — GV-001E：Guardian E2E Verification Coverage（Final External Verification Required）
+
+### Guardian E2E coverage
+
+- 新增 `tests/e2e/guardian-parent-portal.spec.ts`，正式覆蓋 Admin 建立 invitation、wrong-email rejection、Guardian verified email acceptance、explicit consent、active relationship、Parent Portal child selector、summary／assignments／recommendations、multi-child selector、replay rejection、direct mutation denial、revocation immediate denial 與 audit verification。
+- 新增 `POST /api/guardian-relationships/[relationshipId]/revoke` 與 `revoke_guardian_relationship()` RPC，提供正式 server-side revocation boundary；不允許 client 直接 update relationship status。
+- Acceptance page 不再把 raw token 作為 React prop 序列化，避免 token 出現在 page source / hydration payload；token 仍只存在於 invitation URL 與 accept request body。
+- 文件同步 GV-001E fixture architecture、Development-only invitation retrieval boundary、negative security flow、multi-child flow、revocation flow 與 production safety。
+
+### Boundaries
+
+- 未新增 email provider、guardian self-claim、parent messaging、notification、billing、production backdoor、Service Role fixture 或 Production migration。
+- 未 commit、push、deploy 或開始 OD-001。
+
+## 2026-08-03 — GV-001：Guardian Verification & Consent（Final External Verification Required）
+
+### Guardian verification
+
+- 新增 `lib/guardian-verification/`，包含 organization-issued invitation、hash-only token、verified-email matching、consent version、safe error mapping 與 server-side service。
+- 新增 `POST /api/guardian-invitations`、`GET /api/guardian-invitations/preview` 與 `POST /api/guardian-invitations/accept`。
+- 新增 `/guardian-invitations/accept`，guardian 登入後可查看最小孩子資訊、勾選 consent，並啟用 Parent Portal。
+- 新增 `guardian_invitations` additive migration，並擴充 `student_guardians` 的 lifecycle、verification、consent、activation 與 revocation 欄位。
+- 新增 `accept_guardian_invitation()` RPC；不接受 client 傳入 guardian、student、organization 或 active status，僅接受 server hashed token 與 consent version。
+- 擴充 parent portal audit events：`GUARDIAN_INVITATION_CREATED`、`GUARDIAN_INVITATION_ACCEPTED`、`GUARDIAN_CONSENT_GRANTED`、`GUARDIAN_RELATIONSHIP_CREATED` 與 `GUARDIAN_RELATIONSHIP_REVOKED`。
+
+### Boundaries
+
+- 不保存 raw token，不建立 email provider，不建立 guardian self-claim、legal document upload、consent revocation UI、parent messaging、notification、billing 或 Production migration。
+- 現行 `organization_members` 仍為 single-role legacy 欄位；同一帳號在同機構已有非 guardian role 時，接受 guardian invitation 會 fail closed，等待 AP-003 multi-role cutover。
+- 未 commit、push、deploy 或操作 Production。
+
+## 2026-08-03 — PP-001：Parent Portal（Awaiting Product Review）
+
+### Parent portal
+
+- 新增 `lib/parent-portal/`，包含 parent-specific view model、guardian-child access boundary、parent-friendly insight、assignment summary 與 safe API response boundary。
+- 新增 `/dashboard/parent` 家長入口 UI，包含 Child Selector、Learning Progress、Assignment Summary、Strengths、Needs Improvement、Recommended Practice、Parent Insight 與 Recent Activity。
+- 新增 `/api/dashboard/parent`、`/api/dashboard/parent/children`、`/api/dashboard/parent/students/[studentId]/summary`、`/assignments` 與 `/recommendations` server-side API。
+- 新增 `student_guardians` 與 `parent_portal_audit_events` additive migration；guardian relationship 只允許 active verified relationship 讀取，client 無 insert/update grant。
+- Parent Portal 透過 RP-001 Reporting Service 建立家長專用摘要；不直接查詢 Learning Analytics tables、AI recommendation tables 或 assignment submission content。
+
+### Boundaries
+
+- Teacher 不會因為班級關係自動成為 guardian；revoked、unlinked、cross-tenant、anonymous 與 student-other-child access 皆 fail closed。
+- 未建立 guardian claim／verification UI、consent lifecycle、parent messaging、notifications、email/scheduled reports、payment、AI tutor、Parent Dashboard charts 或 Production migration。
+- 未修改 AI-001、EX-001、PB-001、AS-001、CL-001、AN-001、AI-002、RP-001 或 TD-001 既有產品流程；未 commit、push、deploy 或操作 Production。
+
 ## 2026-07-30 — TD-001：Teacher Dashboard（Awaiting Product Review）
 
 ### Teacher dashboard

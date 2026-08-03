@@ -58,6 +58,10 @@ export function SignupForm() {
       <p className="mt-2 text-sm leading-6 text-slate-600">
         註冊後請依信件指示完成電子郵件驗證。
       </p>
+      <Alert className="mt-4" title="家長帳號提醒" variant="warning">
+        家長請使用機構提供的家長邀請連結登入或建立帳號；完成 Email
+        驗證與明確同意後，才會啟用對應孩子的 Parent Portal。
+      </Alert>
       <form
         className="mt-6 space-y-5"
         noValidate

@@ -19,6 +19,7 @@ export function teacherDashboardFailure(
   message: string,
   fieldErrors?: Record<string, string[] | undefined>,
   code?: string,
+  referenceId?: string,
 ) {
   const normalized = fieldErrors
     ? Object.fromEntries(
@@ -27,7 +28,13 @@ export function teacherDashboardFailure(
         ),
       )
     : undefined;
-  return { code, fieldErrors: normalized, message, success: false };
+  return {
+    code,
+    fieldErrors: normalized,
+    message,
+    referenceId,
+    success: false,
+  };
 }
 
 export function parseTeacherDashboardQuery<T>(
@@ -55,7 +62,12 @@ export function parseTeacherDashboardQuery<T>(
 export function teacherDashboardErrorResponse(error: unknown): Response {
   if (error instanceof TeacherDashboardError) {
     return Response.json(
-      teacherDashboardFailure(error.message, undefined, error.code),
+      teacherDashboardFailure(
+        error.message,
+        undefined,
+        error.code,
+        error.referenceId,
+      ),
       { status: getTeacherDashboardErrorStatus(error) },
     );
   }

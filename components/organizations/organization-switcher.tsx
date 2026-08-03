@@ -9,7 +9,6 @@ import {
   getOrganizationRoleLabel,
   type OrganizationRole,
 } from "@/lib/organization/constants";
-import { organizationApiResponseSchema } from "@/lib/validation/organization";
 
 export interface OrganizationSwitcherItem {
   id: string;
@@ -48,20 +47,34 @@ export function OrganizationSwitcher({
     setIsSwitching(true);
     setStatus({ type: "idle" });
     try {
-      const response = await fetch("/api/organizations/active", {
-        body: JSON.stringify({ organizationId: selectedId }),
+      const response = await fetch("/api/access/context/switch", {
+        body: JSON.stringify({
+          organizationId: selectedId,
+          role: selected.role,
+        }),
         headers: { "content-type": "application/json" },
-        method: "PUT",
+        method: "POST",
       });
-      const payload: unknown = await response.json();
-      const parsed = organizationApiResponseSchema.safeParse(payload);
-      if (!parsed.success) throw new Error("伺服器回應格式不正確。");
-      if (!response.ok || !parsed.data.success) {
-        setStatus({ type: "error", message: parsed.data.message });
+      const payload = (await response.json().catch(() => null)) as {
+        readonly data?: { readonly redirectTo?: string };
+        readonly message?: string;
+        readonly success?: boolean;
+      } | null;
+      if (!response.ok || payload?.success === false) {
+        setStatus({
+          type: "error",
+          message: payload?.message ?? "目前無法切換工作區。",
+        });
         return;
       }
 
-      setStatus({ type: "success", message: parsed.data.message });
+      setStatus({
+        type: "success",
+        message: payload?.message ?? "工作區已切換。",
+      });
+      if (payload?.data?.redirectTo) {
+        router.push(payload.data.redirectTo);
+      }
       router.refresh();
     } catch (error: unknown) {
       setStatus({

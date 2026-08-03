@@ -37,17 +37,31 @@ const classId = "10000000-0000-4000-8000-000000000004";
 const otherClassId = "10000000-0000-4000-8000-000000000005";
 
 class FakeQuery {
+  private currentRows: readonly unknown[];
+
   constructor(
     private readonly table: string,
     private readonly rowsByTable: Readonly<Record<string, readonly unknown[]>>,
     private readonly inserts: InsertCapture[],
-  ) {}
+  ) {
+    this.currentRows = this.rows();
+  }
 
-  eq() {
+  eq(column: string, value: unknown) {
+    this.currentRows = this.currentRows.filter((row) => {
+      if (!row || typeof row !== "object" || Array.isArray(row)) return false;
+      const record = row as Record<string, unknown>;
+      return column in record ? record[column] === value : true;
+    });
     return this;
   }
 
-  in() {
+  in(column: string, values: readonly unknown[]) {
+    this.currentRows = this.currentRows.filter((row) => {
+      if (!row || typeof row !== "object" || Array.isArray(row)) return false;
+      const record = row as Record<string, unknown>;
+      return column in record ? values.includes(record[column]) : true;
+    });
     return this;
   }
 
@@ -57,6 +71,7 @@ class FakeQuery {
   }
 
   limit() {
+    this.currentRows = this.currentRows.slice(0, 1);
     return this;
   }
 
@@ -84,7 +99,7 @@ class FakeQuery {
       | null,
     onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
   ) {
-    return Promise.resolve({ data: this.rows(), error: null }).then(
+    return Promise.resolve({ data: this.currentRows, error: null }).then(
       onfulfilled,
       onrejected,
     );
@@ -165,6 +180,60 @@ describe("RP-001 reporting service", () => {
         table: "report_audit_events",
       }),
     ]);
+  });
+
+  it("allows a verified guardian relationship through Reporting Service", async () => {
+    installMembership("guardian", teacherId);
+    const inserts = installSupabaseMock({
+      learning_events: [],
+      learning_recommendations: [],
+      student_guardians: [
+        {
+          guardian_user_id: teacherId,
+          id: "relationship-1",
+          organization_id: organizationId,
+          status: "active",
+          student_id: studentId,
+        },
+      ],
+      student_knowledge_mastery: [],
+      student_subject_summary: [],
+    });
+
+    const report = await getStudentReport({ studentId });
+
+    expect(report.studentId).toBe(studentId);
+    expect(inserts).toEqual([
+      expect.objectContaining({
+        row: expect.objectContaining({
+          action: "REPORT_VIEWED",
+          actor_id: teacherId,
+          metadata: { report: "student", studentId },
+          organization_id: organizationId,
+        }),
+        table: "report_audit_events",
+      }),
+    ]);
+  });
+
+  it("denies revoked guardian relationship before report audit", async () => {
+    installMembership("guardian", teacherId);
+    const inserts = installSupabaseMock({
+      student_guardians: [
+        {
+          guardian_user_id: teacherId,
+          id: "relationship-1",
+          organization_id: organizationId,
+          status: "revoked",
+          student_id: studentId,
+        },
+      ],
+    });
+
+    await expect(getStudentReport({ studentId })).rejects.toEqual(
+      new ReportingError("forbidden"),
+    );
+    expect(inserts).toHaveLength(0);
   });
 
   it("denies teacher access outside owned class scope before report audit", async () => {

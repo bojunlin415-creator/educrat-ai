@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { authError, authSuccess, parseAuthJson } from "@/lib/auth/api";
+import { resolvePostLoginDestination } from "@/lib/auth/destination";
 import { getSafeAuthErrorMessage } from "@/lib/auth/errors";
 import { checkAuthRateLimit } from "@/lib/auth/rate-limit";
 import { getApplicationUrl } from "@/lib/env/public";
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
         data.session
           ? "註冊完成，正在前往工作台。"
           : "請前往信箱完成驗證；若帳號已存在，也不會另外揭露。",
-        data.session ? { redirectTo: "/dashboard" } : {},
+        data.session ? { redirectTo: await resolvePostLoginDestination() } : {},
       ),
     );
   } catch {
