@@ -209,6 +209,50 @@ AP-002 Amendment 不改變上述 Migration Design。Account／Person linking、P
 
 實際欄位、constraint、index、保留策略與 RLS 必須在建立該表的 Sprint 中補齊並通過審查。
 
+
+## Product Architecture Rebaseline（Proposed — Not Implemented）
+
+2026-08-10 的 English／Math／Generation-Only 架構重新基準只提出正規化 ownership 與關聯，不建立或套用 Migration，也不表示下列 logical entity 已存在。
+
+### Ownership classes
+
+| Ownership                           | Logical records                                                                                                                                                                                     | Database boundary                                                                                           |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Global reusable reference           | Subject、capability vocabulary/profile version、proficiency framework/level、curriculum framework/version、academic concept、skill、knowledge point、objective、prerequisite、question type、rubric | Platform-governed versioned reference；tenant 無 direct write；不得保存未授權教材全文。                     |
+| Restricted provenance/compatibility | Knowledge source、license、legacy Publisher mapping、reference ingestion/review                                                                                                                     | Admin/legal-only；不可進一般 API、UI 或 AI context。                                                        |
+| Organization-scoped                 | Course/edition、class、organization material/version、assignment、report/cache、audit access projection                                                                                             | 必帶 `organization_id`；ENABLE/FORCE RLS；server resolve tenant；FK/unique/index 含 tenant。                |
+| Enrollment-scoped                   | Course/class enrollment、module progress、attendance、course assignment、completion、certificate eligibility                                                                                        | 同時驗證 organization、learner 與 course/class；不能只信任 enrollment ID。                                  |
+| Student-scoped evidence             | Attempt、response、grading result、error classification、skill evidence、mastery history、recommendation/remediation history、passport projection                                                   | Append-only 或 versioned；Student self、assigned educator、active verified guardian 才可讀適當 projection。 |
+| Provider execution                  | Generation request/job、provider result envelope、usage、export job                                                                                                                                 | Server-only、versioned prompt/schema/model、最小內容、明確 retention；不保存 secret/token。                 |
+
+### Normalization rules
+
+1. School grade、CEFR、exam level、course level 與 mastery level 是不同 dimension，不共用一個 `level`／`grade` 欄位。
+2. English concept 只建立一次，再透過 mapping 關聯 pathway、CEFR、exam、course、skill 與 objective。
+3. Curriculum Reference 只 mapping canonical Knowledge Point；不得將外部教材章課直接複製成平台 Lesson。
+4. Course、Class 與 Enrollment 分離。成人英語 Course 可以沒有 grade、semester 或 Class。
+5. Generated Material／Question、Teacher Revision、Assignment、Assessment Attempt、Response、Grading Result、Skill Evidence 與 Mastery Projection 分離。
+6. Learning Passport 是具 lineage 的 authorized projection，不是第二套 authority table，也不啟用跨 organization 分享。
+7. 所有 reference、mapping、prompt、schema、rubric 與 capability profile 都必須可版本化或 supersede，不原地改寫歷史語意。
+
+### Sprint 8 learner/enrollment compatibility gate
+
+目前 `students.id` 與 `student_class_members.student_id` 使用 organization-scoped roster ID；既有 `class_enrollments.student_id`、`assignment_students.student_id`、`assignment_submissions.student_id`、`learning_events.student_id` 與多個 projection 則使用 `profiles.id`。兩者不可直接視為同一 ID。
+
+後續只允許 forward-only convergence：
+
+1. 定義 canonical Student↔Person↔Account link；Managed Student 可無 Account。
+2. 產生 read-only parity/inventory，列出可唯一連結、缺 link、歧義與跨租戶衝突。
+3. 未知或歧義 link fail closed，不以姓名、Email 或學號跨 organization 猜測。
+4. 先 adapter／shadow read，再經核准的 additive backfill 與 consumer-by-consumer cutover。
+5. 最後才停止 legacy write；不 Drop、Rename、重寫歷史 Migration 或刪除舊 enrollment/history。
+
+`20260806100000_s08_extend_classes_students_foundation.sql` 在本次 review 時仍是 local untracked working-tree file，且 Sprint 文件標示 Awaiting Product Verification。本次沒有查詢 Development database、沒有套 Migration、沒有執行 runtime 驗證；因此其 Development application 與 runtime 狀態必須視為未驗證。
+
+靜態 review 另確認該 Migration 的 Student management policy 目前以 active staff／organization scope 為主，尚未把 Teacher 收斂至自己負責的 Class／Course。由於 Student row 含生日、性別、學校與學號等未成年資料，後續必須用新的 forward-only policy migration 加上 assigned-scope relationship 與跨班級測試；不得回頭改寫 Sprint 8 Migration，也不得在完成前宣稱 Teacher least-privilege 已滿足。
+
+現有 `profiles` 只有 own-row read policy；需要顯示其他成員／學生名稱的管理流程不可藉此放寬為全表 read。後續應建立 tenant-validated minimal projection 或 fixed-search-path RPC，只暴露業務所需欄位，並保留 `auth.users` 不可由 authenticated 直接查詢的邊界。
+
 ## 多租戶原則
 
 - 機構資料以 `organization_id` 隔離，跨機構讀寫預設拒絕。

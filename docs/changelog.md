@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-08-10 — Product Architecture Rebaseline（Proposed）
+
+### Product and architecture alignment
+
+- 將未來產品能力分為 English Intelligence、Math Intelligence 與 Chinese／Science／Social Studies／Life Curriculum 的 Generation-Only 三層，並提出集中、版本化、fail-closed 的 Subject Capability Profile。
+- English 改採 CEFR proficiency spine、pathway、exam、course、skill、knowledge point 與 learning objective 多重 mapping，不再以 school grade 作唯一層級。
+- Math 第一階段維持台灣國小一至六年級；出版社進度只能進入受治理的 reference/legacy compatibility boundary，核心 Domain 與 AI context 仍只接收中性 Curriculum Reference 與 canonical knowledge mapping。
+- 提出 Academic Reference、English mapping、Course Delivery、Content Generation、Assessment Evidence 與 Learning Passport 的正規化 logical model；本次未建立 table 或 Migration。
+- 盤點現有 Auth、Organization、Authorization、Curriculum、AI、Class/Student、Assignment、Learning Analytics、Reporting、Dashboard 與 Guardian 模組，標示 reuse／extend／compatibility／deprecate later。
+- 確認 Sprint 8 新 `students`／`student_class_members` 與既有 Profile-based `class_enrollments`／Assignment／Analytics 存在 learner ID 與 enrollment authority split，必須以 forward-only parity、adapter、backfill 與逐 consumer cutover 收斂。
+- 記錄目前沒有 Subject Capability runtime，所有科目仍可能進入共用 AI 選擇，且 Assignment／Analytics 尚未 enforce capability；任何科目智慧化前必須先完成集中式 fail-closed capability boundary。
+- 記錄 Student RLS 目前仍允許 active Teacher/staff organization-wide roster scope、Profile own-only projection 落差、single-role 無法同時表達 Teacher＋Parent，以及 AI／Publish provenance 未完整等相容與安全風險。
+- 新增 architecture review、產品規格、roadmap 與 UI/UX rebaseline 文件，並在 Database 文件記錄 ownership 與 compatibility gate。
+
+### Boundaries
+
+- 僅變更 architecture documentation；未修改 application code、test、Migration SQL、generated type 或環境設定。
+- 未查詢或套用 Development migration，未執行 runtime/database validation，未操作 Production，未 commit、push 或 deploy。
+- `20260806100000_s08_extend_classes_students_foundation.sql` 的 Development application/runtime 狀態仍需 S8V-001 明確驗證。
+
+
 ## 2026-08-03 — UX-001：Role Access, Navigation & Admin Control Completion（Awaiting Product Verification）
 
 ### Role access and navigation
