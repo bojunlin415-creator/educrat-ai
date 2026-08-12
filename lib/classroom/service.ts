@@ -31,27 +31,33 @@ export interface ClassDetail extends ClassRow {
 function mapDatabaseError(error: { code?: string; message?: string } | null) {
   if (!error) return new ClassroomError("service_unavailable");
   if (error.message?.includes("class_invalid_teacher")) {
-    return new ClassroomError("invalid_teacher");
+    return new ClassroomError("invalid_teacher", { cause: error });
   }
   if (error.message?.includes("class_invalid_student")) {
-    return new ClassroomError("invalid_student");
+    return new ClassroomError("invalid_student", { cause: error });
   }
   if (error.message?.includes("class_archived")) {
-    return new ClassroomError("invalid_class_state");
+    return new ClassroomError("invalid_class_state", { cause: error });
   }
-  if (error.code === "23505") return new ClassroomError("duplicate_code");
-  if (error.code === "22023") return new ClassroomError("invalid_input");
-  if (error.code === "P0002") return new ClassroomError("not_found");
+  if (error.code === "23505") {
+    return new ClassroomError("duplicate_code", { cause: error });
+  }
+  if (error.code === "22023") {
+    return new ClassroomError("invalid_input", { cause: error });
+  }
+  if (error.code === "P0002") {
+    return new ClassroomError("not_found", { cause: error });
+  }
   if (error.code === "42501") {
     if (error.message?.includes("authentication_required")) {
-      return new ClassroomError("not_authenticated");
+      return new ClassroomError("not_authenticated", { cause: error });
     }
     if (error.message?.includes("active_organization_required")) {
-      return new ClassroomError("organization_required");
+      return new ClassroomError("organization_required", { cause: error });
     }
-    return new ClassroomError("forbidden");
+    return new ClassroomError("forbidden", { cause: error });
   }
-  return new ClassroomError("service_unavailable");
+  return new ClassroomError("service_unavailable", { cause: error });
 }
 
 function mapOrganizationError(error: OrganizationError): ClassroomError {
@@ -104,13 +110,8 @@ function isStudent(role: string): boolean {
   return role === "student";
 }
 
-async function writeClassroomAudit(input: {
-  readonly action:
-    | "CLASS_ARCHIVED"
-    | "CLASS_CREATED"
-    | "CLASS_UPDATED"
-    | "ENROLLMENT_CREATED"
-    | "ENROLLMENT_REMOVED";
+async function writeEnrollmentAudit(input: {
+  readonly action: "ENROLLMENT_CREATED" | "ENROLLMENT_REMOVED";
   readonly classId: string;
   readonly metadata?: Json;
   readonly organizationId: string;
@@ -125,6 +126,15 @@ async function writeClassroomAudit(input: {
     organization_id: input.organizationId,
   });
   if (error) throw mapDatabaseError(error);
+  console.info(
+    "[class-service]",
+    JSON.stringify({
+      action: input.action,
+      actorId: input.userId,
+      classId: input.classId,
+      organizationId: input.organizationId,
+    }),
+  );
 }
 
 async function assertCanManageClass(classroom: ClassRow, actorId: string) {
@@ -163,9 +173,9 @@ export async function createClass(
       grade: parsed.data.grade,
       name: parsed.data.name,
       organization_id: context.organization.id,
+      school: parsed.data.school || null,
       school_year: parsed.data.schoolYear,
       semester: parsed.data.semester,
-      status: "active",
       subject: parsed.data.subject,
       teacher_id: parsed.data.teacherId,
     })
@@ -173,12 +183,6 @@ export async function createClass(
     .single();
   if (error) throw mapDatabaseError(error);
 
-  await writeClassroomAudit({
-    action: "CLASS_CREATED",
-    classId: data.id,
-    organizationId: data.organization_id,
-    userId: user.id,
-  });
   return getClass(data.id);
 }
 
@@ -199,7 +203,7 @@ export async function updateClass(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("classes")
     .update({
       code: parsed.data.code ?? current.code,
@@ -209,6 +213,10 @@ export async function updateClass(
           : parsed.data.description || null,
       grade: parsed.data.grade ?? current.grade,
       name: parsed.data.name ?? current.name,
+      school:
+        parsed.data.school === undefined
+          ? current.school
+          : parsed.data.school || null,
       school_year: parsed.data.schoolYear ?? current.school_year,
       semester: parsed.data.semester ?? current.semester,
       status: parsed.data.status ?? current.status,
@@ -216,15 +224,13 @@ export async function updateClass(
       teacher_id: parsed.data.teacherId ?? current.teacher_id,
     })
     .eq("id", parsedId.data)
-    .eq("organization_id", current.organization_id);
+    .eq("organization_id", current.organization_id)
+    .eq("status", current.status)
+    .select("id")
+    .maybeSingle();
   if (error) throw mapDatabaseError(error);
+  if (!data) throw new ClassroomError("invalid_class_state");
 
-  await writeClassroomAudit({
-    action: "CLASS_UPDATED",
-    classId: parsedId.data,
-    organizationId: current.organization_id,
-    userId: user.id,
-  });
   return getClass(parsedId.data);
 }
 
@@ -234,22 +240,46 @@ export async function archiveClass(id: string): Promise<ClassDetail> {
   const user = await requireClassroomActor();
   const current = await getClass(parsedId.data);
   await assertCanManageClass(current, user.id);
+  if (current.status === "archived") {
+    throw new ClassroomError("invalid_class_state");
+  }
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("classes")
     .update({ status: "archived" })
     .eq("id", parsedId.data)
-    .eq("organization_id", current.organization_id);
+    .eq("organization_id", current.organization_id)
+    .eq("status", current.status)
+    .select("id")
+    .maybeSingle();
   if (error) throw mapDatabaseError(error);
+  if (!data) throw new ClassroomError("invalid_class_state");
 
-  await writeClassroomAudit({
-    action: "CLASS_ARCHIVED",
-    classId: parsedId.data,
-    organizationId: current.organization_id,
-    userId: user.id,
-  });
   return getClass(parsedId.data);
+}
+
+export async function restoreClass(id: string): Promise<ClassDetail> {
+  const parsedId = classIdSchema.safeParse(id);
+  if (!parsedId.success) throw new ClassroomError("invalid_input");
+  const user = await requireClassroomActor();
+  const current = await getClass(parsedId.data);
+  await assertCanManageClass(current, user.id);
+  if (current.status !== "archived") {
+    throw new ClassroomError("invalid_class_state");
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("classes")
+    .update({ status: "active" })
+    .eq("id", current.id)
+    .eq("organization_id", current.organization_id)
+    .eq("status", "archived")
+    .select("id")
+    .maybeSingle();
+  if (error) throw mapDatabaseError(error);
+  if (!data) throw new ClassroomError("invalid_class_state");
+  return getClass(current.id);
 }
 
 export async function getClass(id: string): Promise<ClassDetail> {
@@ -399,7 +429,7 @@ export async function enrollStudent(
     .single();
   if (error) throw mapDatabaseError(error);
 
-  await writeClassroomAudit({
+  await writeEnrollmentAudit({
     action: "ENROLLMENT_CREATED",
     classId: classroom.id,
     metadata: { studentId: parsed.data.studentId },
@@ -437,7 +467,7 @@ export async function removeStudent(
   if (error) throw mapDatabaseError(error);
   if (!data) throw new ClassroomError("not_found");
 
-  await writeClassroomAudit({
+  await writeEnrollmentAudit({
     action: "ENROLLMENT_REMOVED",
     classId: classroom.id,
     metadata: { studentId: parsedStudentId.data.studentId },
@@ -446,3 +476,6 @@ export async function removeStudent(
   });
   return data;
 }
+
+export const assignStudentToClass = enrollStudent;
+export const removeStudentFromClass = removeStudent;

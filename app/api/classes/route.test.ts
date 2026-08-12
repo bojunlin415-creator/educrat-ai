@@ -54,7 +54,7 @@ describe("CL-001 classes collection API", () => {
         method: "POST",
       }),
     );
-    expect(response.status).toBe(422);
+    expect(response.status).toBe(400);
     expect(serviceMocks.createClass).not.toHaveBeenCalled();
   });
 

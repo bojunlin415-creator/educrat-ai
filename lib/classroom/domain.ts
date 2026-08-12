@@ -12,6 +12,7 @@ export interface ClassAggregate {
   readonly id: string;
   readonly name: string;
   readonly organizationId: string;
+  readonly school: string | null;
   readonly schoolYear: number;
   readonly semester: 1 | 2;
   readonly status: ClassStatus;

@@ -94,7 +94,7 @@ export async function parseClassroomJson<T>(
           "請修正標示的班級欄位。",
           result.error.flatten().fieldErrors,
         ),
-        { status: 422 },
+        { status: 400 },
       ),
       success: false,
     };

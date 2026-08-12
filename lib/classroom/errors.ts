@@ -28,8 +28,8 @@ const classroomErrorMessages: Record<ClassroomErrorCode, string> = {
 export class ClassroomError extends Error {
   readonly code: ClassroomErrorCode;
 
-  constructor(code: ClassroomErrorCode) {
-    super(classroomErrorMessages[code]);
+  constructor(code: ClassroomErrorCode, options?: ErrorOptions) {
+    super(classroomErrorMessages[code], options);
     this.name = "ClassroomError";
     this.code = code;
   }

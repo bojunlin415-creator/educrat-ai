@@ -43,6 +43,8 @@ describe("CL-001 class and enrollment foundation", () => {
     expect(updateClassSchema.safeParse({ status: "archived" }).success).toBe(
       false,
     );
+    expect(updateClassSchema.safeParse({}).success).toBe(false);
+    expect(updateClassSchema.safeParse({ school: null }).success).toBe(true);
   });
 
   it("validates enrollment student identity shape", () => {

@@ -8,11 +8,13 @@ import {
   getCurriculumDashboardStats,
   getCurriculums,
 } from "@/lib/curriculum/service";
+import { listClasses } from "@/lib/classroom/service";
 import { requireDashboardContext } from "@/lib/onboarding/guard";
 import {
   canManageCurriculums,
   ORGANIZATION_ROLE_LABELS,
 } from "@/lib/organization/constants";
+import { listStudents } from "@/lib/student/service";
 
 export const metadata: Metadata = { title: "工作台" };
 
@@ -32,6 +34,22 @@ export default async function DashboardPage() {
   const canManageAccess = ["organization_owner", "organization_admin"].includes(
     membership.role,
   );
+  const canManageRoster = [
+    "organization_owner",
+    "organization_admin",
+    "teacher",
+  ].includes(membership.role);
+  const roster = canManageRoster
+    ? await Promise.all([
+        listClasses().catch(() => []),
+        listStudents({ page: 1, pageSize: 100, status: "all" }).catch(() => ({
+          items: [],
+          page: 1,
+          pageSize: 100,
+          total: 0,
+        })),
+      ])
+    : null;
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
@@ -136,6 +154,50 @@ export default async function DashboardPage() {
           <p className="mt-2 text-sm text-slate-600">本階段不會呼叫 AI。</p>
         </Card>
       </section>
+      {roster ? (
+        <section aria-labelledby="roster-title" className="mt-10">
+          <div className="flex items-center justify-between gap-4">
+            <h2
+              className="text-xl font-black text-emerald-950"
+              id="roster-title"
+            >
+              班級與學生
+            </h2>
+            <div className="flex gap-4 text-sm font-bold text-emerald-800">
+              <Link href="/classes">班級管理</Link>
+              <Link href="/students">學生管理</Link>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Card className="p-5">
+              <p className="text-sm font-bold text-slate-500">Total Classes</p>
+              <p className="mt-2 text-3xl font-black text-emerald-950">
+                {roster[0].length}
+              </p>
+            </Card>
+            <Card className="p-5">
+              <p className="text-sm font-bold text-slate-500">Total Students</p>
+              <p className="mt-2 text-3xl font-black text-emerald-950">
+                {roster[1].total}
+              </p>
+            </Card>
+            <Card className="p-5">
+              <p className="text-sm font-bold text-slate-500">Active Classes</p>
+              <p className="mt-2 text-3xl font-black text-emerald-950">
+                {roster[0].filter((item) => item.status === "active").length}
+              </p>
+            </Card>
+            <Card className="p-5">
+              <p className="text-sm font-bold text-slate-500">
+                Recently Created
+              </p>
+              <p className="mt-2 truncate font-black text-emerald-950">
+                {roster[1].items[0]?.name ?? roster[0][0]?.name ?? "尚無資料"}
+              </p>
+            </Card>
+          </div>
+        </section>
+      ) : null}
       <section aria-labelledby="recent-lessons-title" className="mt-10">
         <h2
           className="text-xl font-black text-emerald-950"

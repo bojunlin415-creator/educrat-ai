@@ -191,6 +191,7 @@ export interface Database {
           id: string;
           name: string;
           organization_id: string;
+          school: string | null;
           school_year: number;
           semester: 1 | 2;
           status: "active" | "archived" | "inactive";
@@ -206,6 +207,7 @@ export interface Database {
           id?: string;
           name: string;
           organization_id: string;
+          school?: string | null;
           school_year: number;
           semester: 1 | 2;
           status?: "active" | "archived" | "inactive";
@@ -218,6 +220,7 @@ export interface Database {
           description?: string | null;
           grade?: string;
           name?: string;
+          school?: string | null;
           school_year?: number;
           semester?: 1 | 2;
           status?: "active" | "archived" | "inactive";
@@ -279,6 +282,107 @@ export interface Database {
           id?: string;
           metadata?: Json;
           organization_id: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
+      students: {
+        Row: {
+          birthday: string | null;
+          created_at: string;
+          english_name: string | null;
+          gender: "female" | "male" | "non_binary" | "undisclosed";
+          grade: string;
+          id: string;
+          name: string;
+          organization_id: string;
+          school: string | null;
+          status: "active" | "archived";
+          student_no: string;
+          updated_at: string;
+        };
+        Insert: {
+          birthday?: string | null;
+          created_at?: string;
+          english_name?: string | null;
+          gender: "female" | "male" | "non_binary" | "undisclosed";
+          grade: string;
+          id?: string;
+          name: string;
+          organization_id: string;
+          school?: string | null;
+          status?: "active" | "archived";
+          student_no: string;
+          updated_at?: string;
+        };
+        Update: {
+          birthday?: string | null;
+          english_name?: string | null;
+          gender?: "female" | "male" | "non_binary" | "undisclosed";
+          grade?: string;
+          name?: string;
+          school?: string | null;
+          status?: "active" | "archived";
+          student_no?: string;
+        };
+        Relationships: [];
+      };
+      student_class_members: {
+        Row: {
+          class_id: string;
+          id: string;
+          joined_at: string;
+          left_at: string | null;
+          organization_id: string;
+          status: "active" | "left";
+          student_id: string;
+        };
+        Insert: {
+          class_id: string;
+          id?: string;
+          joined_at?: string;
+          left_at?: string | null;
+          organization_id: string;
+          status?: "active" | "left";
+          student_id: string;
+        };
+        Update: {
+          joined_at?: string;
+          left_at?: string | null;
+          status?: "active" | "left";
+        };
+        Relationships: [];
+      };
+      class_student_audit_events: {
+        Row: {
+          action:
+            | "CLASS_ARCHIVED"
+            | "CLASS_CREATED"
+            | "CLASS_RESTORED"
+            | "CLASS_UPDATED"
+            | "STUDENT_ARCHIVED"
+            | "STUDENT_ASSIGNED"
+            | "STUDENT_CREATED"
+            | "STUDENT_REMOVED"
+            | "STUDENT_RESTORED"
+            | "STUDENT_UPDATED";
+          actor_id: string;
+          created_at: string;
+          id: string;
+          metadata: Json;
+          organization_id: string;
+          target_id: string;
+          target_type: "class" | "membership" | "student";
+        };
+        Insert: {
+          action: Database["public"]["Tables"]["class_student_audit_events"]["Row"]["action"];
+          actor_id: string;
+          created_at?: string;
+          id?: string;
+          metadata?: Json;
+          organization_id: string;
+          target_id: string;
+          target_type: "class" | "membership" | "student";
         };
         Update: never;
         Relationships: [];
