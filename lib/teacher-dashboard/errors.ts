@@ -22,8 +22,9 @@ export class TeacherDashboardError extends Error {
   constructor(
     readonly code: TeacherDashboardErrorCode,
     readonly referenceId?: string,
+    options?: ErrorOptions,
   ) {
-    super(TEACHER_DASHBOARD_ERROR_MESSAGES[code]);
+    super(TEACHER_DASHBOARD_ERROR_MESSAGES[code], options);
     this.name = "TeacherDashboardError";
   }
 }

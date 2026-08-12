@@ -18,6 +18,7 @@ import { OrganizationError } from "@/lib/organization/errors";
 import {
   requireOrganizationMembership,
   requireOrganizationRole,
+  type OrganizationContext,
 } from "@/lib/organization/service";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -44,15 +45,30 @@ type GuardianRelationshipRow =
   Database["public"]["Tables"]["student_guardians"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
+interface AccessManagerContext extends OrganizationContext {
+  readonly actor: User;
+}
+
+function traceAccessAuthorization(
+  step: string,
+  details: Readonly<Record<string, unknown>>,
+) {
+  if (process.env.NODE_ENV === "production") return;
+  console.info(
+    "[settings/access authorization]",
+    JSON.stringify({ step, ...details }),
+  );
+}
+
 function mapDatabaseError(error: { code?: string; message?: string } | null) {
   if (!error) return new AccessControlError("service_unavailable");
   if (error.message?.includes("organization_requires_active_owner")) {
     return new AccessControlError("last_owner");
   }
-  if (
-    error.message?.includes("self_elevation_forbidden") ||
-    error.message?.includes("self_mutation_forbidden")
-  ) {
+  if (error.message?.includes("self_elevation_forbidden")) {
+    return new AccessControlError("self_elevation_forbidden");
+  }
+  if (error.message?.includes("self_mutation_forbidden")) {
     return new AccessControlError("forbidden");
   }
   if (
@@ -72,6 +88,16 @@ function mapDatabaseError(error: { code?: string; message?: string } | null) {
     return new AccessControlError("forbidden");
   }
   return new AccessControlError("service_unavailable");
+}
+
+function mapOverviewLoadError(error: {
+  code?: string;
+  message?: string;
+} | null) {
+  if (error?.code === "42501") {
+    return new AccessControlError("service_unavailable");
+  }
+  return mapDatabaseError(error);
 }
 
 function mapOrganizationError(error: OrganizationError): AccessControlError {
@@ -108,22 +134,63 @@ function mapGuardianError(
   }
 }
 
-async function requireAccessManager() {
-  try {
-    return await requireOrganizationRole([
-      "organization_owner",
-      "organization_admin",
-    ]);
-  } catch (error: unknown) {
-    if (error instanceof OrganizationError) throw mapOrganizationError(error);
-    throw error;
-  }
-}
-
 async function requireActor(): Promise<User> {
   const user = await getCurrentUser();
   if (!user) throw new AccessControlError("not_authenticated");
   return user;
+}
+
+async function requireAccessManager(): Promise<AccessManagerContext> {
+  const actor = await requireActor();
+  try {
+    const context = await requireOrganizationRole([
+      "organization_owner",
+      "organization_admin",
+    ]);
+    traceAccessAuthorization("manager_authorization", {
+      activeOrganizationId: context.organization.id,
+      actorId: actor.id,
+      allowed: true,
+      membershipId: context.membership.id,
+      role: context.membership.role,
+    });
+    return { actor, ...context };
+  } catch (error: unknown) {
+    if (error instanceof OrganizationError) {
+      const mapped = mapOrganizationError(error);
+      traceAccessAuthorization("manager_authorization", {
+        actorId: actor.id,
+        allowed: false,
+        exactFunction: "requireOrganizationRole",
+        reason: mapped.code,
+      });
+      throw mapped;
+    }
+    throw error;
+  }
+}
+
+async function requireAccessMutationTarget(targetMembershipId: string) {
+  const context = await requireAccessManager();
+  const supabase = await createClient();
+  const { data: targetMembership, error } = await supabase
+    .from("organization_members")
+    .select("*")
+    .eq("id", targetMembershipId)
+    .eq("organization_id", context.organization.id)
+    .maybeSingle();
+  if (error) throw mapDatabaseError(error);
+  if (!targetMembership) throw new AccessControlError("not_found");
+  traceAccessAuthorization("mutation_authorization", {
+    activeOrganizationId: context.organization.id,
+    actorId: context.actor.id,
+    allowed: true,
+    authorizationFunction: "requireAccessManager",
+    membershipId: context.membership.id,
+    role: context.membership.role,
+    targetMembershipId: targetMembership.id,
+  });
+  return { context, supabase, targetMembership };
 }
 
 async function writeAccessAudit(input: {
@@ -133,6 +200,11 @@ async function writeAccessAudit(input: {
   readonly organizationId: string;
 }) {
   const supabase = await createClient();
+  traceAccessAuthorization("audit_write_request", {
+    action: input.action,
+    actorId: input.actorId,
+    organizationId: input.organizationId,
+  });
   const { error } = await supabase.rpc("write_access_control_audit", {
     p_action: input.action,
     p_actor_id: input.actorId,
@@ -140,7 +212,16 @@ async function writeAccessAudit(input: {
     p_organization_id: input.organizationId,
     p_target_membership_id: null,
   });
-  if (error) throw mapDatabaseError(error);
+  if (error) {
+    traceAccessAuthorization("audit_write_error", {
+      action: input.action,
+      actorId: input.actorId,
+      code: error.code ?? null,
+      message: error.message ?? null,
+      organizationId: input.organizationId,
+    });
+    throw mapOverviewLoadError(error);
+  }
 }
 
 function profileName(
@@ -230,7 +311,6 @@ function buildRelationships(
 
 export async function getAccessOverview(): Promise<AccessOverview> {
   const context = await requireAccessManager();
-  const actor = await requireActor();
   const supabase = await createClient();
   const [
     membershipsResult,
@@ -264,44 +344,72 @@ export async function getAccessOverview(): Promise<AccessOverview> {
       .eq("organization_id", context.organization.id)
       .order("created_at", { ascending: false }),
   ]);
-  if (membershipsResult.error) throw mapDatabaseError(membershipsResult.error);
-  if (classesResult.error) throw mapDatabaseError(classesResult.error);
-  if (enrollmentsResult.error) throw mapDatabaseError(enrollmentsResult.error);
-  if (invitationsResult.error) throw mapDatabaseError(invitationsResult.error);
-  if (relationshipsResult.error)
-    throw mapDatabaseError(relationshipsResult.error);
+  const overviewErrors = [
+    ["load_memberships", membershipsResult.error],
+    ["load_classes", classesResult.error],
+    ["load_class_enrollments", enrollmentsResult.error],
+    ["load_guardian_invitations", invitationsResult.error],
+    ["load_guardian_relationships", relationshipsResult.error],
+  ] as const;
+  const failedOverviewLoad = overviewErrors.find(([, error]) => Boolean(error));
+  if (failedOverviewLoad) {
+    const [operation, error] = failedOverviewLoad;
+    traceAccessAuthorization("overview_load_error", {
+      actorId: context.actor.id,
+      code: error?.code ?? null,
+      message: error?.message ?? null,
+      operation,
+      organizationId: context.organization.id,
+      role: context.membership.role,
+    });
+    throw mapOverviewLoadError(error);
+  }
+  const memberships = membershipsResult.data ?? [];
+  const classes = classesResult.data ?? [];
+  const enrollments = enrollmentsResult.data ?? [];
+  const invitations = invitationsResult.data ?? [];
+  const relationships = relationshipsResult.data ?? [];
 
-  const userIds = membershipsResult.data.map(
-    (membership) => membership.user_id,
-  );
+  const userIds = memberships.map((membership) => membership.user_id);
   const { data: profiles, error: profileError } = await supabase
     .from("profiles")
     .select("id,display_name")
     .in("id", userIds);
-  if (profileError) throw mapDatabaseError(profileError);
+  if (profileError) {
+    traceAccessAuthorization("overview_load_error", {
+      actorId: context.actor.id,
+      code: profileError.code ?? null,
+      message: profileError.message ?? null,
+      operation: "load_profiles",
+      organizationId: context.organization.id,
+      role: context.membership.role,
+    });
+    throw mapOverviewLoadError(profileError);
+  }
 
   await writeAccessAudit({
     action: "ACCESS_SETTINGS_VIEWED",
-    actorId: actor.id,
-    metadata: { userCount: membershipsResult.data.length },
+    actorId: context.actor.id,
+    metadata: { userCount: memberships.length },
     organizationId: context.organization.id,
   });
 
   return Object.freeze({
-    classes: buildClasses(classesResult.data, enrollmentsResult.data),
+    classes: buildClasses(classes, enrollments),
     currentRole: context.membership.role,
-    guardianInvitations: buildInvitations(invitationsResult.data),
-    guardianRelationships: buildRelationships(relationshipsResult.data),
+    guardianInvitations: buildInvitations(invitations),
+    guardianRelationships: buildRelationships(relationships),
     organizationId: context.organization.id,
     permissionSummary: buildPermissionSummary(context.membership.role),
-    users: buildUsers(membershipsResult.data, profiles),
+    users: buildUsers(memberships, profiles),
   });
 }
 
 export async function assignAccessRole(input: AssignAccessRoleInput) {
   const parsed = assignAccessRoleSchema.safeParse(input);
   if (!parsed.success) throw new AccessControlError("invalid_input");
-  const supabase = await createClient();
+  const { context, supabase, targetMembership } =
+    await requireAccessMutationTarget(parsed.data.membershipId);
   const { data, error } = await supabase.rpc(
     "assign_organization_member_role",
     {
@@ -310,7 +418,19 @@ export async function assignAccessRole(input: AssignAccessRoleInput) {
       p_role: parsed.data.role,
     },
   );
-  if (error) throw mapDatabaseError(error);
+  if (error) {
+    traceAccessAuthorization("mutation_rpc_error", {
+      activeOrganizationId: context.organization.id,
+      actorId: context.actor.id,
+      code: error.code ?? null,
+      exactFunction: "assign_organization_member_role",
+      membershipId: context.membership.id,
+      message: error.message ?? null,
+      role: context.membership.role,
+      targetMembershipId: targetMembership.id,
+    });
+    throw mapDatabaseError(error);
+  }
   if (!data) throw new AccessControlError("service_unavailable");
   return data;
 }
@@ -318,7 +438,8 @@ export async function assignAccessRole(input: AssignAccessRoleInput) {
 export async function removeAccessRole(input: RemoveAccessRoleInput) {
   const parsed = removeAccessRoleSchema.safeParse(input);
   if (!parsed.success) throw new AccessControlError("invalid_input");
-  const supabase = await createClient();
+  const { context, supabase, targetMembership } =
+    await requireAccessMutationTarget(parsed.data.membershipId);
   const { data, error } = await supabase.rpc(
     "remove_organization_member_role",
     {
@@ -326,7 +447,19 @@ export async function removeAccessRole(input: RemoveAccessRoleInput) {
       p_reason: parsed.data.reason,
     },
   );
-  if (error) throw mapDatabaseError(error);
+  if (error) {
+    traceAccessAuthorization("mutation_rpc_error", {
+      activeOrganizationId: context.organization.id,
+      actorId: context.actor.id,
+      code: error.code ?? null,
+      exactFunction: "remove_organization_member_role",
+      membershipId: context.membership.id,
+      message: error.message ?? null,
+      role: context.membership.role,
+      targetMembershipId: targetMembership.id,
+    });
+    throw mapDatabaseError(error);
+  }
   if (!data) throw new AccessControlError("service_unavailable");
   return data;
 }
@@ -334,7 +467,8 @@ export async function removeAccessRole(input: RemoveAccessRoleInput) {
 export async function disableAccessMember(input: MemberStatusChangeInput) {
   const parsed = memberStatusChangeSchema.safeParse(input);
   if (!parsed.success) throw new AccessControlError("invalid_input");
-  const supabase = await createClient();
+  const { context, supabase, targetMembership } =
+    await requireAccessMutationTarget(parsed.data.membershipId);
   const { data, error } = await supabase.rpc(
     "set_organization_member_access_status",
     {
@@ -343,7 +477,19 @@ export async function disableAccessMember(input: MemberStatusChangeInput) {
       p_status: "suspended",
     },
   );
-  if (error) throw mapDatabaseError(error);
+  if (error) {
+    traceAccessAuthorization("mutation_rpc_error", {
+      activeOrganizationId: context.organization.id,
+      actorId: context.actor.id,
+      code: error.code ?? null,
+      exactFunction: "set_organization_member_access_status",
+      membershipId: context.membership.id,
+      message: error.message ?? null,
+      role: context.membership.role,
+      targetMembershipId: targetMembership.id,
+    });
+    throw mapDatabaseError(error);
+  }
   if (!data) throw new AccessControlError("service_unavailable");
   return data;
 }
@@ -351,7 +497,8 @@ export async function disableAccessMember(input: MemberStatusChangeInput) {
 export async function enableAccessMember(input: MemberStatusChangeInput) {
   const parsed = memberStatusChangeSchema.safeParse(input);
   if (!parsed.success) throw new AccessControlError("invalid_input");
-  const supabase = await createClient();
+  const { context, supabase, targetMembership } =
+    await requireAccessMutationTarget(parsed.data.membershipId);
   const { data, error } = await supabase.rpc(
     "set_organization_member_access_status",
     {
@@ -360,7 +507,19 @@ export async function enableAccessMember(input: MemberStatusChangeInput) {
       p_status: "active",
     },
   );
-  if (error) throw mapDatabaseError(error);
+  if (error) {
+    traceAccessAuthorization("mutation_rpc_error", {
+      activeOrganizationId: context.organization.id,
+      actorId: context.actor.id,
+      code: error.code ?? null,
+      exactFunction: "set_organization_member_access_status",
+      membershipId: context.membership.id,
+      message: error.message ?? null,
+      role: context.membership.role,
+      targetMembershipId: targetMembership.id,
+    });
+    throw mapDatabaseError(error);
+  }
   if (!data) throw new AccessControlError("service_unavailable");
   return data;
 }

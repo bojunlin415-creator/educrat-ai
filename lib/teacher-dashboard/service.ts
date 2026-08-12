@@ -70,105 +70,179 @@ interface TeacherDashboardDiagnostics {
 
 function mapDatabaseError(error: { code?: string; message?: string } | null) {
   if (!error) return new TeacherDashboardError("service_unavailable");
-  if (error.code === "22023") return new TeacherDashboardError("invalid_input");
-  if (error.code === "P0002") return new TeacherDashboardError("not_found");
+  if (error.code === "22023") {
+    return new TeacherDashboardError("invalid_input", undefined, {
+      cause: error,
+    });
+  }
+  if (error.code === "P0002") {
+    return new TeacherDashboardError("not_found", undefined, { cause: error });
+  }
   if (error.code === "42501") {
     if (error.message?.includes("authentication_required")) {
-      return new TeacherDashboardError("not_authenticated");
+      return new TeacherDashboardError("not_authenticated", undefined, {
+        cause: error,
+      });
     }
     if (error.message?.includes("active_organization_required")) {
-      return new TeacherDashboardError("organization_required");
+      return new TeacherDashboardError("organization_required", undefined, {
+        cause: error,
+      });
     }
-    return new TeacherDashboardError("forbidden");
+    return new TeacherDashboardError("forbidden", undefined, { cause: error });
   }
-  return new TeacherDashboardError("service_unavailable");
+  return new TeacherDashboardError("service_unavailable", undefined, {
+    cause: error,
+  });
+}
+
+function createMappedTeacherDashboardError(
+  code: TeacherDashboardError["code"],
+  cause: unknown,
+) {
+  return new TeacherDashboardError(code, undefined, { cause });
 }
 
 function mapOrganizationError(error: OrganizationError): TeacherDashboardError {
   switch (error.code) {
     case "not_authenticated":
-      return new TeacherDashboardError("not_authenticated");
+      return createMappedTeacherDashboardError("not_authenticated", error);
     case "organization_not_found":
     case "not_member":
-      return new TeacherDashboardError("organization_required");
+      return createMappedTeacherDashboardError("organization_required", error);
     case "forbidden":
-      return new TeacherDashboardError("forbidden");
+      return createMappedTeacherDashboardError("forbidden", error);
     default:
-      return new TeacherDashboardError("service_unavailable");
+      return createMappedTeacherDashboardError("service_unavailable", error);
   }
 }
 
 function mapClassroomError(error: ClassroomError): TeacherDashboardError {
   switch (error.code) {
     case "not_authenticated":
-      return new TeacherDashboardError("not_authenticated");
+      return createMappedTeacherDashboardError("not_authenticated", error);
     case "organization_required":
-      return new TeacherDashboardError("organization_required");
+      return createMappedTeacherDashboardError("organization_required", error);
     case "not_found":
-      return new TeacherDashboardError("not_found");
+      return createMappedTeacherDashboardError("not_found", error);
     case "forbidden":
-      return new TeacherDashboardError("forbidden");
+      return createMappedTeacherDashboardError("forbidden", error);
     case "invalid_input":
-      return new TeacherDashboardError("invalid_input");
+      return createMappedTeacherDashboardError("invalid_input", error);
     default:
-      return new TeacherDashboardError("service_unavailable");
+      return createMappedTeacherDashboardError("service_unavailable", error);
   }
 }
 
 function mapReportingError(error: ReportingError): TeacherDashboardError {
   switch (error.code) {
     case "not_authenticated":
-      return new TeacherDashboardError("not_authenticated");
+      return createMappedTeacherDashboardError("not_authenticated", error);
     case "organization_required":
-      return new TeacherDashboardError("organization_required");
+      return createMappedTeacherDashboardError("organization_required", error);
     case "not_found":
-      return new TeacherDashboardError("not_found");
+      return createMappedTeacherDashboardError("not_found", error);
     case "forbidden":
-      return new TeacherDashboardError("forbidden");
+      return createMappedTeacherDashboardError("forbidden", error);
     case "invalid_input":
-      return new TeacherDashboardError("invalid_input");
+      return createMappedTeacherDashboardError("invalid_input", error);
     default:
-      return new TeacherDashboardError("service_unavailable");
+      return createMappedTeacherDashboardError("service_unavailable", error);
   }
 }
 
 function mapAssignmentError(error: AssignmentError): TeacherDashboardError {
   switch (error.code) {
     case "not_authenticated":
-      return new TeacherDashboardError("not_authenticated");
+      return createMappedTeacherDashboardError("not_authenticated", error);
     case "organization_required":
-      return new TeacherDashboardError("organization_required");
+      return createMappedTeacherDashboardError("organization_required", error);
     case "not_found":
-      return new TeacherDashboardError("not_found");
+      return createMappedTeacherDashboardError("not_found", error);
     case "forbidden":
-      return new TeacherDashboardError("forbidden");
+      return createMappedTeacherDashboardError("forbidden", error);
     case "invalid_input":
-      return new TeacherDashboardError("invalid_input");
+      return createMappedTeacherDashboardError("invalid_input", error);
     default:
-      return new TeacherDashboardError("service_unavailable");
+      return createMappedTeacherDashboardError("service_unavailable", error);
   }
 }
 
-function getSafeErrorDetails(error: unknown) {
+interface SafeErrorDetails {
+  readonly cause: SafeErrorDetails | null;
+  readonly code: string | null;
+  readonly details: string | null;
+  readonly hint: string | null;
+  readonly message: string;
+  readonly name: string;
+  readonly stack: string | null;
+  readonly status: number | null;
+  readonly statusCode: number | null;
+}
+
+function readStringProperty(value: unknown, key: string): string | null {
+  if (typeof value !== "object" || value === null || !(key in value)) {
+    return null;
+  }
+  const property = value[key as keyof typeof value];
+  return typeof property === "string" ? property : null;
+}
+
+function readNumberProperty(value: unknown, key: string): number | null {
+  if (typeof value !== "object" || value === null || !(key in value)) {
+    return null;
+  }
+  const property = value[key as keyof typeof value];
+  return typeof property === "number" ? property : null;
+}
+
+function readCause(value: unknown): unknown {
+  if (typeof value !== "object" || value === null || !("cause" in value)) {
+    return null;
+  }
+  return value.cause;
+}
+
+function getSafeErrorDetails(error: unknown, depth = 0): SafeErrorDetails {
+  const cause = depth < 2 ? readCause(error) : null;
   if (error instanceof Error) {
-    const maybeCode =
-      "code" in error && typeof error.code === "string" ? error.code : null;
     return {
-      code: maybeCode,
+      cause: cause ? getSafeErrorDetails(cause, depth + 1) : null,
+      code: readStringProperty(error, "code"),
+      details: readStringProperty(error, "details"),
+      hint: readStringProperty(error, "hint"),
       message: error.message,
       name: error.name,
+      stack: error.stack ?? null,
+      status: readNumberProperty(error, "status"),
+      statusCode: readNumberProperty(error, "statusCode"),
     };
   }
   if (typeof error === "object" && error !== null) {
-    const code =
-      "code" in error && typeof error.code === "string" ? error.code : null;
-    const message =
-      "message" in error && typeof error.message === "string"
-        ? error.message
-        : "Unknown non-error object";
-    return { code, message, name: "UnknownErrorObject" };
+    return {
+      cause: cause ? getSafeErrorDetails(cause, depth + 1) : null,
+      code: readStringProperty(error, "code"),
+      details: readStringProperty(error, "details"),
+      hint: readStringProperty(error, "hint"),
+      message:
+        readStringProperty(error, "message") ?? "Unknown non-error object",
+      name: readStringProperty(error, "name") ?? "UnknownErrorObject",
+      stack: readStringProperty(error, "stack"),
+      status: readNumberProperty(error, "status"),
+      statusCode: readNumberProperty(error, "statusCode"),
+    };
   }
-  return { code: null, message: "Unknown non-error thrown", name: "Unknown" };
+  return {
+    cause: null,
+    code: null,
+    details: null,
+    hint: null,
+    message: "Unknown non-error thrown",
+    name: "Unknown",
+    stack: null,
+    status: null,
+    statusCode: null,
+  };
 }
 
 function logTeacherDashboardDiagnostic(
@@ -180,10 +254,8 @@ function logTeacherDashboardDiagnostic(
     "[teacher-dashboard] operation failed",
     JSON.stringify({
       actorId: diagnostics.actorId ?? null,
-      code: safeError.code,
       correlationId: diagnostics.correlationId,
-      message: safeError.message,
-      name: safeError.name,
+      error: safeError,
       operation: diagnostics.operation,
       organizationId: diagnostics.organizationId ?? null,
       queryName: diagnostics.queryName ?? null,
@@ -196,6 +268,7 @@ function withReference(error: TeacherDashboardError, referenceId: string) {
   return new TeacherDashboardError(
     error.code,
     error.referenceId ?? referenceId,
+    { cause: error },
   );
 }
 

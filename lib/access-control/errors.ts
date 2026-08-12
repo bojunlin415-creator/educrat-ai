@@ -6,6 +6,7 @@ export type AccessControlErrorCode =
   | "not_found"
   | "organization_required"
   | "role_conflict"
+  | "self_elevation_forbidden"
   | "service_unavailable";
 
 const ACCESS_CONTROL_ERROR_MESSAGES: Record<AccessControlErrorCode, string> = {
@@ -16,6 +17,7 @@ const ACCESS_CONTROL_ERROR_MESSAGES: Record<AccessControlErrorCode, string> = {
   not_found: "找不到指定的成員或關係。",
   organization_required: "請先選擇有效機構。",
   role_conflict: "目前角色狀態不允許此異動。",
+  self_elevation_forbidden: "不能修改自己的角色。",
   service_unavailable: "目前無法處理存取管理，請稍後再試。",
 };
 
@@ -40,6 +42,7 @@ export function getAccessControlErrorStatus(error: AccessControlError): number {
     case "organization_required":
     case "last_owner":
     case "role_conflict":
+    case "self_elevation_forbidden":
       return 409;
     case "invalid_input":
       return 422;

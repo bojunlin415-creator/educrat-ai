@@ -42,11 +42,15 @@ function statusLabel(status: string) {
   return labels[status] ?? status;
 }
 
-async function postJson(url: string, body: Readonly<Record<string, string>>) {
+async function requestJson(
+  url: string,
+  body: Readonly<Record<string, string>>,
+  method: "DELETE" | "POST" = "POST",
+) {
   const response = await fetch(url, {
     body: JSON.stringify(body),
     headers: { "content-type": "application/json" },
-    method: "POST",
+    method,
   });
   const payload = (await response.json().catch(() => null)) as {
     readonly message?: string;
@@ -114,15 +118,17 @@ function MemberActions({ user }: { readonly user: AccessUser }) {
       <div className="flex flex-wrap gap-2">
         <Button
           loading={pendingAction === "assign"}
-          onClick={() =>
+          onClick={(event) => {
+            event.stopPropagation();
             runAction("assign", () =>
-              postJson("/api/access/roles/assign", {
+              requestJson("/api/access/roles/assign", {
                 membershipId: user.membershipId,
                 reason,
                 role,
               }),
-            )
-          }
+            );
+          }}
+          type="button"
           variant="secondary"
         >
           指派角色
@@ -130,26 +136,30 @@ function MemberActions({ user }: { readonly user: AccessUser }) {
         <Button
           disabled={isProtectedOwner}
           loading={pendingAction === "disable"}
-          onClick={() =>
+          onClick={(event) => {
+            event.stopPropagation();
             runAction("disable", () =>
-              postJson(`/api/access/members/${user.membershipId}/disable`, {
+              requestJson(`/api/access/members/${user.membershipId}/disable`, {
                 reason,
               }),
-            )
-          }
+            );
+          }}
+          type="button"
           variant="secondary"
         >
           停用成員
         </Button>
         <Button
           loading={pendingAction === "enable"}
-          onClick={() =>
+          onClick={(event) => {
+            event.stopPropagation();
             runAction("enable", () =>
-              postJson(`/api/access/members/${user.membershipId}/enable`, {
+              requestJson(`/api/access/members/${user.membershipId}/enable`, {
                 reason,
               }),
-            )
-          }
+            );
+          }}
+          type="button"
           variant="secondary"
         >
           啟用成員
@@ -157,14 +167,17 @@ function MemberActions({ user }: { readonly user: AccessUser }) {
         <Button
           disabled={isProtectedOwner}
           loading={pendingAction === "remove"}
-          onClick={() =>
+          onClick={(event) => {
+            event.stopPropagation();
             runAction("remove", () =>
-              postJson("/api/access/roles/remove", {
-                membershipId: user.membershipId,
-                reason,
-              }),
-            )
-          }
+              requestJson(
+                `/api/access/members/${user.membershipId}`,
+                { reason },
+                "DELETE",
+              ),
+            );
+          }}
+          type="button"
           variant="danger"
         >
           移除成員關係
@@ -201,7 +214,7 @@ function GuardianRelationshipAction({
           setLoading(true);
           setMessage(null);
           try {
-            await postJson(`/api/access/guardians/${relationship.id}/revoke`, {
+            await requestJson(`/api/access/guardians/${relationship.id}/revoke`, {
               reason,
             });
             setReason("");
