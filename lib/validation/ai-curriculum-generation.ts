@@ -21,7 +21,7 @@ export const aiCurriculumGenerationRequestSchema = z
     learningStage: z.string().trim().min(2).max(80),
     purpose: z.string().trim().min(2).max(200),
     questionCount: z.number().int().min(1).max(20),
-    subject: z.string().trim().min(1).max(40),
+    subjectId: z.uuid(),
   })
   .strict();
 
@@ -39,7 +39,16 @@ export const aiCurriculumSaveDraftSchema = z
     subjectId: z.uuid(),
     curriculumReferenceId: z.uuid(),
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    if (value.subjectId !== value.request.subjectId) {
+      context.addIssue({
+        code: "custom",
+        message: "生成需求與儲存教材的科目不一致。",
+        path: ["subjectId"],
+      });
+    }
+  });
 
 export type AICurriculumGenerationRequest = z.infer<
   typeof aiCurriculumGenerationRequestSchema

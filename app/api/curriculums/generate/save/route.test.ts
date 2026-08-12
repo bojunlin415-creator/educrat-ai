@@ -51,7 +51,7 @@ const validPayload = {
     learningStage: "國民小學",
     purpose: "課堂補充教材",
     questionCount: 4,
-    subject: "數學",
+    subjectId: "10000000-0000-4000-8000-000000000001",
   },
   schoolYear: 115,
   semester: 1,
@@ -100,5 +100,21 @@ describe("AI curriculum save API", () => {
 
     expect(response.status).toBe(409);
     expect(await response.text()).not.toContain("PostgreSQL");
+  });
+
+  it("rejects mismatched generated and persisted subject identities", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/curriculums/generate/save", {
+        body: JSON.stringify({
+          ...validPayload,
+          subjectId: "10000000-0000-4000-8000-000000000099",
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+
+    expect(response.status).toBe(422);
+    expect(serviceMocks.saveAICurriculumDraft).not.toHaveBeenCalled();
   });
 });

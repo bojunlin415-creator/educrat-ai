@@ -1,5 +1,10 @@
 import { curriculumErrorResponse } from "@/lib/curriculum/api";
 import { exportCurriculumVersionPdf } from "@/lib/curriculum/export";
+import {
+  SUBJECT_CAPABILITY_HTTP_STATUS,
+  SubjectCapabilityError,
+  subjectCapabilityFailure,
+} from "@/lib/subjects";
 
 interface CurriculumExportRouteContext {
   params: Promise<{ curriculumId: string; versionId: string }>;
@@ -36,6 +41,11 @@ export async function GET(
       status: 200,
     });
   } catch (error: unknown) {
+    if (error instanceof SubjectCapabilityError) {
+      return Response.json(subjectCapabilityFailure(error), {
+        status: SUBJECT_CAPABILITY_HTTP_STATUS,
+      });
+    }
     return curriculumErrorResponse(error);
   }
 }

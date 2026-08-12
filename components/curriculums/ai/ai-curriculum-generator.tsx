@@ -85,8 +85,6 @@ function defaultRequest(options: CurriculumReferenceOptions): RequestState {
 function fieldLabel(id: string, options: CurriculumReferenceOptions) {
   return {
     grade: options.grades.find((item) => item.id === id)?.code ?? "1",
-    subject:
-      options.subjects.find((item) => item.id === id)?.name ?? "未選擇科目",
   };
 }
 
@@ -127,9 +125,8 @@ export function AICurriculumGenerator({
   const labels = useMemo(
     () => ({
       grade: fieldLabel(request.gradeId, options).grade,
-      subject: fieldLabel(request.subjectId, options).subject,
     }),
-    [options, request.gradeId, request.subjectId],
+    [options, request.gradeId],
   );
 
   async function generate() {
@@ -148,7 +145,7 @@ export function AICurriculumGenerator({
           learningStage: "國民小學",
           purpose: request.purpose,
           questionCount: request.questionCount,
-          subject: labels.subject,
+          subjectId: request.subjectId,
         }),
         headers: { "content-type": "application/json" },
         method: "POST",
@@ -205,7 +202,7 @@ export function AICurriculumGenerator({
             learningStage: "國民小學",
             purpose: request.purpose,
             questionCount: request.questionCount,
-            subject: labels.subject,
+            subjectId: request.subjectId,
           },
           schoolYear: request.schoolYear,
           semester: request.semester,

@@ -7,6 +7,11 @@ import {
 import { saveAICurriculumDraft } from "@/lib/curriculum/ai-generation";
 import { CurriculumError } from "@/lib/curriculum/errors";
 import { validateCopyrightSafetyText } from "@/lib/ai-generation";
+import {
+  SUBJECT_CAPABILITY_HTTP_STATUS,
+  SubjectCapabilityError,
+  subjectCapabilityFailure,
+} from "@/lib/subjects";
 import { aiCurriculumSaveDraftSchema } from "@/lib/validation/ai-curriculum-generation";
 
 const MAX_AI_SAVE_BODY_BYTES = 256 * 1024;
@@ -76,6 +81,11 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error: unknown) {
+    if (error instanceof SubjectCapabilityError) {
+      return Response.json(subjectCapabilityFailure(error), {
+        status: SUBJECT_CAPABILITY_HTTP_STATUS,
+      });
+    }
     return curriculumErrorResponse(error);
   }
 }

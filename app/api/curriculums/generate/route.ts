@@ -7,6 +7,11 @@ import {
 import { generateAICurriculumDraft } from "@/lib/curriculum/ai-generation";
 import { CurriculumError } from "@/lib/curriculum/errors";
 import { validateCopyrightSafetyText } from "@/lib/ai-generation";
+import {
+  SUBJECT_CAPABILITY_HTTP_STATUS,
+  SubjectCapabilityError,
+  subjectCapabilityFailure,
+} from "@/lib/subjects";
 import { aiCurriculumGenerationRequestSchema } from "@/lib/validation/ai-curriculum-generation";
 
 const MAX_AI_BODY_BYTES = 128 * 1024;
@@ -75,6 +80,11 @@ export async function POST(request: Request) {
       }),
     );
   } catch (error: unknown) {
+    if (error instanceof SubjectCapabilityError) {
+      return Response.json(subjectCapabilityFailure(error), {
+        status: SUBJECT_CAPABILITY_HTTP_STATUS,
+      });
+    }
     return curriculumErrorResponse(error);
   }
 }

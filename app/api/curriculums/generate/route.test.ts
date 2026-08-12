@@ -1,4 +1,5 @@
 import { CurriculumError } from "@/lib/curriculum/errors";
+import { SubjectCapabilityError } from "@/lib/subjects";
 import { POST } from "./route";
 
 const serviceMocks = vi.hoisted(() => ({
@@ -18,7 +19,7 @@ const validPayload = {
   learningStage: "國民小學",
   purpose: "課堂補充教材",
   questionCount: 4,
-  subject: "數學",
+  subjectId: "10000000-0000-4000-8000-000000000001",
 };
 
 const draft = {
@@ -102,6 +103,22 @@ describe("AI curriculum generation API", () => {
     expect(serviceMocks.generateAICurriculumDraft).not.toHaveBeenCalled();
   });
 
+  it("rejects a client-supplied subject display label", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/curriculums/generate", {
+        body: JSON.stringify({
+          ...validPayload,
+          subject: "數學",
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+
+    expect(response.status).toBe(422);
+    expect(serviceMocks.generateAICurriculumDraft).not.toHaveBeenCalled();
+  });
+
   it("returns safe provider errors", async () => {
     serviceMocks.generateAICurriculumDraft.mockRejectedValue(
       new CurriculumError("ai_provider_unavailable"),
@@ -117,5 +134,33 @@ describe("AI curriculum generation API", () => {
 
     expect(response.status).toBe(503);
     expect(await response.text()).not.toContain("OPENAI_API_KEY");
+  });
+
+  it("returns a structured subject capability error", async () => {
+    serviceMocks.generateAICurriculumDraft.mockRejectedValue(
+      new SubjectCapabilityError({
+        capability: "content_generation",
+        reason: "NOT_AVAILABLE",
+        subject: "science",
+      }),
+    );
+
+    const response = await POST(
+      new Request("http://localhost/api/curriculums/generate", {
+        body: JSON.stringify(validPayload),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+
+    expect(response.status).toBe(422);
+    await expect(response.json()).resolves.toMatchObject({
+      error: {
+        capability: "content_generation",
+        code: "subject_capability_unavailable",
+        subject: "science",
+      },
+      success: false,
+    });
   });
 });

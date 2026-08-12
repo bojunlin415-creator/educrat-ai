@@ -1,4 +1,5 @@
 import { CurriculumError } from "@/lib/curriculum/errors";
+import { SubjectCapabilityError } from "@/lib/subjects";
 import { GET } from "./route";
 
 const serviceMocks = vi.hoisted(() => ({
@@ -65,5 +66,30 @@ describe("curriculum version export API", () => {
       { params: Promise.resolve({ curriculumId, versionId }) },
     );
     expect(response.status).toBe(404);
+  });
+
+  it("returns a structured error when PDF export is unavailable", async () => {
+    serviceMocks.exportCurriculumVersionPdf.mockRejectedValue(
+      new SubjectCapabilityError({
+        capability: "pdf_export",
+        reason: "NOT_APPROVED",
+        subject: "science",
+      }),
+    );
+    const response = await GET(
+      new Request(
+        `http://localhost/api/curricula/${curriculumId}/versions/${versionId}/export?mode=worksheet`,
+      ),
+      { params: Promise.resolve({ curriculumId, versionId }) },
+    );
+    expect(response.status).toBe(422);
+    await expect(response.json()).resolves.toMatchObject({
+      error: {
+        capability: "pdf_export",
+        code: "subject_capability_unavailable",
+        subject: "science",
+      },
+      success: false,
+    });
   });
 });

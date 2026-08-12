@@ -19,6 +19,10 @@ import {
 } from "@/lib/curriculum-export";
 import { OrganizationError } from "@/lib/organization/errors";
 import { requireOrganizationMembership } from "@/lib/organization/service";
+import {
+  requireSubjectCapability,
+  resolveCanonicalSubjectId,
+} from "@/lib/subjects";
 import type { Database } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 import { aiCurriculumGeneratedDraftSchema } from "@/lib/validation/ai-curriculum-generation";
@@ -218,7 +222,7 @@ export async function getCurriculumExportDocument(input: {
     await Promise.all([
       supabase
         .from("subjects")
-        .select("id,name")
+        .select("code,id,name")
         .eq("id", curriculum.subject_id)
         .single(),
       supabase
@@ -242,6 +246,10 @@ export async function getCurriculumExportDocument(input: {
   if (gradeResult.error) throw mapDatabaseError(gradeResult.error);
   if (aiDraftResult.error) throw mapDatabaseError(aiDraftResult.error);
   if (chaptersResult.error) throw mapDatabaseError(chaptersResult.error);
+  requireSubjectCapability(
+    resolveCanonicalSubjectId(subjectResult.data.code),
+    "pdf_export",
+  );
 
   const chapterIds = chaptersResult.data.map((chapter) => chapter.id);
   const lessonsResult =

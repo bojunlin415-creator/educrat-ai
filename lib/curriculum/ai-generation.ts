@@ -25,6 +25,10 @@ import {
 } from "@/lib/organization/service";
 import { OrganizationError } from "@/lib/organization/errors";
 import {
+  requireSubjectCapability,
+  resolveCanonicalSubjectId,
+} from "@/lib/subjects";
+import {
   aiCurriculumGenerationRequestSchema,
   aiCurriculumSaveDraftSchema,
   type AICurriculumGenerationRequest,
@@ -85,7 +89,10 @@ function ensureCopyrightSafe(input: unknown) {
   if (!result.safe) throw new CurriculumError("copyright_blocked");
 }
 
-function generationRequestFromInput(input: AICurriculumGenerationRequest) {
+function generationRequestFromInput(
+  input: AICurriculumGenerationRequest,
+  subjectName: string,
+) {
   const knowledgePoints = input.knowledgePoints.map((title, index) => ({
     competencyIndicator:
       input.competencyIndicators[index] ??
@@ -107,11 +114,31 @@ function generationRequestFromInput(input: AICurriculumGenerationRequest) {
       learningStage: input.learningStage,
       purpose: `${input.purpose}；輸出語言：${input.language}`,
       questionCount: input.questionCount,
-      subject: input.subject,
+      subject: subjectName,
       unit: input.curriculumTopic,
     },
     correlationId: `ai001:${randomUUID()}`,
     requestId: `ai001:${randomUUID()}`,
+  });
+}
+
+async function resolveGenerationSubject(subjectId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("subjects")
+    .select("code,name")
+    .eq("id", subjectId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (error) throw new CurriculumError("service_unavailable");
+  if (!data) throw new CurriculumError("invalid_input");
+
+  const canonicalSubjectId = resolveCanonicalSubjectId(data.code);
+  requireSubjectCapability(canonicalSubjectId, "content_generation");
+  return Object.freeze({
+    canonicalSubjectId,
+    name: data.name,
   });
 }
 
@@ -143,8 +170,9 @@ export async function generateAICurriculumDraft(
 
   const { context, user } = await requireAICurriculumContext();
   await authorizeAI({ context, permission: "curriculum.generate", user });
+  const subject = await resolveGenerationSubject(parsed.data.subjectId);
 
-  const request = generationRequestFromInput(parsed.data);
+  const request = generationRequestFromInput(parsed.data, subject.name);
   const result = await generateOriginalCurriculum(
     request,
     createOpenAIResponsesProvider(),
@@ -247,6 +275,7 @@ export async function saveAICurriculumDraft(input: AICurriculumSaveDraftInput) {
 
   const { context, user } = await requireAICurriculumContext();
   await authorizeAI({ context, permission: "curriculum.create", user });
+  await resolveGenerationSubject(parsed.data.subjectId);
 
   const edited = hasTeacherEdits(parsed.data);
   const supabase = await createClient();
