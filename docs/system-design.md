@@ -121,6 +121,15 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - Audit allowlist 新增 `CURRICULUM_AI_GENERATED`、`CURRICULUM_AI_EDITED`、`CURRICULUM_AI_SAVED`。Audit metadata 只保存 operation class、state 與 curriculum version id 等 safe metadata，不保存 prompt、完整 provider raw response、API key、token 或學生個資。
 - AI-001 尚未建立 streaming、job queue、retry executor、usage/cost persistence、quota、billing、publish workflow、quality review workflow、PDF export 或 background generation。
 
+### Subject Capability Registry（CAP-001）
+
+- `lib/subjects/` 是 code-owned、versioned 的產品能力 authority；`cap-001.v1` 區分 English Intelligence Platform、Math Intelligence Platform 與 Generation-Only。
+- Stable canonical ID 為 `english`、`math`、`chinese`、`science`、`social_studies`、`life_curriculum`；Sprint 7 database code `social`／`life` 只透過明列 alias 相容，不以顯示名稱推論。
+- `approved` 表示 roadmap 允許；`IMPLEMENTED` 才表示目前可用。`PARTIAL` 與 `NOT_IMPLEMENTED` 均由 `requireSubjectCapability()` fail closed。
+- AI generation 與 PDF export 先由 authenticated server context 讀取 persisted `subjects` row，再以 stable code 執行 capability guard。Client label、role、organization 或 capability 宣告都不是 authority。
+- Subject capability 不取代 Authentication、Membership、Permission、Scope、Lifecycle、Entitlement 或 RLS。Expected rejection 使用 machine-readable `subject_capability_unavailable` 與 HTTP 422。
+- Registry 沒有 Database、Migration 或 tenant editing。Plan／Organization／Course／Exam／Beta overlay 留待後續 package，且只能再收窄能力。
+
 ### Curriculum Export Foundation（EX-001）
 
 - EX-001 建立已儲存 Curriculum Version 的 runtime 匯出能力。Export core 位於 `lib/curriculum-export/`，只處理 `CurriculumExportDocument`、mode、validation、serialization、safe filename 與 PDF renderer；不依賴 React、Next.js、browser API、Supabase、Database 或 PDF library。

@@ -1,6 +1,6 @@
 # EduCraft AI（Education Intelligence Platform）
 
-為台灣國小補教業者與教師打造的教育智慧平台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構、章節／課次編輯器，以及 Curriculum Reference 相容層。BF-001～BF-003 已建立 AI 原創教材生成 foundation：產品輸入改為學習階段、年級、科目、學習主題、知識點、能力指標、教學目標與教材用途；不再使用任何出版社導向、教材版本、章節 mapping 或 lesson code。AI-001 已接入真實 OpenAI Responses provider、生成 API、建立頁 preview／edit／save flow、AI draft persistence 與 AI audit events。EX-001 已建立已儲存教材版本的 PDF 匯出與 Browser Print foundation。PB-001 已建立 Draft／Review／Published／Archived 發布流程、版本鎖與 publish validation，等待產品審查。PP-001/GV-001 已建立 Parent Portal、Guardian invitation、verified email consent、active relationship 與 formal Guardian E2E coverage，等待外部最終驗證。AP-002、AP-003A 與 AP-003B 架構皆已核准。AP-004A／B、AP-004C-A／B、AP-002B、AP-002A、AP-002C、AP-002D 與 AP-002E 均已 Accepted and Git Sealed；AP-002F Recycle Bin Foundation 已完成實作、等待架構審查。PI-001 已將 Curriculum-only 的封存、回收桶、還原與受控永久刪除接入產品流程，等待產品審查。其餘跨 Entity Lifecycle、Platform Recycle Bin、Background Job、AI job queue 與 Usage/Billing 尚未開始。
+為台灣國小補教業者與教師打造的教育智慧平台。目前已完成平台基礎、開發規範、Supabase development schema、身分驗證、個人資料、機構多租戶基礎、教材核心結構、章節／課次編輯器，以及 Curriculum Reference 相容層。CAP-001 已建立 `cap-001.v1` Subject Capability Registry，分離產品核准與目前可用狀態，並以 fail-closed guard 保護 AI 生成與 PDF 匯出；尚未啟動 English／Math intelligence engine。BF-001～BF-003 已建立 AI 原創教材生成 foundation：產品輸入改為學習階段、年級、科目、學習主題、知識點、能力指標、教學目標與教材用途；不再使用任何出版社導向、教材版本、章節 mapping 或 lesson code。AI-001 已接入真實 OpenAI Responses provider、生成 API、建立頁 preview／edit／save flow、AI draft persistence 與 AI audit events。EX-001 已建立已儲存教材版本的 PDF 匯出與 Browser Print foundation。PB-001 已建立 Draft／Review／Published／Archived 發布流程、版本鎖與 publish validation，等待產品審查。PP-001/GV-001 已建立 Parent Portal、Guardian invitation、verified email consent、active relationship 與 formal Guardian E2E coverage，等待外部最終驗證。AP-002、AP-003A 與 AP-003B 架構皆已核准。AP-004A／B、AP-004C-A／B、AP-002B、AP-002A、AP-002C、AP-002D 與 AP-002E 均已 Accepted and Git Sealed；AP-002F Recycle Bin Foundation 已完成實作、等待架構審查。PI-001 已將 Curriculum-only 的封存、回收桶、還原與受控永久刪除接入產品流程，等待產品審查。其餘跨 Entity Lifecycle、Platform Recycle Bin、Background Job、AI job queue 與 Usage/Billing 尚未開始。
 
 ## 技術堆疊
 
@@ -41,6 +41,8 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 - `/dashboard`：受保護、具 active organization context 的教材工作台
 - `/dashboard/teacher`：teacher／owner／admin 的教師儀表板
 - `/dashboard/parent`：guardian 透過已驗證親子／監護關係查看孩子學習摘要
+- `/classes`：owner／admin／teacher 的班級管理、搜尋、篩選與學生指派
+- `/students`：owner／admin／teacher 的 canonical 學生名冊管理
 - `/guardian-invitations/accept`：受邀 guardian 登入後確認最小孩子資訊並同意啟用家長入口
 - `/curriculums`：目前機構的教材列表
 - `/curriculums/recycle-bin`：owner/admin 查看教材回收桶、還原或永久刪除
@@ -102,6 +104,7 @@ lib/teacher-dashboard/ Teacher Dashboard view model、rule-based insight、chart
 lib/parent-portal/ Parent-specific report projection、guardian-child boundary 與 parent dashboard orchestration
 lib/guardian-verification/ Guardian invitation、token hash、verified-email matching、consent 與 relationship activation service
 lib/access-control/ Owner/Admin access overview、role assignment boundary、trusted role context switch 與 safe API response
+lib/subjects/       版本化科目能力 taxonomy、canonical/legacy ID mapping、approved/available registry 與 fail-closed guard
 lib/ai-curriculum/   無框架 AI 原創教材生成輸入、prompt、template、layout、validation 與 preview foundation
 lib/ai-generation/   AI provider、structured output、prompt/generation pipeline、validation、retry、usage 與 OpenAI Responses provider
 tests/e2e/           Playwright 測試
@@ -209,6 +212,7 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - [Authorization Security](docs/security/authorization-security-model.md)：已核准的 trust boundary、delegation、re-auth、CASE、Service Principal 與 AI 授權限制
 - [Authorization Migration Design](docs/data/authorization-migration-design.md)：已核准但未執行的 versioned hybrid、legacy role backfill 與 additive rollout
 - [Capability Map](docs/product/capability-map.md)：Approved Product Capability Baseline
+- [CAP-001 Subject Capability Registry](docs/architecture/cap-001-subject-capability-registry.md)：`cap-001.v1` canonical subject、能力矩陣、目前可用性與 422 guard contract
 - [Event Catalog](docs/architecture/event-catalog.md)：Approved Contract Baseline — Not Implemented
 - [Lifecycle UX Guidelines](docs/product/lifecycle-ux-guidelines.md)：已核准的 Danger Zone、關閉精靈與回收桶 wireframe
 - [Platform Admin Governance](docs/security/platform-admin-governance.md)：已核准的跨租戶支援、PII 與高風險操作安全契約
@@ -241,6 +245,8 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - Sprint 6：機構、owner membership、active organization、organization onboarding／settings／switcher、多租戶 RLS 與自動化整合驗收已完成；人工 UI／手機版驗收延後至 Milestone 2，不標記為已完成。
 - Sprint 7：教材參照資料、教材／版本／章／課結構、API、頁面與 Dashboard 已完成；Development Migration、真實租戶隔離、Owner／Admin／Teacher／Reviewer RLS、Playwright、production build 與自動化整合驗收均已通過。人工 UI／手機版驗收延後至 Milestone 2，不標記為已完成。
 - Sprint 8：Curriculum Editor、章節／課次 CRUD、受控排序、Dashboard 統計、API、四角色 RLS 與真實 Playwright E2E 已完成自動化驗收；人工 UI／鍵盤／手機版驗收仍待產品負責人確認。
+- Sprint 8 Classes & Students：Foundation 與 forward-only hardening migration 已套用 `educrat-development`；Development catalog、rollback-only Owner／Admin／Teacher RLS、真實 Classes／Students Playwright E2E、完整 Vitest 與 production build 均已通過。Teacher Student PII assigned-scope 收斂與 legacy enrollment authority cutover 仍明確延後。
+- CAP-001：**Approved and Closed — Foundation Verified**；已建立 code-owned `cap-001.v1` Subject Capability Registry、`social`／`life` compatibility alias、approved／available 分離、Generation-Only negative gate、UI projection 與 structured 422 error。AI 生成與 PDF 匯出已使用 server-resolved subject code；無 Migration、DB、entitlement、CEFR、Knowledge Graph 或 intelligence engine。
 - AR-001：ADR-003、AI／Legal Reference Policy 與非破壞性 Display Adapter 已獲有條件核准並完成命名修正；資料庫 Migration 僅完成設計，尚未建立或套用。
 - AP-002：Platform Governance Foundation 與 Amendment 已取得 Final Architecture Approval；Identity Concept、ADR-004～007、Capability Map 與 Event Catalog 已成為核准基線。未建立 Migration、API、UI、Identity Framework、RBAC、Event Bus、Queue、Notification、Audit table、生命週期寫入、Platform Admin Console 或刪除功能。
 - AP-003A：Identity Domain Model 已取得 **Accepted — Architecture Approved**。尚未建立 Person／Persona／Account Link table、Migration、RLS、RPC、API、UI、Invite、Student／Guardian runtime、Platform role 或完整 RBAC；Account hard delete依正式安全政策維持關閉。

@@ -3,7 +3,7 @@
 - Status: **Proposed — Awaiting Architecture Approval**
 - Date: 2026-08-10
 - Scope: English Intelligence, Math Intelligence, and Generation-Only Subjects
-- Implementation status: Architecture and planning only; no runtime capability is created by this document.
+- Implementation status: CAP-001 now provides the versioned subject capability registry and fail-closed guard. English/Math intelligence, academic references, courses, CEFR/exams, and learner convergence remain unimplemented.
 
 ## 1. Product definition
 
@@ -31,60 +31,49 @@ Capabilities are enabled by a centralized, versioned subject capability profile.
 
 ## 3. Subject capability model
 
-### 3.1 Controlled capability vocabulary
+### 3.1 Controlled capability vocabulary (`cap-001.v1`)
 
-| Capability key             | Meaning                                                              |
-| -------------------------- | -------------------------------------------------------------------- |
-| `content_generation`       | Generate original teaching materials from approved academic context. |
-| `assessment_generation`    | Generate original exercises and assessments.                         |
-| `answer_explanation`       | Produce answer keys and explanations subject to validation.          |
-| `teacher_editor`           | Permit teacher review and revision before publication.               |
-| `document_export`          | Export reviewed, saved, versioned content.                           |
-| `online_answering`         | Accept learner responses online.                                     |
-| `automatic_grading`        | Grade supported response types with traceable rules.                 |
-| `skill_diagnosis`          | Convert evidence into skill/knowledge weakness signals.              |
-| `mastery_tracking`         | Maintain rebuildable mastery projections and history.                |
-| `personalized_remediation` | Recommend evidence-based remediation.                                |
-| `progress_reporting`       | Provide authorized learner/class/organization reports.               |
-| `speaking_assessment`      | Assess speaking against a versioned rubric.                          |
-| `writing_assessment`       | Assess writing against a versioned rubric.                           |
-| `course_delivery`          | Deliver live/recorded course modules and lessons.                    |
-| `certification`            | Track eligible course/exam outcomes and certificates.                |
+| Category                    | Capability keys                                                                                                                                                                       |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Content / authoring         | `content_generation`, `worksheet_generation`, `assessment_generation`, `answer_generation`, `explanation_generation`, `teacher_editing`, `pdf_export`, `word_export`                  |
+| Learning delivery           | `assignment_distribution`, `online_answering`, `course_delivery`, `live_course`, `recorded_course`                                                                                    |
+| Grading / intelligence      | `automatic_grading`, `skill_diagnosis`, `mastery_tracking`, `misconception_diagnosis`, `personalized_remediation`, `adaptive_recommendation`, `progress_reporting`, `learning_alerts` |
+| English future intelligence | `proficiency_framework`, `cefr_tracking`, `exam_preparation`, `speaking_assessment`, `pronunciation_assessment`, `writing_assessment`, `learning_passport`                            |
+| Math future intelligence    | `knowledge_graph`, `prerequisite_graph`, `math_mastery`, `math_misconception_analysis`                                                                                                |
 
 New keys require review, documentation, tests, a profile version increment, and a safe default of disabled.
 
 ### 3.2 Capability states
 
-- `disabled`: unavailable and server-side rejected.
-- `pilot`: available only to explicitly entitled tenants/cohorts.
-- `enabled`: available when entitlement, permission, scope, lifecycle, and policy checks also pass.
+- `approved`: the product roadmap permits a subject to support the capability in a future reviewed package.
+- `IMPLEMENTED`: current code provides the capability; `isSubjectCapabilityAvailable()` may return true.
+- `PARTIAL`: foundation exists but the complete, subject-safe product capability is unavailable.
+- `NOT_IMPLEMENTED`: no current runtime. An unapproved subject/capability also remains unavailable.
 
 Capability availability never grants a user permission. The canonical decision is:
 
 ```text
-subject capability enabled
+subject capability approved and IMPLEMENTED
 AND organization entitlement available
 AND actor permission allowed
 AND resource scope valid
 AND lifecycle/business rules allowed
 ```
 
-### 3.3 Target profiles and rollout state
+### 3.3 Subject profiles
 
 The profile records the approved **target capability** separately from its runtime rollout state. “Target enabled” never means the current repository already implements or activates that capability.
 
-| Capability                                       | English target        | Math target              | Chinese / Science / Social Studies / Life Curriculum target |
-| ------------------------------------------------ | --------------------- | ------------------------ | ----------------------------------------------------------- |
-| Content and assessment generation                | enabled progressively | enabled                  | enabled                                                     |
-| Answers, explanations, teacher editor, export    | enabled progressively | enabled                  | enabled                                                     |
-| Online answering and grading                     | enabled progressively | enabled                  | disabled                                                    |
-| Skill diagnosis, mastery, remediation, reporting | enabled progressively | enabled                  | disabled                                                    |
-| Speaking and writing assessment                  | enabled progressively | not applicable initially | disabled                                                    |
-| Course delivery and certification                | enabled progressively | deferred                 | disabled                                                    |
+| Subject         | Product mode                  | Approved capabilities                                                                                                    | Currently available capabilities                                                                     |
+| --------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| English         | English Intelligence Platform | Content/authoring, all delivery, selected learning intelligence, and English future intelligence per CAP-001 matrix      | Content generation, worksheet generation, answer/explanation generation, teacher editing, PDF export |
+| Math            | Math Intelligence Platform    | Content/authoring, assignment/answering, selected learning intelligence, and Math future intelligence per CAP-001 matrix | Content generation, worksheet generation, answer/explanation generation, teacher editing, PDF export |
+| Chinese         | Generation-Only               | Eight content/authoring capabilities only                                                                                | Content generation, worksheet generation, answer/explanation generation, teacher editing, PDF export |
+| Science         | Generation-Only               | Eight content/authoring capabilities only                                                                                | Content generation, worksheet generation, answer/explanation generation, teacher editing, PDF export |
+| Social Studies  | Generation-Only               | Eight content/authoring capabilities only                                                                                | Content generation, worksheet generation, answer/explanation generation, teacher editing, PDF export |
+| Life Curriculum | Generation-Only               | Eight content/authoring capabilities only                                                                                | Content generation, worksheet generation, answer/explanation generation, teacher editing, PDF export |
 
-An implementation starts new capabilities as `disabled` or explicitly entitled `pilot` until its reference data, evidence model, authorization, privacy, validation, and tests satisfy rollout gates. Math therefore has a full-learning-intelligence target while elementary implementation remains incremental.
-
-The future runtime should expose one immutable `SubjectCapabilityProfile` per version and a pure `supports(subjectId, capabilityKey, context)` decision. Storage may later be a versioned artifact with database materialization, but this task does not select or create a persistence table.
+The code-owned immutable registry lives in `lib/subjects/`. `PARTIAL` never counts as available. Subscription, organization entitlement, permission, scope, lifecycle, and RLS remain separate gates. The complete approved and implementation matrices are in `docs/architecture/cap-001-subject-capability-registry.md`.
 
 ## 4. English Intelligence Platform
 
@@ -174,4 +163,4 @@ Cross-organization sharing is not enabled. A passport projection may not bypass 
 
 ## 9. Acceptance boundary
 
-This specification redefines future direction only. It does not claim that English Intelligence, Math Intelligence, subject capability runtime, academic reference schema, course delivery, learning passport, or new mappings are implemented or database-validated.
+This specification defines the future direction and records only CAP-001 as implemented application foundation. It does not claim that English Intelligence, Math Intelligence, academic reference schema, course delivery, learning passport, or new mappings are implemented or database-validated. CAP-001 itself creates no database objects.

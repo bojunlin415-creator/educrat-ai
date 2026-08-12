@@ -28,6 +28,14 @@ Workspace
 
 Navigation is a server projection of active organization, persona/role, permission, subject capability, and entitlement. A hidden item is not an authorization boundary.
 
+CAP-001 exposes three safe subject-capability UI states:
+
+- `AVAILABLE_NOW`: may be shown only after independent entitlement/permission/scope checks.
+- `COMING_LATER`: roadmap-approved but incomplete; use an intentional explanation only where product UX requires it, never a clickable fake feature.
+- `NOT_SUPPORTED`: absent by default for the selected subject; server guard still rejects direct calls.
+
+UI labels never determine subject identity. Selection keeps the persisted subject UUID while the server resolves its stable code through the canonical registry.
+
 ## Teacher dashboard
 
 ```text
@@ -98,10 +106,10 @@ The generation wizard includes grade, semester, neutral progress reference, unit
 
 ```text
 Generate original draft → validate → teacher edit → teacher review
-→ save version → quality gate → PDF/Word export
+→ save version → quality gate → an actually available export renderer
 ```
 
-Answering, grading, mastery, diagnosis, and remediation actions are absent and server-disabled, not merely visually hidden.
+PDF is available now; Word remains roadmap-approved but unavailable. Answering, grading, mastery, diagnosis, and remediation actions are absent and server-disabled, not merely visually hidden.
 
 ## Course and class experience
 

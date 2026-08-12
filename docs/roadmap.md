@@ -34,11 +34,12 @@ Exit: Development database and runtime evidence recorded; unresolved 401/schema/
 
 ### CAP-001 Subject Capability Registry Foundation
 
-- Controlled capability vocabulary and immutable profile version.
-- English, Math, and Generation-Only profiles with `disabled`/`pilot`/`enabled` state.
-- Pure, fail-closed evaluator and server-safe projection contract.
-- Matrix, unknown-key/version, import-boundary, and no-scattered-conditional tests.
-- No database, subject engine, entitlement, or UI behavior expansion.
+- Status: **Approved and Closed — Foundation Verified**.
+- `cap-001.v1` controlled vocabulary and immutable English, Math, and Generation-Only profiles are implemented.
+- Approved roadmap and current `IMPLEMENTED`／`PARTIAL`／`NOT_IMPLEMENTED` availability are separate; `PARTIAL` fails closed.
+- AI generation and PDF export resolve trusted subject references before the capability guard; expected rejection uses structured HTTP 422.
+- Matrix, legacy alias, unknown input, generation-only negative, import-boundary, immutability, and circular dependency tests are implemented.
+- No database, migration, entitlement, course/pathway overlay, intelligence engine, or placeholder UI was added.
 
 ### LE-001 Canonical Learner & Enrollment Convergence
 
@@ -76,7 +77,7 @@ Exit: coverage, provenance, version, and mapping tests pass with no loose academ
 
 - Course, edition, module, lesson, live/recorded session, enrollment, attendance, materials, and certificate contracts.
 - Extend generation request from required elementary grade to typed optional school/proficiency/pathway/course contexts.
-- Enforce subject capabilities before generation, export, answering, grading, analytics, and remediation.
+- Extend the existing generation/export enforcement to answering, grading, analytics, and remediation only after those services use a trusted canonical subject reference.
 - Add Word export through the existing export contract after quality and teacher review gates.
 
 ## Phase 4 — Assessment evidence and Learning Passport
@@ -108,8 +109,8 @@ Exit: coverage, provenance, version, and mapping tests pass with no loose academ
 
 ## Exact next three tasks
 
-1. S8V-001 — Classes & Students Development Verification.
-2. CAP-001 — Subject Capability Registry Foundation.
-3. LE-001 — Canonical Learner & Enrollment Convergence.
+1. LE-001 — Canonical Learner & Enrollment Convergence, after its clean baseline seal.
+2. ARS-001 — Academic Reference Foundation after LE-001's authority/parity gate.
+3. English/Math intelligence packages — only after their independent architecture and rollout approvals.
 
 Do not begin English or Math intelligence engine implementation before these three tasks and ARS-001 are approved.

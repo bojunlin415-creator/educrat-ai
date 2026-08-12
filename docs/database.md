@@ -4,7 +4,7 @@
 
 ## 目前狀態
 
-Sprint 3、Sprint 5、兩筆 Sprint 6、Sprint 7 Curriculum Foundation 與 Sprint 8 Curriculum Editor Migration 已套用至非 production 的 `educrat-development`。Sprint 8 已完成真實 Development Editor E2E，以及套用同一組 Migration 的隔離本機 Owner／Admin／Teacher／Reviewer RLS 驗收。Production 未執行。
+Sprint 3、Sprint 5、兩筆 Sprint 6、Sprint 7 Curriculum Foundation、Sprint 8 Curriculum Editor 與 Sprint 8 Classes & Students Migration 已套用至非 production 的 `educrat-development`。Classes & Students 已完成真實 Development catalog、rollback-only Owner／Admin／Teacher RLS、API／UI E2E 與 audit 驗收。Production 未執行。
 
 AR-001 不新增或套用 Migration。既有 `publishers` 與 `curriculums.publisher_id` 保持原樣，只作 legacy compatibility；目標 `curriculum_references`、`knowledge_sources`、`curriculum_reference_mappings`、新 FK、backfill 與 dual-write 設計已由 ADR-003 核准，但資料庫實作仍須後續獨立 Migration 工作授權。
 
@@ -209,6 +209,15 @@ AP-002 Amendment 不改變上述 Migration Design。Account／Person linking、P
 
 實際欄位、constraint、index、保留策略與 RLS 必須在建立該表的 Sprint 中補齊並通過審查。
 
+## Sprint 8 Classes & Students Foundation
+
+- `classes` 沿用 CL-001 aggregate，forward-only 補入 nullable `school`，不重建或刪除既有班級資料。
+- `students` 是 organization-scoped canonical student record，以 `(organization_id, student_no)` 保證同租戶學號唯一。
+- `student_class_members` 以 composite foreign key 同時驗證 class、student 與 organization，避免 client 以跨租戶 ID 建立關係。
+- 三張新表皆啟用並強制 RLS。Owner/Admin 可管理全部；Teacher 可管理學生資料，但班級 membership mutation 只限自己負責的 active class。
+- `class_student_audit_events` 只保存 actor、organization、target、action、timestamp 與非敏感 metadata，不保存 token、credential 或完整學生內容。
+- `20260811153000_s08_harden_classes_students_foundation.sql` 是 applied foundation 的 forward-only 修正：membership mutation 同時要求 active class 與 active role；authenticated 只能寫入明列的 mutable columns，不能搬動 tenant／identity／system timestamp；canonical audit 由 transaction-coupled trigger 產生，authenticated 不可直接偽造 audit event。
+- `class_enrollments` 暫時保留作既有 Assignment、Analytics 與 Dashboard 相容邊界；本 Sprint 不做破壞性 rename 或 data rewrite。
 
 ## Product Architecture Rebaseline（Proposed — Not Implemented）
 
@@ -247,7 +256,7 @@ AP-002 Amendment 不改變上述 Migration Design。Account／Person linking、P
 4. 先 adapter／shadow read，再經核准的 additive backfill 與 consumer-by-consumer cutover。
 5. 最後才停止 legacy write；不 Drop、Rename、重寫歷史 Migration 或刪除舊 enrollment/history。
 
-`20260806100000_s08_extend_classes_students_foundation.sql` 在本次 review 時仍是 local untracked working-tree file，且 Sprint 文件標示 Awaiting Product Verification。本次沒有查詢 Development database、沒有套 Migration、沒有執行 runtime 驗證；因此其 Development application 與 runtime 狀態必須視為未驗證。
+S8V-001 已正面確認 linked target 為 `educrat-development`／`gqurnljrvwyhruhutvni`，且 local／remote history 同時包含 `20260806100000` 與 forward-only correction `20260811153000`。Development catalog assertions、單一 transaction 最後 ROLLBACK 的角色／跨租戶測試、真實 authenticated API／UI E2E 與 audit event 查核均已通過；受控 E2E rows 最後維持 archived，臨時 Teacher membership 已精確移除。Production 未查詢、未套用、未部署。
 
 靜態 review 另確認該 Migration 的 Student management policy 目前以 active staff／organization scope 為主，尚未把 Teacher 收斂至自己負責的 Class／Course。由於 Student row 含生日、性別、學校與學號等未成年資料，後續必須用新的 forward-only policy migration 加上 assigned-scope relationship 與跨班級測試；不得回頭改寫 Sprint 8 Migration，也不得在完成前宣稱 Teacher least-privilege 已滿足。
 
@@ -327,6 +336,7 @@ AP-002 Amendment 不改變上述 Migration Design。Account／Person linking、P
 - TD-001：`20260730210000_td001_create_teacher_dashboard_audit.sql`，新增 `teacher_dashboard_audit_events`。Teacher Dashboard 不新增 Learning tables、不修改 Analytics schema；新表啟用 RLS 與 FORCE RLS。Production 未套用。
 - PP-001：`20260803110000_pp001_create_parent_portal_foundation.sql`，新增最小 `student_guardians` verified relationship boundary 與 `parent_portal_audit_events`。`student_guardians` 只授予 authenticated select，無 client insert/update grant；guardian 只能讀取自己 active relationship，owner/admin 可讀取管理摘要。Parent Portal 不新增 Learning source table、不修改 `assignment_submissions`、不建立 Parent Dashboard cache；全部新表啟用 RLS 與 FORCE RLS。Production 未套用。
 - GV-001：`20260803113000_gv001_create_guardian_verification_consent.sql`，擴充 `student_guardians` lifecycle／verification／consent／revocation 欄位，新增 `guardian_invitations` hash-only token table、`accept_guardian_invitation()` RPC 與 `revoke_guardian_relationship()` RPC。Invitation 由 owner/admin 建立，guardian accept 需 verified email match、single-use token、consent version 與 server-side RPC；relationship revocation 也只能由 owner/admin 透過 RPC 執行並寫入 audit。不保存 raw token、不建立 email provider、不放寬 `student_guardians` client write。Production 未套用。
+- TD-001 RLS 修正：`20260803153000_td001_fix_classroom_rls_recursion.sql`，替換 `classes`、`class_enrollments` 與 `assignment_classes` 會互相觸發的 RLS relationship checks，改由 `is_class_primary_teacher()` 與 `is_class_enrolled_student()` 受控 helper 判斷 teacher/student class scope。Production 未套用。
 - UX-001：`20260803140000_ux001_create_access_control_management.sql`，新增 `access_control_audit_events`、`write_access_control_audit()`、`assign_organization_member_role()`、`remove_organization_member_role()` 與 `set_organization_member_access_status()`。Role/status mutation 只允許 owner/admin server-side RPC，包含理由、tenant scope、self-elevation/self-mutation protection、owner protection 與 admin escalation limits。`ROLE_CONTEXT_SWITCHED` audit 可由 active member 記錄，但不得寫其他 access mutation audit。Production 未套用。
 
 目前 Development migration history 需依已 Git Sealed package 逐次確認；Production 不得由開發代理自動套用任何本專案 Migration。

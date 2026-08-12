@@ -1,5 +1,45 @@
 # Changelog
 
+## 2026-08-11 — CAP-001：Subject Capability Registry Foundation（Approved and Closed）
+
+### Capability foundation
+
+- 新增 code-owned、immutable `cap-001.v1` Subject Capability Registry，定義 6 個 canonical subject、32 個受控 capability、English／Math／Generation-Only approved matrix，以及 `IMPLEMENTED`／`PARTIAL`／`NOT_IMPLEMENTED` current availability。
+- 明列 Sprint 7 `social → social_studies`、`life → life_curriculum` compatibility aliases；Localized display label 不作 identity，unknown subject/capability fail closed。
+- 新增 `isSubjectCapabilityApproved()`、`isSubjectCapabilityAvailable()`、三態 UI projection 與 `requireSubjectCapability()`；`PARTIAL` 不算可用。
+- AI generation 改由 `subjectId` 經 authenticated server 查詢解析 stable subject code/name，再檢查 `content_generation`；不再信任 client subject display text。
+- Stored-version PDF／Browser Print export 新增 `pdf_export` guard。Expected capability rejection回傳 HTTP 422 與 `subject_capability_unavailable`，不洩漏未發布 roadmap reason。
+- 新增完整 matrix、aliases、unknown input、generation-only negative、approved-versus-available、immutability、import boundary、circular dependency 與 API error tests。
+
+### Boundaries
+
+- **NO MIGRATION REQUIRED**；未新增或修改 Database、RLS、Supabase、entitlement、Course/Pathway overlay、CEFR、GEPT、TOEIC、Knowledge Graph、speaking/writing AI、Math diagnosis、remediation 或 Learning Passport。
+- Assignment／Analytics／Adaptive／Reporting 的 legacy free-text subject 與 learner/enrollment authority 尚未安全 cutover，僅標示 PARTIAL 或 unavailable；不藉 CAP-001 廣泛重構。
+- 未 commit、push、deploy、操作 Production、開始 LE-001 或任何 English／Math intelligence engine。
+- Architecture approval 已確認本 Foundation 為 canonical subject-capability authority；核准能力不等於已實作能力，也不取代使用者授權、機構 entitlement 或商業訂閱。
+
+## 2026-08-11 — S8V-001：Classes & Students Development Verification
+
+### Development migration and database
+
+- 正面確認 Supabase linked target 為 `educrat-development`／`gqurnljrvwyhruhutvni`；`20260806100000_s08_extend_classes_students_foundation.sql` 原已套用，local／remote history 順序一致。
+- 新增並只在 Development 套用 forward-only correction `20260811153000_s08_harden_classes_students_foundation.sql`；套用前 dry-run 只包含此檔，套用後 history 完全一致且 dry-run 回報 remote up to date。
+- Correction 將 membership mutation 收斂為 active class＋active role、以 column grants 鎖住 tenant／identity／system timestamp、撤銷 authenticated 直接 audit INSERT，並由 transaction-coupled trigger 寫入 canonical audit 與 legacy Class audit。
+- Development catalog 驗證 4 張 table、4 張 FORCE RLS、composite tenant FKs、required indexes、helper、column grants 與 3 個 audit triggers；rollback-only SQL 驗證 Owner／Admin／Teacher、inactive／archived／suspended、cross-tenant、immutable columns、audit append-only 與 audit-failure rollback。
+
+### Runtime and safe fixes
+
+- 修正 `/classes` Teacher options 以 active membership 為權威、profile 僅補 label；載入錯誤不再偽裝成「沒有教師」，且 Classes client props 不再序列化無關 Student PII。
+- 修正 Student／Class mutation 後 local UI 同步、Dialog reset、pending／success／error、archived controls、active-only assignment、分頁 clamp 與超過 100 位學生的完整載入。
+- 修正 archived/repeated lifecycle 409、conditional status race、duplicate membership 409、left membership reactivation、immutable membership identity、Class empty PATCH 與 nullable school clear。
+- 真實 Development Playwright 3/3 通過：anonymous Students GET/POST 與 Classes GET 皆 401；authenticated Student CRUD／archive／restore，以及 Class create／edit／assign／remove／reassign／archive／restore 與 negative state contracts 均通過。E2E audit target/action/count 與敏感 metadata 查核通過。
+
+### Quality and boundaries
+
+- Typecheck、完整 ESLint、focused Vitest 13 files／66 tests、單工作者完整 Vitest 155 files／798 passed（1 existing skip）、production build、S8V 檔案 Prettier 與 `git diff --check` 均通過。
+- Student organization-wide Teacher PII scope 保留給獨立 assigned-scope policy package；canonical `student_class_members` 與 legacy Profile-based enrollment authority convergence 保留給 LE-001；Subject Registry 保留給 CAP-001。
+- 未開始 CAP-001、LE-001、English Intelligence、Math Intelligence 或新 curriculum architecture；未操作 Production，未 commit、push 或 deploy。
+
 ## 2026-08-10 — Product Architecture Rebaseline（Proposed）
 
 ### Product and architecture alignment
@@ -20,6 +60,19 @@
 - 未查詢或套用 Development migration，未執行 runtime/database validation，未操作 Production，未 commit、push 或 deploy。
 - `20260806100000_s08_extend_classes_students_foundation.sql` 的 Development application/runtime 狀態仍需 S8V-001 明確驗證。
 
+## 2026-08-06 — Sprint 8：Classes & Students Foundation（Awaiting Product Verification）
+
+### Classes and students
+
+- 以 forward-only migration 安全擴充既有 `classes.school`，新增 canonical `students`、`student_class_members` 與 append-only `class_student_audit_events`；既有 `class_enrollments` 保留為 legacy compatibility boundary。
+- 新增 Student service、server-side Zod validation、tenant-scoped API、封存／還原與班級指派流程；所有 organization ID 均由 authenticated active organization context 決定。
+- 新增 `/classes`、`/students` 搜尋、狀態篩選、分頁、empty/error/loading action state、建立／編輯 Dialog 與 Dashboard roster cards。
+- Classes 與 Students mutation 限 owner/admin/teacher；teacher 的 student-class mutation 僅限自己負責的 class；cross-tenant target fail closed。
+
+### Boundaries
+
+- 未修改 access-control、authentication、guardian、organization 或既有 RLS migration；未套用 migration、commit、push、deploy 或操作 Production。
+- `class_enrollments` 仍服務既有 Assignment／Analytics compatibility；切換 consumer 至 `student_class_members` 需後續受控 backfill package。
 
 ## 2026-08-03 — UX-001：Role Access, Navigation & Admin Control Completion（Awaiting Product Verification）
 
@@ -28,6 +81,7 @@
 - 新增 `/settings/access` Owner/Admin 權限管理頁，顯示 Users、Permission Summary、Classes、Guardian Invitations 與 Active/Revoked Guardian Relationships。
 - 新增 `lib/access-control/` 與 `/api/access/*`，將 role assignment、member disable/enable、guardian relationship revocation 與 role context switch 收斂到 server-side API/RPC boundary。
 - 新增 `access_control_audit_events` additive migration 與受控 RPC：`assign_organization_member_role()`、`remove_organization_member_role()`、`set_organization_member_access_status()` 與 `write_access_control_audit()`。
+- 新增 TD-001 forward-only 修正 migration `20260803153000_td001_fix_classroom_rls_recursion.sql`，將 classroom RLS 中的 class／enrollment 互查改為受控 `SECURITY DEFINER` relationship helper，避免 Teacher Dashboard 查詢 `classes` 時觸發 RLS recursion。
 - 全域導覽改為依 server-resolved active organization membership 顯示教師儀表板、家長入口與使用者權限入口。
 - 登入、註冊 session 與 OAuth callback 在可解析 active membership 時導向角色首頁；無 active organization 時維持既有 Dashboard/onboarding guard。
 - Guardian invitation acceptance 與 signup 加入家長邀請/verified email/consent 提示；不建立 guardian self-claim。
