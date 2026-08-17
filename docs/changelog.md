@@ -1,6 +1,6 @@
 # Changelog
 
-## 2026-08-17 — TD-001：Assignment Dependency Runtime Bugfix
+## 2026-08-17 — TD-001：Assignment Dependency Runtime Bugfix（VERIFIED）
 
 ### Runtime and RLS repair
 
@@ -8,11 +8,12 @@
 - 新增並只套用至 `educrat-development` 的 forward-only migration `20260817134500_td001_fix_assignment_rls_recursion.sql`；以 tenant-scoped、fixed-search-path `SECURITY DEFINER` helper 取代 policy 內的交叉表查詢，保留 active membership、owner/admin/teacher、recipient、submission state 與跨租戶限制。
 - `AssignmentError` 現在保留原始 database error 作為 internal cause，使既有 Teacher Dashboard structured diagnostic 可記錄 SQLSTATE、message、details 與 hint；client 仍只收到安全的 `service_unavailable` 訊息。
 - 新增 migration recursion／tenant boundary 測試與 diagnostic cause 測試；未修改 UI、Assignment product rule、Classes／Students、LE-001 或既有 migration。
+- 已由原始本機瀏覽器 session 完成人工驗證：`/dashboard/teacher` 正常載入，紅色「教師儀表板暫時無法載入」狀態消失，`load_assignments`／`AssignmentError(service_unavailable)` 不再發生。Package 狀態為 **TD-001 Assignment Dependency Runtime Bugfix — VERIFIED**。
 
 ### Environment boundary
 
 - Development project `gqurnljrvwyhruhutvni` 套用前 dry-run 僅列出本 migration；套用後 local／remote migration history 一致且 remote up to date。
-- Production 未操作；未 commit、push、deploy 或開始 LE-001 implementation。
+- Production 未操作、未 deploy，且未開始 LE-001 implementation；runtime fix 已以獨立 TD-001 commit 封存至 `develop`。
 
 ## 2026-08-11 — CAP-001：Subject Capability Registry Foundation（Approved and Closed）
 
