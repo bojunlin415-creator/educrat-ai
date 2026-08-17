@@ -26,8 +26,8 @@ const assignmentErrorMessages: Record<AssignmentErrorCode, string> = {
 export class AssignmentError extends Error {
   readonly code: AssignmentErrorCode;
 
-  constructor(code: AssignmentErrorCode) {
-    super(assignmentErrorMessages[code]);
+  constructor(code: AssignmentErrorCode, options?: ErrorOptions) {
+    super(assignmentErrorMessages[code], options);
     this.name = "AssignmentError";
     this.code = code;
   }

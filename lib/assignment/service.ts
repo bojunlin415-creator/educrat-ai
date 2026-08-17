@@ -39,36 +39,41 @@ export interface AssignmentDetail extends AssignmentRow {
 
 function mapDatabaseError(error: { code?: string; message?: string } | null) {
   if (!error) return new AssignmentError("service_unavailable");
+  const options = { cause: error };
   if (error.message?.includes("assignment_invalid_curriculum_version")) {
-    return new AssignmentError("invalid_curriculum_version");
+    return new AssignmentError("invalid_curriculum_version", options);
   }
   if (error.message?.includes("assignment_due_before_publish")) {
-    return new AssignmentError("invalid_input");
+    return new AssignmentError("invalid_input", options);
   }
   if (error.message?.includes("assignment_state_locked")) {
-    return new AssignmentError("invalid_assignment_state");
+    return new AssignmentError("invalid_assignment_state", options);
   }
   if (error.message?.includes("submission_locked")) {
-    return new AssignmentError("submission_locked");
+    return new AssignmentError("submission_locked", options);
   }
   if (error.message?.includes("assignment_invalid_class")) {
-    return new AssignmentError("invalid_input");
+    return new AssignmentError("invalid_input", options);
   }
   if (error.code === "23505") {
-    return new AssignmentError("duplicate_assignment_student");
+    return new AssignmentError("duplicate_assignment_student", options);
   }
-  if (error.code === "22023") return new AssignmentError("invalid_input");
-  if (error.code === "P0002") return new AssignmentError("not_found");
+  if (error.code === "22023") {
+    return new AssignmentError("invalid_input", options);
+  }
+  if (error.code === "P0002") {
+    return new AssignmentError("not_found", options);
+  }
   if (error.code === "42501") {
     if (error.message?.includes("authentication_required")) {
-      return new AssignmentError("not_authenticated");
+      return new AssignmentError("not_authenticated", options);
     }
     if (error.message?.includes("active_organization_required")) {
-      return new AssignmentError("organization_required");
+      return new AssignmentError("organization_required", options);
     }
-    return new AssignmentError("forbidden");
+    return new AssignmentError("forbidden", options);
   }
-  return new AssignmentError("service_unavailable");
+  return new AssignmentError("service_unavailable", options);
 }
 
 function mapOrganizationError(error: OrganizationError): AssignmentError {

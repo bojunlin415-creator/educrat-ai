@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-08-17 — TD-001：Assignment Dependency Runtime Bugfix
+
+### Runtime and RLS repair
+
+- 確認 Teacher Dashboard 的 `load_assignments → listAssignments → assignments` 失敗不是 UI、資料缺漏或 migration 未套用，而是 AS-001 的 `assignments_select_member` 與 `assignment_students_select_scoped` 互相查詢，觸發 PostgreSQL RLS recursion。
+- 新增並只套用至 `educrat-development` 的 forward-only migration `20260817134500_td001_fix_assignment_rls_recursion.sql`；以 tenant-scoped、fixed-search-path `SECURITY DEFINER` helper 取代 policy 內的交叉表查詢，保留 active membership、owner/admin/teacher、recipient、submission state 與跨租戶限制。
+- `AssignmentError` 現在保留原始 database error 作為 internal cause，使既有 Teacher Dashboard structured diagnostic 可記錄 SQLSTATE、message、details 與 hint；client 仍只收到安全的 `service_unavailable` 訊息。
+- 新增 migration recursion／tenant boundary 測試與 diagnostic cause 測試；未修改 UI、Assignment product rule、Classes／Students、LE-001 或既有 migration。
+
+### Environment boundary
+
+- Development project `gqurnljrvwyhruhutvni` 套用前 dry-run 僅列出本 migration；套用後 local／remote migration history 一致且 remote up to date。
+- Production 未操作；未 commit、push、deploy 或開始 LE-001 implementation。
+
 ## 2026-08-11 — CAP-001：Subject Capability Registry Foundation（Approved and Closed）
 
 ### Capability foundation

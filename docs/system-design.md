@@ -148,6 +148,7 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 ### Assignment Foundation（AS-001）
 
 - AS-001 建立教材派發 foundation。Assignment 固定綁定一個已發布的 `curriculum_version_id`，不得引用 `latest`，也不得修改 Published Curriculum Version。
+- TD-001 的 forward-only Assignment RLS correction 將 `assignments`／`assignment_students`／`assignment_submissions` policy 交叉查詢移至 tenant-scoped security-definer relationship helper，避免 policy recursion；helper 不取代 server-side organization/role validation，也不放寬 FORCE RLS。
 - `assignments` 保存派發 aggregate；`assignment_students` 保存每位學生的 `not_started`／`in_progress`／`submitted`／`overdue` 狀態；`assignment_submissions` 保存每位學生每份派發的一份 submission。
 - Teacher 可建立與管理自己建立的 assignment；Organization Owner/Admin 可管理機構內全部 assignment；Student 只能查看與提交自己的 assignment。跨 tenant 由 service layer 與 RLS fail closed。
 - AS-001 僅建立 API 與資料 foundation；不建立 Dashboard、Learning Analytics、AI 推薦、家長報表、Class／Enrollment persistence、通知或批改流程。

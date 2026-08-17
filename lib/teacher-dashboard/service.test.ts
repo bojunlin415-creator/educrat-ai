@@ -1,3 +1,4 @@
+import { AssignmentError } from "@/lib/assignment/errors";
 import { OrganizationError } from "@/lib/organization/errors";
 import {
   getTeacherDashboard,
@@ -265,7 +266,15 @@ describe("TD-001 teacher dashboard service", () => {
     installAccess();
     dependencyMocks.listTeacherClasses.mockResolvedValue([]);
     dependencyMocks.listAssignments.mockRejectedValue(
-      new Error("raw database connection failure"),
+      new AssignmentError("service_unavailable", {
+        cause: {
+          code: "42P17",
+          details: null,
+          hint: null,
+          message:
+            'infinite recursion detected in policy for relation "assignments"',
+        },
+      }),
     );
     dependencyMocks.listStudentAssignments.mockResolvedValue([]);
     installAuditMock();
@@ -280,5 +289,8 @@ describe("TD-001 teacher dashboard service", () => {
       "[teacher-dashboard] operation failed",
       expect.stringContaining("load_assignments"),
     );
+    expect(JSON.stringify(consoleSpy.mock.calls)).toContain("42P17");
+    expect(JSON.stringify(consoleSpy.mock.calls)).not.toContain("token");
+    expect(JSON.stringify(consoleSpy.mock.calls)).not.toContain("cookie");
   });
 });
