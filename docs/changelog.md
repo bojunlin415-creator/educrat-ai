@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-08-18 — LE-001 Phase 1–2：Learner & Enrollment Convergence
+
+Package status: **LE-001 Phase 1–2 — DEVELOPMENT VERIFIED**.
+
+### Read-only parity foundation
+
+- 新增 `lib/learner-convergence/`，以 `le-001.v1` strict snapshot、14 種 typed discrepancy、獨立 mismatch counts 與 immutable parity report 盤點 Profile-backed learner、canonical Student、legacy/canonical enrollment 與下游 identity dependencies。
+- Candidate detection 只使用 ID/relationship overlap 供 operator review；不以 Email、姓名、生日、學校、年級或學號自動連結。只有明確 `managed_accountless` 證據才分類 Managed Student，缺少標記時維持 `unspecified` 並回報 missing-link；ambiguous、cross-tenant 與 unknown input 全部 fail closed。
+- Legacy enrollment `active`／`left` 可明確對應 canonical 狀態；`inactive` 無 deterministic mapping，必須回報 discrepancy，不改寫歷史狀態。
+
+### Canonical Student↔Account link foundation
+
+- 新增 forward-only migration `20260818120000_le001_create_student_account_links.sql`，建立 tenant-scoped `student_account_links`、append-only minimal audit、有效期與 provenance、active-only unique constraints、ENABLE/FORCE RLS 及最小 grants。
+- 新增 fixed-search-path trusted RPC，只有 active Owner/Admin 可建立／撤銷 verified link；actor 與 active organization 由 server/database context 解析，client 不能提供 organization、status、verified actor 或 audit identity。
+- 新增無參數 self resolver與 server adapter；只有 authenticated Account＋active membership＋active organization＋單一有效 verified link 才回傳 canonical `students.id`。
+- `account_id` 暫以 `auth.users.id ON DELETE RESTRICT` 作 authority reference；不開放 `auth.users` 查詢，也不允許 Account deletion cascade 移除 Student/history。Person／tombstone runtime 完成前 Account hard delete 持續關閉。
+
+### Boundaries
+
+- 未執行真實歷史 backfill、Assignment／Submission／Analytics／Reporting／Teacher Dashboard／Guardian／Parent Portal consumer cutover或 Phase 3。
+- 未修改歷史 migration、未操作 Production、未 commit、push 或 deploy。Migration 已只套用 linked `educrat-development`／`gqurnljrvwyhruhutvni`；套用後 local/remote history 同步、dry-run 顯示 remote up to date，遠端確認兩張新 table 與七個 indexes。
+- Development rollback-only lifecycle verification：Owner／Admin 同租戶 create/revoke、linked／revoked／expired resolver、Student 與 Account-per-Organization active-link uniqueness、同 Account 跨 Organization、cross-tenant composite FK、Teacher／anonymous／ordinary authenticated isolation、append-only minimal audit 及 Account hard-delete restrict 均通過。SQLSTATE 分類為 `42501`／`23505`／`23503`／`P0002`；transaction 內 51 筆 fixture／audit rows 全數 rollback，剩餘 0。
+- Development live parity analyzer recheck：snapshot 只有 ID/status/count contract，觀測到 8 canonical Students、2 canonical enrollments、0 Account links／legacy enrollments／downstream legacy records、0 cross-tenant mismatch；typed analyzer 成功。未寫入歷史 link、未 backfill 或切換 consumer authority。
+
 ## 2026-08-17 — TD-001：Assignment Dependency Runtime Bugfix（VERIFIED）
 
 ### Runtime and RLS repair

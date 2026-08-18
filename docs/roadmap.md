@@ -43,11 +43,11 @@ Exit: Development database and runtime evidence recorded; unresolved 401/schema/
 
 ### LE-001 Canonical Learner & Enrollment Convergence
 
-- Define canonical Student↔Person↔Account linkage; managed learners may have no Account.
-- Define Class and Course Enrollment aggregate ownership and lifecycle.
-- Inventory Profile-based `class_enrollments`, assignments, submissions, learning events, mastery, recommendations, and guardians.
-- Add read-only parity adapter and discrepancy reporting before any dual write.
-- Design a forward-only migration/backfill/cutover; ambiguous identities fail closed.
+- Status: **LE-001 Phase 1–2 — DEVELOPMENT VERIFIED**.
+- Implemented typed discrepancy/parity reporting across Profile learners, canonical Students, legacy/canonical class enrollment and current downstream identity dependencies.
+- Implemented an additive, organization-scoped verified Student↔Account link foundation and no-argument self resolver; managed learners may have no Account.
+- Preserved `class_enrollments` and every current consumer authority. No historical backfill, dual-write, Course Enrollment, consumer cutover or legacy deletion was performed.
+- Phase 3 requires separate approval, deterministic operator-reviewed backfill and zero ambiguous/cross-tenant/unexplained ownership blockers before any authority switch.
 
 Exit: every learner-facing module can name its authoritative learner/enrollment ID and compatibility path.
 

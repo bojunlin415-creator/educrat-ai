@@ -353,6 +353,49 @@ export interface Database {
         };
         Relationships: [];
       };
+      student_account_links: {
+        Row: {
+          account_id: string;
+          correlation_id: string;
+          created_at: string;
+          created_by: string;
+          id: string;
+          link_type:
+            | "account_claim"
+            | "admin_verified"
+            | "manual_verified"
+            | "migration_verified";
+          organization_id: string;
+          status: "active" | "expired" | "pending" | "revoked";
+          student_id: string;
+          updated_at: string;
+          valid_from: string;
+          valid_to: string | null;
+          verified_at: string | null;
+          version: "le-001.v1";
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      student_account_link_audit_events: {
+        Row: {
+          account_id: string;
+          action:
+            "STUDENT_ACCOUNT_LINK_CREATED" | "STUDENT_ACCOUNT_LINK_REVOKED";
+          actor_id: string;
+          correlation_id: string;
+          created_at: string;
+          id: string;
+          link_id: string;
+          metadata: Json;
+          organization_id: string;
+          student_id: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       class_student_audit_events: {
         Row: {
           action:
@@ -1473,6 +1516,31 @@ export interface Database {
       };
       assign_organization_member_role: {
         Args: { p_membership_id: string; p_reason: string; p_role: string };
+        Returns: string;
+      };
+      create_verified_student_account_link: {
+        Args: {
+          p_account_id: string;
+          p_correlation_id?: string;
+          p_link_type: string;
+          p_student_id: string;
+        };
+        Returns: string;
+      };
+      get_learner_convergence_snapshot: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      resolve_canonical_student_for_authenticated_account: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      revoke_student_account_link: {
+        Args: {
+          p_correlation_id?: string;
+          p_link_id: string;
+          p_reason_code: string;
+        };
         Returns: string;
       };
       revoke_guardian_relationship: {

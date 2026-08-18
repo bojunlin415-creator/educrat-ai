@@ -260,6 +260,16 @@ S8V-001 已正面確認 linked target 為 `educrat-development`／`gqurnljrvwyhr
 
 靜態 review 另確認該 Migration 的 Student management policy 目前以 active staff／organization scope 為主，尚未把 Teacher 收斂至自己負責的 Class／Course。由於 Student row 含生日、性別、學校與學號等未成年資料，後續必須用新的 forward-only policy migration 加上 assigned-scope relationship 與跨班級測試；不得回頭改寫 Sprint 8 Migration，也不得在完成前宣稱 Teacher least-privilege 已滿足。
 
+### LE-001 Phase 1–2 additive link schema
+
+- `student_account_links` 只描述「此 Account 在此 Organization 是否可作為此 canonical Student identity」，不取代 Student lifecycle、Organization Membership 或 class enrollment。
+- composite FK `(student_id, organization_id)` 保證 tenant consistency；partial unique indexes限制每個 organization 內 Student 與 Account 各自只有一個 active link，但允許同 Account 在不同 organization 有獨立 verified context。
+- `account_id`、`created_by` 與 audit actor 暫時直接參照 `auth.users.id ON DELETE RESTRICT`。這不授予 authenticated 讀取 `auth.users`，並阻止 Account deletion cascade 破壞 link／Student history；未來 Person/tombstone package 必須先建立正式 reassignment 才能解除 hard-delete blocker。
+- `student_account_link_audit_events` 保存 controlled action、ID、correlation 與 minimal metadata；無 token、email、birthday 或 Student content。
+- direct authenticated mutation 全部撤銷；create/revoke 只可透過 fixed-search-path trusted RPC，並從 `auth.uid()` 與 active organization 解出權威 context。
+- `get_learner_convergence_snapshot()` 為 Owner/Admin-only read-only parity boundary；不執行 backfill。`resolve_canonical_student_for_authenticated_account()` 無 client identity parameters。
+- migration `20260818120000_le001_create_student_account_links.sql` 是 additive 且不更動歷史 migration；已只套用 `educrat-development`／`gqurnljrvwyhruhutvni`。套用後 history 同步、dry-run up to date，且 linked Development 驗證確認兩張 table、七個 indexes、ENABLE/FORCE RLS、最小 grants、tenant constraints 與 trusted RPC lifecycle；Production 未套用。
+
 現有 `profiles` 只有 own-row read policy；需要顯示其他成員／學生名稱的管理流程不可藉此放寬為全表 read。後續應建立 tenant-validated minimal projection 或 fixed-search-path RPC，只暴露業務所需欄位，並保留 `auth.users` 不可由 authenticated 直接查詢的邊界。
 
 ## 多租戶原則
