@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-08-18 — LE-001 Phase 3：Controlled Backfill & Enrollment Parity
+
+Package status: **LE-001 Phase 3 — DEVELOPMENT VERIFIED AND PACKAGE SEALED**.
+
+### Controlled operator foundation
+
+- 新增 repository-owned authoritative evidence classifier、五態 candidate outcome、immutable dry-run plan與 duplicate Account/Student/correlation safety gate；輸入沒有 Email、姓名、生日、學校、年級或學號。
+- 新增 server/operator-only Account-link backfill executor。只處理 `DETERMINISTIC_VERIFIED`，逐筆執行、exact link idempotent、active conflict fail closed，並要求 `migration_verified` provenance與相同 correlation的 audit receipt。
+- 新增 enrollment parity classifier與 deterministic legacy→canonical executor。只允許 `active → active`、`left → left`；legacy `inactive` 明確為 mismatch，不建立 canonical→legacy row。
+
+### Development review and boundaries
+
+- Linked target 正面確認為 `educrat-development`／`gqurnljrvwyhruhutvni`。Phase 3A live snapshot仍是8位 canonical Student、2筆 canonical enrollment、0 eligible Profile Student、0 Account link、0 legacy enrollment與0 cross-tenant mismatch。
+- 既有 roster actor audit不構成 learner identity authority；8位 Student均分類 `NO_VALID_CANDIDATE`，2筆 canonical-only membership均為 `IDENTITY_UNRESOLVED`。Account-link與Enrollment actual backfill count皆為0，Development資料未被Phase 3改寫。
+- 沒有Migration、Database schema、public API、UI、consumer authority、dual-read/write、legacy freeze或Production操作；Phase 4未開始。
+
 ## 2026-08-18 — LE-001 Phase 1–2：Learner & Enrollment Convergence
 
 Package status: **LE-001 Phase 1–2 — DEVELOPMENT VERIFIED**.

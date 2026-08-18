@@ -4,11 +4,12 @@
 
 ## LE-001：Canonical Learner & Enrollment Convergence
 
-- 狀態：**LE-001 Phase 1–2 — DEVELOPMENT VERIFIED**。
+- 狀態：**LE-001 Phase 1–2 — SEALED；Phase 3 — DEVELOPMENT VERIFIED AND PACKAGE SEALED**。
 - 已完成：`le-001.v1` typed discrepancy taxonomy、parity metrics、explicit enrollment-status compatibility、read-only tenant-admin snapshot、additive verified Student↔Account link schema、trusted create/revoke RPC、minimal link audit 與 typed self resolver。
 - Authority：未切換任何 consumer；`students.id`／`student_class_members.id` 是 future target，Profile-based learner／`class_enrollments` 仍為 current compatibility boundary。
 - 安全：無 heuristic auto-link、無 client organization/link authority、ENABLE/FORCE RLS、one-active-link tenant constraints、Account FK `ON DELETE RESTRICT`、不開放 `auth.users`、ambiguous/cross-tenant fail closed。
-- 下一 gate：Phase 3 必須另行核准，並以 deterministic review/backfill 與 parity 證據逐 consumer cutover；不得在本 Package 寫入歷史 link 或刪除 legacy structure。
+- Phase 3：新增 authoritative-evidence candidate classification、safe dry-run、idempotent/conflict-safe Account-link executor、enrollment parity 與 legacy→canonical backfill contract。Development 的 8 位 Student 均為 `NO_VALID_CANDIDATE`，2 筆 canonical-only membership 均 `IDENTITY_UNRESOLVED`，所以 real backfill count 為 0。
+- 下一 gate：Phase 4 Shadow Dual-Read & Consumer Parity 必須另行核准。Phase 3 未切換 consumer、未啟動 dual-read/write、未 freeze legacy write、未刪除 legacy structure。
 - Development：`20260818120000_le001_create_student_account_links.sql` 已只套用 `educrat-development`；history 同步且 post-apply dry-run 為 up to date。rollback-only 實測已驗證 Owner／Admin mutation、self resolver、revoke／expired、唯一性、multi-organization、cross-tenant、Teacher／anonymous／ordinary isolation、audit 與 Account delete protection；51 筆暫存 fixture／audit rows 已全部 rollback。Production 未操作。
 
 ## UX-001：Role Access, Navigation & Admin Control Completion

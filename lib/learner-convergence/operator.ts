@@ -1,4 +1,5 @@
-export { analyzeLearnerEnrollmentParity } from "@/lib/learner-convergence/application/analyze-parity";
+import "server-only";
+
 export {
   analyzeBackfillCandidates,
   classifyLearnerCandidate,
@@ -8,12 +9,8 @@ export {
   analyzeEnrollmentParity,
   executeDeterministicEnrollmentBackfill,
 } from "@/lib/learner-convergence/application/enrollment-parity";
-export { learnerParitySnapshotSchema } from "@/lib/learner-convergence/application/validation";
-export * from "@/lib/learner-convergence/domain/model";
-export * from "@/lib/learner-convergence/domain/phase-3";
-export { mapLegacyEnrollmentStatus } from "@/lib/learner-convergence/domain/status-compatibility";
+
 export type {
   CanonicalEnrollmentBackfillGateway,
   LearnerAccountLinkBackfillGateway,
 } from "@/lib/learner-convergence/interfaces/backfill-gateway";
-export type { LearnerParitySnapshotRepository } from "@/lib/learner-convergence/interfaces/snapshot-repository";

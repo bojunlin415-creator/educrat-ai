@@ -160,14 +160,17 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - `assignment_classes` 將 Assignment target 擴充為單一班級或多班級。班級派發時會把 active enrollments materialize 到 `assignment_students`，Assignment 仍固定綁定 published Curriculum Version，且不解析 `latest`。
 - CL-001 不建立 Attendance、Timetable、Learning Analytics、Dashboard、Parent Portal、AI Recommendation、批改或報表流程。
 
-### Learner & Enrollment Convergence（LE-001 Phase 1–2）
+### Learner & Enrollment Convergence（LE-001 Phase 1–3）
 
 - `students.id` 與 `student_class_members.id` 是 future canonical learner／class-enrollment authority；Profile-backed learner ID 與 `class_enrollments` 在 consumer parity/cutover 完成前仍是 compatibility boundary。
 - `lib/learner-convergence/` 提供 framework-neutral strict snapshot analyzer、typed discrepancy taxonomy、不可變 parity metrics 與 explicit legacy/canonical enrollment status contract。Candidate 只供人工審查，不能自動建立 identity authority。
 - `student_account_links` 將 authenticated Account 明確連至同 organization canonical Student；Managed Student 可以永久無 Account。只有一個 effective verified link 才能解析 Student self identity。
 - authoritative link mutation 經 tenant-scoped Owner/Admin RPC；resolver 不接受 client student/organization ID。兩張表皆 ENABLE/FORCE RLS，無 broad authenticated write，也不暴露 `auth.users`。
 - linked Development 的 rollback-only verification 已覆蓋 active create／revoke、expired、兩種 active-link uniqueness、multi-organization resolution、cross-tenant rejection、Teacher／anonymous／ordinary isolation、minimal audit 與 Account delete restriction；fixture 最終全部 rollback。live parity analyzer recheck 仍為 0 links、0 cross-tenant mismatch。
-- 本階段沒有歷史 backfill、dual-write、consumer cutover、Person merge、Student claim UI、Course Enrollment 或 Learning Passport。
+- Phase 3 新增 server/operator-only candidate classifier、immutable dry-run、link/enrollment gateway contract、idempotent execution 與 explicit conflict receipt；application/domain/interfaces 不依賴 React、Next.js、Supabase 或產品 consumer。
+- Candidate 只有 repository-owned authoritative evidence才可成為 `DETERMINISTIC_VERIFIED`；heuristic PII 不在輸入 contract。`MANAGED_ACCOUNTLESS` 也必須有明確 marker，缺證據一律 `NO_VALID_CANDIDATE`。
+- Enrollment parity 只允許 `active → active`、`left → left`；legacy `inactive` fail closed。Convergence 只由 legacy 指向 canonical，不反向 fabricated legacy Profile enrollment。
+- Development review 的 8 位 canonical Student 均無 authoritative Account evidence，2 筆 canonical-only membership 均 identity unresolved，故 Phase 3 沒有實際資料 write。Consumer authority、dual-read/write、legacy freeze、Person merge、Student claim UI、Course Enrollment 與 Learning Passport 均未開始。
 
 ### Student Learning Analytics Foundation（AN-001）
 

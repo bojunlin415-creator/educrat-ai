@@ -105,7 +105,7 @@ lib/parent-portal/ Parent-specific report projection、guardian-child boundary �
 lib/guardian-verification/ Guardian invitation、token hash、verified-email matching、consent 與 relationship activation service
 lib/access-control/ Owner/Admin access overview、role assignment boundary、trusted role context switch 與 safe API response
 lib/subjects/       版本化科目能力 taxonomy、canonical/legacy ID mapping、approved/available registry 與 fail-closed guard
-lib/learner-convergence/ LE-001 learner discrepancy／parity、status compatibility 與 canonical Student self-resolution boundary
+lib/learner-convergence/ LE-001 learner discrepancy／parity、controlled backfill planning、status compatibility 與 canonical Student self-resolution boundary
 lib/ai-curriculum/   無框架 AI 原創教材生成輸入、prompt、template、layout、validation 與 preview foundation
 lib/ai-generation/   AI provider、structured output、prompt/generation pipeline、validation、retry、usage 與 OpenAI Responses provider
 tests/e2e/           Playwright 測試
@@ -215,6 +215,7 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - [Capability Map](docs/product/capability-map.md)：Approved Product Capability Baseline
 - [CAP-001 Subject Capability Registry](docs/architecture/cap-001-subject-capability-registry.md)：`cap-001.v1` canonical subject、能力矩陣、目前可用性與 422 guard contract
 - [LE-001 Learner Convergence Phase 1–2](docs/architecture/le-001-learner-enrollment-convergence-phase-1-2.md)：read-only discrepancy／parity 與 organization-scoped verified Student↔Account link foundation；未 backfill 或切換 consumer authority
+- [LE-001 Phase 3 Controlled Backfill & Enrollment Parity](docs/architecture/le-001-phase-3-controlled-backfill-enrollment-parity.md)：server/operator-only deterministic candidate、dry-run、idempotent link/enrollment backfill contracts 與 Development 零寫入 review
 - [Event Catalog](docs/architecture/event-catalog.md)：Approved Contract Baseline — Not Implemented
 - [Lifecycle UX Guidelines](docs/product/lifecycle-ux-guidelines.md)：已核准的 Danger Zone、關閉精靈與回收桶 wireframe
 - [Platform Admin Governance](docs/security/platform-admin-governance.md)：已核准的跨租戶支援、PII 與高風險操作安全契約
@@ -250,6 +251,7 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - Sprint 8 Classes & Students：Foundation 與 forward-only hardening migration 已套用 `educrat-development`；Development catalog、rollback-only Owner／Admin／Teacher RLS、真實 Classes／Students Playwright E2E、完整 Vitest 與 production build 均已通過。Teacher Student PII assigned-scope 收斂與 legacy enrollment authority cutover 仍明確延後。
 - CAP-001：**Approved and Closed — Foundation Verified**；已建立 code-owned `cap-001.v1` Subject Capability Registry、`social`／`life` compatibility alias、approved／available 分離、Generation-Only negative gate、UI projection 與 structured 422 error。AI 生成與 PDF 匯出已使用 server-resolved subject code；無 Migration、DB、entitlement、CEFR、Knowledge Graph 或 intelligence engine。
 - **LE-001 Phase 1–2 — DEVELOPMENT VERIFIED**；已建立 typed learner/enrollment discrepancy、parity metrics、explicit status compatibility、additive verified Student↔Account link schema、trusted mutation RPC 與 self resolver。Development 的 rollback-only lifecycle／RLS／audit／tenant 驗證與 live parity analyzer 已通過；未做歷史 backfill、consumer cutover、Phase 3 或 Production 操作。
+- **LE-001 Phase 3 — DEVELOPMENT VERIFIED AND PACKAGE SEALED**；已建立 authoritative-evidence candidate classifier、immutable dry-run、idempotent/conflict-safe operator executor與 enrollment parity/backfill contract。Development 目前 8 位 Student 均無 authoritative Account evidence，2 筆 canonical-only membership 均 identity unresolved，因此沒有實際 backfill；consumer authority、dual-read/write 與 legacy freeze 均未開始。
 - AR-001：ADR-003、AI／Legal Reference Policy 與非破壞性 Display Adapter 已獲有條件核准並完成命名修正；資料庫 Migration 僅完成設計，尚未建立或套用。
 - AP-002：Platform Governance Foundation 與 Amendment 已取得 Final Architecture Approval；Identity Concept、ADR-004～007、Capability Map 與 Event Catalog 已成為核准基線。未建立 Migration、API、UI、Identity Framework、RBAC、Event Bus、Queue、Notification、Audit table、生命週期寫入、Platform Admin Console 或刪除功能。
 - AP-003A：Identity Domain Model 已取得 **Accepted — Architecture Approved**。尚未建立 Person／Persona／Account Link table、Migration、RLS、RPC、API、UI、Invite、Student／Guardian runtime、Platform role 或完整 RBAC；Account hard delete依正式安全政策維持關閉。

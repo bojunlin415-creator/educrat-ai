@@ -272,6 +272,14 @@ S8V-001 已正面確認 linked target 為 `educrat-development`／`gqurnljrvwyhr
 
 現有 `profiles` 只有 own-row read policy；需要顯示其他成員／學生名稱的管理流程不可藉此放寬為全表 read。後續應建立 tenant-validated minimal projection 或 fixed-search-path RPC，只暴露業務所需欄位，並保留 `auth.users` 不可由 authenticated 直接查詢的邊界。
 
+### LE-001 Phase 3 controlled backfill boundary
+
+- Phase 3 沒有新增 Migration、table、column、policy、grant 或 RPC，也沒有修改 `20260818120000_le001_create_student_account_links.sql`。
+- Backfill planner 只接受 repository-owned verified relationship ID；Email、姓名、生日、學校、年級與學號不在 authority input。
+- Development live review 顯示 8 位 canonical Student、0 eligible Profile Student、0 existing link、0 legacy enrollment、2 canonical enrollment、0 cross-tenant mismatch。Roster audit 的 Owner actor 只代表操作人，不能當作 Student identity。
+- 因此 Account-link deterministic set 與 legacy-to-canonical enrollment backfill set皆為 0；`student_account_links`、audit、`student_class_members` 與 `class_enrollments` 沒有 Phase 3 historical mutation。
+- Future concrete migration backfill adapter 必須使用受控 operator authority、`migration_verified` provenance 與 audit correlation receipt；不得讓一般 browser caller 自稱 migration provenance。Consumer authority、dual-read/write 與 legacy freeze 保持未開始。
+
 ## 多租戶原則
 
 - 機構資料以 `organization_id` 隔離，跨機構讀寫預設拒絕。

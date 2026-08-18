@@ -85,4 +85,14 @@ describe("LE-001 architecture", () => {
     for (const file of files) visit(file);
     expect(visited.size).toBe(files.length);
   });
+
+  it("keeps Phase 3 operator tooling outside public API and product routes", () => {
+    const operator = fs.readFileSync(path.join(root, "operator.ts"), "utf8");
+
+    expect(operator).toContain('import "server-only"');
+    expect(operator).not.toContain("@/app/");
+    expect(operator).not.toContain("@/lib/supabase/");
+    expect(operator).not.toContain("next/");
+    expect(operator).not.toContain("react");
+  });
 });
