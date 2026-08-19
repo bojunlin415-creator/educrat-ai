@@ -76,7 +76,7 @@ describe("LE-001 Phase 5 architecture boundary", () => {
     expect(contract).toContain("studentId");
   });
 
-  it("does not wire cutover planning into existing runtime consumers", () => {
+  it("wires only the approved Phase 5A Class roster control", () => {
     const roots = [
       "app",
       "lib/assignment",
@@ -88,14 +88,20 @@ describe("LE-001 Phase 5 architecture boundary", () => {
       "lib/guardian-verification",
       "lib/parent-portal",
     ].map((directory) => path.join(process.cwd(), directory));
-    const imports = roots
-      .flatMap(sourceFiles)
-      .flatMap(importsOf)
-      .filter((specifier) =>
-        specifier.startsWith("@/lib/learner-convergence/cutover"),
-      );
+    const imports = roots.flatMap(sourceFiles).flatMap((file) =>
+      importsOf(file)
+        .filter((specifier) =>
+          specifier.startsWith("@/lib/learner-convergence/cutover"),
+        )
+        .map((specifier) => ({ file, specifier })),
+    );
 
-    expect(imports).toEqual([]);
+    expect(imports).toEqual([
+      {
+        file: path.join(process.cwd(), "lib", "classroom", "roster.ts"),
+        specifier: "@/lib/learner-convergence/cutover/feature-controls",
+      },
+    ]);
   });
 
   it("has no circular production imports", () => {

@@ -43,11 +43,12 @@ Exit: Development database and runtime evidence recorded; unresolved 401/schema/
 
 ### LE-001 Canonical Learner & Enrollment Convergence
 
-- Status: **LE-001 Phase 1–2 — DEVELOPMENT VERIFIED**.
+- Status: **Phase 1–5 SEALED; Phase 5A Class Roster canonical-primary with legacy fallback implemented and Development verified**.
 - Implemented typed discrepancy/parity reporting across Profile learners, canonical Students, legacy/canonical class enrollment and current downstream identity dependencies.
 - Implemented an additive, organization-scoped verified Student↔Account link foundation and no-argument self resolver; managed learners may have no Account.
 - Preserved `class_enrollments` and every current consumer authority. No historical backfill, dual-write, Course Enrollment, consumer cutover or legacy deletion was performed.
 - Phase 3 requires separate approval, deterministic operator-reviewed backfill and zero ambiguous/cross-tenant/unexplained ownership blockers before any authority switch.
+- Phase 5A cuts over only Class detail roster reads. `CANONICAL_ONLY` waits for safe live Admin and assigned/unassigned Teacher fixtures; Phase 5B is not started.
 
 Exit: every learner-facing module can name its authoritative learner/enrollment ID and compatibility path.
 

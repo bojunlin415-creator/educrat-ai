@@ -179,6 +179,8 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - Phase 5 Development評估將Class read/detail從generic identity blocker細分為`BLOCKED_SECURITY`（缺Teacher assigned-class minimal adapter）；Teacher Dashboard／Reporting維持`BLOCKED_IDENTITY`，其他無資料consumer維持`NOT_READY`。沒有consumer升級至shadow/dual-read/cutover ready。
 - Teacher Dashboard拆為class、assignment、submission、analytics、reporting與alerts/recommendations六個獨立population；Phase 5B只處理class learner population。Reporting Phase 5C只處理learner-key compatibility，完整canonical report仍受Assignment與Learning Event依賴阻擋。
 - Phase 5沒有Migration、schema、RLS、RPC、backfill、dual-write、cutover、legacy freeze或destructive cleanup；所有rollback均以future authority control與compatibility adapter完成，不刪除歷史資料。
+- Phase 5A 僅將 Class detail GET roster 切至 `students` + `student_class_members`的 minimal projection。Server 先解出 authenticated actor、active organization/membership 與 Class tenant；Teacher 只允許讀取自己負責的 active Class，Owner/Admin 只能讀取 active organization 內 Class。
+- Phase 5A 選定 `CANONICAL_PRIMARY_LEGACY_FALLBACK`；只在 canonical runtime/service exception 時 fallback，不因 count difference 或 empty roster fallback，也不 merge。`LEGACY_ONLY` 是無資料寫入的立即 rollback。Teacher Dashboard、Reporting、Assignment、Submission、Analytics、Guardian/Parent 維持既有 authority。
 
 ### Student Learning Analytics Foundation（AN-001）
 

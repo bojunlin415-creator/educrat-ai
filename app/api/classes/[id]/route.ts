@@ -3,7 +3,8 @@ import {
   classroomSuccess,
   parseClassroomJson,
 } from "@/lib/classroom/api";
-import { archiveClass, getClass, updateClass } from "@/lib/classroom/service";
+import { archiveClass, updateClass } from "@/lib/classroom/service";
+import { getCanonicalClassRosterDetail } from "@/lib/classroom/roster";
 import { observeLearnerShadowConsumer } from "@/lib/learner-convergence/server";
 import { updateClassSchema } from "@/lib/validation/classroom";
 
@@ -14,13 +15,13 @@ interface RouteContext {
 export async function GET(_request: Request, context: RouteContext) {
   const { id } = await context.params;
   try {
-    const classroom = await getClass(id);
+    const rosterRead = await getCanonicalClassRosterDetail(id);
     await observeLearnerShadowConsumer({
       consumer: "class_read_detail",
-      scope: { classIds: [classroom.id] },
+      scope: { classIds: [rosterRead.class.id] },
     });
     return Response.json(
-      classroomSuccess("班級資料已載入。", { class: classroom }),
+      classroomSuccess("班級資料已載入。", { class: rosterRead.class }),
     );
   } catch (error: unknown) {
     return classroomErrorResponse(error);

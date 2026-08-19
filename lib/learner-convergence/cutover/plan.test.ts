@@ -28,6 +28,17 @@ describe("LE-001 Phase 5 cutover plan", () => {
     }
   });
 
+  it("advances only the Phase 5A class roster control", () => {
+    expect(
+      LEARNER_CUTOVER_CONTROLS.learner_class_roster_canonical_read.selectedMode,
+    ).toBe("CANONICAL_PRIMARY_LEGACY_FALLBACK");
+    expect(
+      Object.entries(LEARNER_CUTOVER_CONTROLS)
+        .filter(([key]) => key !== "learner_class_roster_canonical_read")
+        .every(([, control]) => control.selectedMode === "LEGACY_ONLY"),
+    ).toBe(true);
+  });
+
   it("keeps Account-link requirements consumer-specific", () => {
     expect(
       LEARNER_CONSUMER_CUTOVER_PLANS.class_read_detail.accountLinkRequirement,

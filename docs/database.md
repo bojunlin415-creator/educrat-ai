@@ -296,6 +296,13 @@ S8V-001 已正面確認 linked target 為 `educrat-development`／`gqurnljrvwyhr
 - Class roster與Assignment targeting可支援managed/accountless Student；Submission self resolver仍要求active organization內唯一有效verified Account link。Guardian relationship不以Account link取代或自動建立。
 - Future least-privilege adapter只可提供tenant、Student／Enrollment／Link／Relationship technical ID與status；不開放Profile PII、`auth.users`、token、credential或broader Teacher organization roster。
 
+### LE-001 Phase 5A Class roster read boundary
+
+- **No Migration**：Phase 5A 沒有新增或修改 table、column、index、constraint、RLS、grant、function、trigger 或歷史 migration。
+- Class detail canonical roster 先以 active organization 與 Class tenant 限定 `student_class_members`，只讀 `status = active`，再以單一 batched `students.id IN (...)` 取得 minimal projection；無 per-Student query、Profile query、Account-link query 或 `auth.users` read。
+- Existing canonical Student RLS 尚有 organization-wide active staff scope；Phase 5A 不將其宣稱為 Teacher product authority。Class detail server adapter 會在讀 roster 前額外驗證 assigned active Class，一般 Student table RLS 收旂仍留待獨立 forward-only hardening package。
+- Linked Development read-only evidence 為 canonical enrollment 2、legacy 0、expected managed canonical-only 2，unexpected/tenant/identity/status/shadow error 全部 0；目前 active canonical roster 0。未 backfill、未寫入 fixture、Production 未操作。
+
 ## 多租戶原則
 
 - 機構資料以 `organization_id` 隔離，跨機構讀寫預設拒絕。

@@ -4,14 +4,15 @@
 
 ## LE-001：Canonical Learner & Enrollment Convergence
 
-- 狀態：**LE-001 Phase 1–2 — SEALED；Phase 3 — SEALED；Phase 4 — SEALED；Phase 5 — Consumer Authority Cutover Planning & Readiness Gates**。
+- 狀態：**LE-001 Phase 1–5 — SEALED；Phase 5A — Class Roster Canonical Primary with Legacy Fallback, Development Verified**。
 - 已完成：`le-001.v1` typed discrepancy taxonomy、parity metrics、explicit enrollment-status compatibility、read-only tenant-admin snapshot、additive verified Student↔Account link schema、trusted create/revoke RPC、minimal link audit 與 typed self resolver。
-- Authority：未切換任何 consumer；`students.id`／`student_class_members.id` 是 future target，Profile-based learner／`class_enrollments` 仍為 current compatibility boundary。
+- Authority：僅 Class detail GET roster 已切至 `students.id`／`student_class_members.id`；其他 consumer 的 Profile-based learner／`class_enrollments` 仍為 current compatibility boundary。
 - 安全：無 heuristic auto-link、無 client organization/link authority、ENABLE/FORCE RLS、one-active-link tenant constraints、Account FK `ON DELETE RESTRICT`、不開放 `auth.users`、ambiguous/cross-tenant fail closed。
 - Phase 3：新增 authoritative-evidence candidate classification、safe dry-run、idempotent/conflict-safe Account-link executor、enrollment parity 與 legacy→canonical backfill contract。Development 的 8 位 Student 均為 `NO_VALID_CANDIDATE`，2 筆 canonical-only membership 均 `IDENTITY_UNRESOLVED`，所以 real backfill count 為 0。
 - Phase 4：十個consumer共用default-disabled shadow parity、typed readiness、單一batched snapshot與privacy-safe diagnostics；Class／Teacher Dashboard／Reporting目前為`BLOCKED_IDENTITY`，其他consumer因無資料為`NOT_READY`。Legacy response與authority不變。
 - Phase 5：新增`le-001.cutover.v1` 11態readiness、global gates、consumer dependency graph、5A～5J package order、11個default-legacy controls、managed/accountless policy與四種least-privilege snapshot projection。Class roster不要求Account link，但因Teacher scoped adapter與fixtures缺漏為`BLOCKED_SECURITY`；Teacher Dashboard／Reporting為`BLOCKED_IDENTITY`，其餘為`NOT_READY`。
-- 下一 gate：建議第一個real package為LE-001-5A Class Roster Canonical Read Cutover，但不得自動開始。Phase 5B只切Dashboard class population，Phase 5C只建立Reporting learner-key compatibility；full aggregate仍受後續dependencies阻擋。Dual-write、runtime cutover、legacy freeze與destructive cleanup仍未開始。
+- Phase 5A：Owner/Admin tenant scope、assigned active Teacher、cross-tenant/inactive denial、managed/accountless、fallback/rollback 與 no-N+1 測試完成。Development 實際 Owner/cross-tenant 通過，無安全 Admin/Teacher fixture，故維持 `CANONICAL_PRIMARY_LEGACY_FALLBACK`不升級 `CANONICAL_ONLY`。
+- 下一 gate：Phase 5B 只切 Dashboard class population，但未自動開始。Phase 5C 只建立 Reporting learner-key compatibility；full aggregate仍受後續 dependencies 阻擋。Dual-write、legacy freeze 與 destructive cleanup 仍未開始。
 - Development：`20260818120000_le001_create_student_account_links.sql` 已只套用 `educrat-development`；history 同步且 post-apply dry-run 為 up to date。rollback-only 實測已驗證 Owner／Admin mutation、self resolver、revoke／expired、唯一性、multi-organization、cross-tenant、Teacher／anonymous／ordinary isolation、audit 與 Account delete protection；51 筆暫存 fixture／audit rows 已全部 rollback。Production 未操作。
 
 ## UX-001：Role Access, Navigation & Admin Control Completion

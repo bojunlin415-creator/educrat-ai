@@ -10,6 +10,9 @@ const serviceMocks = vi.hoisted(() => ({
   removeStudent: vi.fn(),
   updateClass: vi.fn(),
 }));
+const rosterMocks = vi.hoisted(() => ({
+  getCanonicalClassRosterDetail: vi.fn(),
+}));
 const shadowMocks = vi.hoisted(() => ({
   observeLearnerShadowConsumer: vi.fn().mockResolvedValue({
     outcome: "DISABLED",
@@ -18,6 +21,7 @@ const shadowMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/classroom/service", () => serviceMocks);
+vi.mock("@/lib/classroom/roster", () => rosterMocks);
 vi.mock("@/lib/learner-convergence/server", () => shadowMocks);
 
 const classId = "10000000-0000-4000-8000-000000000010";
@@ -31,16 +35,44 @@ describe("CL-001 class detail API", () => {
   afterEach(() => vi.clearAllMocks());
 
   it("loads class detail by id", async () => {
-    serviceMocks.getClass.mockResolvedValue({ id: classId });
+    rosterMocks.getCanonicalClassRosterDetail.mockResolvedValue({
+      authority: "CANONICAL",
+      class: { id: classId },
+      fallbackUsed: false,
+      mode: "CANONICAL_PRIMARY_LEGACY_FALLBACK",
+    });
     const response = await GET(
       new Request(`http://localhost/api/classes/${classId}`),
       routeContext,
     );
     expect(response.status).toBe(200);
-    expect(serviceMocks.getClass).toHaveBeenCalledWith(classId);
+    expect(rosterMocks.getCanonicalClassRosterDetail).toHaveBeenCalledWith(
+      classId,
+    );
     expect(shadowMocks.observeLearnerShadowConsumer).toHaveBeenCalledWith({
       consumer: "class_read_detail",
       scope: { classIds: [classId] },
+    });
+    expect(await response.json()).toEqual({
+      class: { id: classId },
+      message: "班級資料已載入。",
+      success: true,
+    });
+  });
+
+  it("maps anonymous roster access to 401 without authority metadata", async () => {
+    rosterMocks.getCanonicalClassRosterDetail.mockRejectedValue(
+      new ClassroomError("not_authenticated"),
+    );
+    const response = await GET(
+      new Request(`http://localhost/api/classes/${classId}`),
+      routeContext,
+    );
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({
+      code: "not_authenticated",
+      message: "請先登入後再管理班級。",
+      success: false,
     });
   });
 

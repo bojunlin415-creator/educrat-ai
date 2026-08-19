@@ -9,6 +9,17 @@ export {
   executeDeterministicEnrollmentBackfill,
 } from "@/lib/learner-convergence/application/enrollment-parity";
 export { learnerParitySnapshotSchema } from "@/lib/learner-convergence/application/validation";
+export { decideClassRosterAccess } from "@/lib/learner-convergence/class-roster/access";
+export {
+  readClassRosterByAuthority,
+  resolveClassRosterAuthorityMode,
+} from "@/lib/learner-convergence/class-roster/authority";
+export * from "@/lib/learner-convergence/class-roster/domain";
+export {
+  ClassRosterSourceError,
+  isCanonicalRosterRuntimeFailure,
+} from "@/lib/learner-convergence/class-roster/errors";
+export { compareClassRosterAuthorities } from "@/lib/learner-convergence/class-roster/parity";
 export { evaluatePhase4DevelopmentReadiness } from "@/lib/learner-convergence/cutover/development-readiness";
 export {
   LEARNER_CUTOVER_DEPENDENCY_GRAPH,

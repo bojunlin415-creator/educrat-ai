@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-19 — LE-001 Phase 5A：Class Roster Canonical Read Cutover
+
+Package status: **Development Verified — Canonical Primary with Legacy Fallback**.
+
+- 僅將 `GET /api/classes/[id]` 的 roster read 切至 canonical `student_class_members` + `students`；Class mutations、Teacher Dashboard、Assignment、Submission、Analytics、Reporting、Guardian/Parent 維持既有 authority。
+- 新增 assigned-active-Class Teacher gate、Owner/Admin active-organization gate、minimal Student projection、active/left semantics、batched query、managed/accountless parity 與 privacy-safe structured observation。不讀 `auth.users`、Profile 或 Account Link，不回傳 birthday、gender、school 或 guardian data。
+- `learner_class_roster_canonical_read` 選定 `CANONICAL_PRIMARY_LEGACY_FALLBACK`。只有 canonical runtime failure 觸發 fallback；empty/count difference 不 fallback，`LEGACY_ONLY` 可無資料修改立即 rollback，invalid override 安全回到 legacy-only。
+- Development 只讀 evidence：canonical 2、legacy 0、expected managed canonical-only 2、unexpected/tenant/identity/status/shadow error 全為 0，active roster 0。真實 E2E 通過 anonymous 401、Owner tenant read、minimal projection 與 second-tenant 404。
+- Development 無安全 Admin 或 assigned/unassigned Teacher fixture，因此 live 驗證標記 `NOT EXECUTED — FIXTURE UNAVAILABLE`，`CANONICAL_ONLY` 不開放；deterministic security tests 已覆蓋這些角色邊界。
+- 無 Migration、schema、RLS、grant、RPC、backfill、dual-write、Production 操作、deploy 或 Phase 5B。
+
 ## 2026-08-19 — LE-001 Phase 5：Consumer Authority Cutover Planning & Readiness Gates
 
 Package status: **Consumer Authority Cutover Planning & Readiness Gates**.

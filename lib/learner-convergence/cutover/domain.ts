@@ -161,6 +161,7 @@ export interface LearnerCutoverControlDefinition {
   readonly key: LearnerCutoverControlKey;
   readonly modes: readonly LearnerCutoverControlMode[];
   readonly ownerPackage: LearnerCutoverPackageId;
+  readonly selectedMode: LearnerCutoverControlMode;
 }
 
 export const LEARNER_CUTOVER_PACKAGE_IDS = [

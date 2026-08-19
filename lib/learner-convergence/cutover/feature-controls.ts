@@ -5,12 +5,17 @@ import {
 } from "@/lib/learner-convergence/cutover/domain";
 
 function control(
-  definition: Omit<LearnerCutoverControlDefinition, "defaultMode" | "modes">,
+  definition: Omit<
+    LearnerCutoverControlDefinition,
+    "defaultMode" | "modes" | "selectedMode"
+  > &
+    Partial<Pick<LearnerCutoverControlDefinition, "selectedMode">>,
 ): LearnerCutoverControlDefinition {
   return Object.freeze({
     ...definition,
     defaultMode: "LEGACY_ONLY",
     modes: Object.freeze([...LEARNER_CUTOVER_CONTROL_MODES]),
+    selectedMode: definition.selectedMode ?? "LEGACY_ONLY",
   });
 }
 
@@ -32,6 +37,7 @@ export const LEARNER_CUTOVER_CONTROLS: Readonly<
   learner_class_roster_canonical_read: control({
     key: "learner_class_roster_canonical_read",
     ownerPackage: "LE-001-5A",
+    selectedMode: "CANONICAL_PRIMARY_LEGACY_FALLBACK",
   }),
   learner_guardian_canonical_child: control({
     key: "learner_guardian_canonical_child",

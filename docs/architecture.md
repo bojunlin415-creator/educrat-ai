@@ -362,7 +362,7 @@ No textbook OCR, full-text storage, embedding, prompt injection, near-copy rewri
 
 1. **S8V-001 — completed**: Development migration, catalog, rollback-only security checks, real authenticated API/UI E2E, and audit evidence were verified without Production changes.
 2. **CAP-001 — approved and closed, foundation verified**: `cap-001.v1` profiles, approved/available separation, fail-closed guard, generation/export integration, and matrix/import-boundary tests are present without a database table.
-3. **LE-001 — recommended next, not started**: define Student↔Person/Account linkage and Class/Course Enrollment authority, inventory all Profile-based consumers, implement read-only parity/adapters first, and propose (not silently execute) a forward-only backfill/cutover package.
+3. **LE-001 — Phase 5A in verified cutover rollout**: Phase 1–5 are sealed; Class detail roster now uses canonical Student/membership reads with assigned-Teacher scope and legacy fallback. All later consumers and Phase 5B remain unstarted.
 
 The Academic Reference Spine becomes the following package after these three gates.
 
