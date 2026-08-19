@@ -12,8 +12,15 @@ const serviceMocks = vi.hoisted(() => ({
   getParentStudentReport: vi.fn(),
   listParentChildren: vi.fn(),
 }));
+const shadowMocks = vi.hoisted(() => ({
+  observeLearnerShadowConsumer: vi.fn().mockResolvedValue({
+    outcome: "DISABLED",
+    result: null,
+  }),
+}));
 
 vi.mock("@/lib/parent-portal/service", () => serviceMocks);
+vi.mock("@/lib/learner-convergence/server", () => shadowMocks);
 
 const studentId = "10000000-0000-4000-8000-000000000004";
 
@@ -59,6 +66,22 @@ describe("PP-001 parent portal API", () => {
     const text = await response.text();
     expect(text).not.toContain("PostgreSQL");
     expect(text).not.toContain("stack");
+  });
+
+  it("observes only the already-authorized child summary", async () => {
+    serviceMocks.getParentStudentReport.mockResolvedValue({
+      child: { studentId },
+    });
+
+    const response = await getSummary(new Request("http://localhost"), {
+      params: Promise.resolve({ studentId }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(shadowMocks.observeLearnerShadowConsumer).toHaveBeenCalledWith({
+      consumer: "guardian_parent_portal",
+      scope: { legacyAccountIds: [studentId] },
+    });
   });
 
   it("loads children, assignments, and recommendations endpoints", async () => {

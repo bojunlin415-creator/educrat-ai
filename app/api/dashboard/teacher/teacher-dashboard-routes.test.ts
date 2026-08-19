@@ -10,8 +10,15 @@ const serviceMocks = vi.hoisted(() => ({
   getTeacherDashboardInsights: vi.fn(),
   getTeacherDashboardStudents: vi.fn(),
 }));
+const shadowMocks = vi.hoisted(() => ({
+  observeLearnerShadowConsumer: vi.fn().mockResolvedValue({
+    outcome: "DISABLED",
+    result: null,
+  }),
+}));
 
 vi.mock("@/lib/teacher-dashboard/service", () => serviceMocks);
+vi.mock("@/lib/learner-convergence/server", () => shadowMocks);
 
 const classId = "10000000-0000-4000-8000-000000000003";
 
@@ -29,6 +36,10 @@ describe("TD-001 teacher dashboard API", () => {
 
     expect(response.status).toBe(200);
     expect(serviceMocks.getTeacherDashboard).toHaveBeenCalledWith({ classId });
+    expect(shadowMocks.observeLearnerShadowConsumer).toHaveBeenCalledWith({
+      consumer: "teacher_dashboard",
+      scope: { classIds: [classId], legacyAccountIds: undefined },
+    });
     expect(await response.json()).toEqual(
       expect.objectContaining({
         dashboard: expect.objectContaining({

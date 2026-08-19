@@ -4,6 +4,7 @@ import {
   parseAssignmentJson,
 } from "@/lib/assignment/api";
 import { getAssignment, updateAssignment } from "@/lib/assignment/service";
+import { observeLearnerShadowConsumer } from "@/lib/learner-convergence/server";
 import { updateAssignmentSchema } from "@/lib/validation/assignment";
 
 interface RouteContext {
@@ -14,6 +15,10 @@ export async function GET(_request: Request, context: RouteContext) {
   const { id } = await context.params;
   try {
     const assignment = await getAssignment(id);
+    await observeLearnerShadowConsumer({
+      consumer: "assignment_recipients",
+      scope: { assignmentIds: [assignment.id] },
+    });
     return Response.json(assignmentSuccess("派發資料已載入。", { assignment }));
   } catch (error: unknown) {
     return assignmentErrorResponse(error);

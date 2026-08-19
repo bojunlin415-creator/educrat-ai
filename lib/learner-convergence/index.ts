@@ -12,6 +12,16 @@ export { learnerParitySnapshotSchema } from "@/lib/learner-convergence/applicati
 export * from "@/lib/learner-convergence/domain/model";
 export * from "@/lib/learner-convergence/domain/phase-3";
 export { mapLegacyEnrollmentStatus } from "@/lib/learner-convergence/domain/status-compatibility";
+export {
+  analyzeLearnerShadowConsumer,
+  analyzeLearnerShadowSuite,
+} from "@/lib/learner-convergence/shadow/analyze";
+export * from "@/lib/learner-convergence/shadow/domain";
+export { preserveLegacyResult } from "@/lib/learner-convergence/shadow/run";
+export type {
+  LearnerShadowDiagnosticSink,
+  LearnerShadowSnapshotProvider,
+} from "@/lib/learner-convergence/shadow/interfaces";
 export type {
   CanonicalEnrollmentBackfillGateway,
   LearnerAccountLinkBackfillGateway,

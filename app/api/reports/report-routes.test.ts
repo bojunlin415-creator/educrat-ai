@@ -10,8 +10,15 @@ const serviceMocks = vi.hoisted(() => ({
   getStudentReport: vi.fn(),
   getTeacherReport: vi.fn(),
 }));
+const shadowMocks = vi.hoisted(() => ({
+  observeLearnerShadowConsumer: vi.fn().mockResolvedValue({
+    outcome: "DISABLED",
+    result: null,
+  }),
+}));
 
 vi.mock("@/lib/reporting/service", () => serviceMocks);
+vi.mock("@/lib/learner-convergence/server", () => shadowMocks);
 
 describe("RP-001 reporting API", () => {
   afterEach(() => vi.clearAllMocks());
@@ -37,6 +44,12 @@ describe("RP-001 reporting API", () => {
         success: true,
       }),
     );
+    expect(shadowMocks.observeLearnerShadowConsumer).toHaveBeenCalledWith({
+      consumer: "reporting",
+      scope: {
+        legacyAccountIds: ["10000000-0000-4000-8000-000000000001"],
+      },
+    });
   });
 
   it("rejects malformed teacher report input before service access", async () => {

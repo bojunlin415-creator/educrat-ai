@@ -10,8 +10,15 @@ const serviceMocks = vi.hoisted(() => ({
   removeStudent: vi.fn(),
   updateClass: vi.fn(),
 }));
+const shadowMocks = vi.hoisted(() => ({
+  observeLearnerShadowConsumer: vi.fn().mockResolvedValue({
+    outcome: "DISABLED",
+    result: null,
+  }),
+}));
 
 vi.mock("@/lib/classroom/service", () => serviceMocks);
+vi.mock("@/lib/learner-convergence/server", () => shadowMocks);
 
 const classId = "10000000-0000-4000-8000-000000000010";
 const studentId = "10000000-0000-4000-8000-000000000011";
@@ -31,6 +38,10 @@ describe("CL-001 class detail API", () => {
     );
     expect(response.status).toBe(200);
     expect(serviceMocks.getClass).toHaveBeenCalledWith(classId);
+    expect(shadowMocks.observeLearnerShadowConsumer).toHaveBeenCalledWith({
+      consumer: "class_read_detail",
+      scope: { classIds: [classId] },
+    });
   });
 
   it("updates class through service boundary", async () => {

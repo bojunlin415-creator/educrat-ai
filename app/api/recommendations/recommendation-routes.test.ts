@@ -10,24 +10,44 @@ const serviceMocks = vi.hoisted(() => ({
   getStudentRecommendations: vi.fn(),
   getWeakKnowledge: vi.fn(),
 }));
+const shadowMocks = vi.hoisted(() => ({
+  observeLearnerShadowConsumer: vi.fn().mockResolvedValue({
+    outcome: "DISABLED",
+    result: null,
+  }),
+}));
 
 vi.mock("@/lib/adaptive-learning/service", () => serviceMocks);
+vi.mock("@/lib/learner-convergence/server", () => shadowMocks);
 
 describe("AI-002 recommendation API", () => {
   afterEach(() => vi.clearAllMocks());
 
   it("loads student recommendations through the service boundary", async () => {
-    serviceMocks.getStudentRecommendations.mockResolvedValue([{ id: "rec-1" }]);
+    serviceMocks.getStudentRecommendations.mockResolvedValue([
+      { id: "rec-1", student_id: "10000000-0000-4000-8000-000000000001" },
+    ]);
     const response = await getStudentRecommendations(
       new Request("http://localhost/api/recommendations/student"),
     );
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual(
       expect.objectContaining({
-        recommendations: [{ id: "rec-1" }],
+        recommendations: [
+          expect.objectContaining({
+            id: "rec-1",
+            student_id: "10000000-0000-4000-8000-000000000001",
+          }),
+        ],
         success: true,
       }),
     );
+    expect(shadowMocks.observeLearnerShadowConsumer).toHaveBeenCalledWith({
+      consumer: "adaptive_recommendations",
+      scope: {
+        legacyAccountIds: ["10000000-0000-4000-8000-000000000001"],
+      },
+    });
   });
 
   it("validates recommendation query before service", async () => {

@@ -4,6 +4,7 @@ import {
   reportingSuccess,
 } from "@/lib/reporting/api";
 import { getStudentReport } from "@/lib/reporting/service";
+import { observeLearnerShadowConsumer } from "@/lib/learner-convergence/server";
 import { studentReportQuerySchema } from "@/lib/validation/reporting";
 
 export async function GET(request: Request) {
@@ -12,6 +13,14 @@ export async function GET(request: Request) {
 
   try {
     const report = await getStudentReport(parsed.data);
+    await observeLearnerShadowConsumer({
+      consumer: "reporting",
+      scope: {
+        legacyAccountIds: parsed.data.studentId
+          ? [parsed.data.studentId]
+          : [report.studentId],
+      },
+    });
     return Response.json(reportingSuccess("學生報表已載入。", { report }));
   } catch (error: unknown) {
     return reportingErrorResponse(error);

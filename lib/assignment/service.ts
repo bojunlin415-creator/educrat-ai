@@ -4,6 +4,7 @@ import type { User } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { getCurrentUser } from "@/lib/auth/session";
 import { AssignmentError } from "@/lib/assignment/errors";
+import { observeLearnerShadowConsumer } from "@/lib/learner-convergence/server";
 import { createClient } from "@/lib/supabase/server";
 import {
   requireOrganizationMembership,
@@ -463,6 +464,14 @@ async function assignClasses(
   if (enrollmentError) throw mapDatabaseError(enrollmentError);
 
   const studentIds = [...new Set(enrollments.map((row) => row.student_id))];
+  await observeLearnerShadowConsumer({
+    consumer: "assignment_class_expansion",
+    scope: {
+      assignmentIds: [assignmentId],
+      classIds: classes.map((classroom) => classroom.id),
+      legacyAccountIds: studentIds,
+    },
+  });
   if (studentIds.length > 0) {
     await assignStudents(assignmentId, { studentIds });
   }

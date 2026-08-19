@@ -160,7 +160,7 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - `assignment_classes` 將 Assignment target 擴充為單一班級或多班級。班級派發時會把 active enrollments materialize 到 `assignment_students`，Assignment 仍固定綁定 published Curriculum Version，且不解析 `latest`。
 - CL-001 不建立 Attendance、Timetable、Learning Analytics、Dashboard、Parent Portal、AI Recommendation、批改或報表流程。
 
-### Learner & Enrollment Convergence（LE-001 Phase 1–3）
+### Learner & Enrollment Convergence（LE-001 Phase 1–4）
 
 - `students.id` 與 `student_class_members.id` 是 future canonical learner／class-enrollment authority；Profile-backed learner ID 與 `class_enrollments` 在 consumer parity/cutover 完成前仍是 compatibility boundary。
 - `lib/learner-convergence/` 提供 framework-neutral strict snapshot analyzer、typed discrepancy taxonomy、不可變 parity metrics 與 explicit legacy/canonical enrollment status contract。Candidate 只供人工審查，不能自動建立 identity authority。
@@ -171,6 +171,9 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - Candidate 只有 repository-owned authoritative evidence才可成為 `DETERMINISTIC_VERIFIED`；heuristic PII 不在輸入 contract。`MANAGED_ACCOUNTLESS` 也必須有明確 marker，缺證據一律 `NO_VALID_CANDIDATE`。
 - Enrollment parity 只允許 `active → active`、`left → left`；legacy `inactive` fail closed。Convergence 只由 legacy 指向 canonical，不反向 fabricated legacy Profile enrollment。
 - Development review 的 8 位 canonical Student 均無 authoritative Account evidence，2 筆 canonical-only membership 均 identity unresolved，故 Phase 3 沒有實際資料 write。Consumer authority、dual-read/write、legacy freeze、Person merge、Student claim UI、Course Enrollment 與 Learning Passport 均未開始。
+- Phase 4 在 `lib/learner-convergence/shadow/` 建立共用、不可變的 consumer parity analyzer與 readiness classifier，並依 Class、Teacher Dashboard、Assignment、Submission、Analytics、Adaptive、Reporting、Guardian順序接入 default-disabled shadow observation。每個 request 最多讀取一次 Owner/Admin-only aggregate snapshot；unexpected failure只記錄 sanitized metric，不影響 legacy response。
+- Development live matrix正確顯示 Class／Teacher Dashboard／Reporting因2筆 canonical-only enrollment與0 verified link而為 `BLOCKED_IDENTITY`；其他 consumer沒有相關資料，明確為`NO_DATA/NOT_READY`。Teacher／Student／Guardian least-privilege snapshot adapter尚未核准，不能以放寬RLS或Service Role取代。
+- Phase 4 不啟動 dual-write、consumer cutover、legacy freeze、歷史ID rewrite或destructive cleanup；Phase 5 必須以實際 readiness 另行決策。
 
 ### Student Learning Analytics Foundation（AN-001）
 

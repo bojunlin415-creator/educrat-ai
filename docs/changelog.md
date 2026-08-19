@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-19 — LE-001 Phase 4：Shadow Dual-Read & Consumer Parity
+
+Package status: **LE-001 Phase 4 — DEVELOPMENT VERIFIED**.
+
+- 新增 `le-001.shadow.v1` typed consumer parity、十個approved consumer順序、完整mismatch counts與fail-closed readiness；空資料明確為`NO_DATA/NOT_READY`，不以百分比或fabricated link製造成功。
+- 新增default-disabled `LEARNER_CONVERGENCE_SHADOW_READ`、單一batched snapshot provider、non-blocking runner與privacy-safe aggregate diagnostics。Shadow failure不更動legacy response；無N+1、無Service Role、無`auth.users` read或PII log。
+- 依序接入Class detail、Teacher Dashboard、Assignment class expansion/recipients、Submission、Learning Event、Mastery/Subject projection、Adaptive、Reporting與已授權Guardian child summary；目前legacy authority與產品輸出完全不變。
+- Linked Development live read-only matrix確認8位canonical Student、0 verified link、0 legacy enrollment、2 canonical enrollment與0 tenant mismatch。Class／Teacher Dashboard／Reporting為`BLOCKED_IDENTITY`，其餘consumer無資料而為`NOT_READY`。
+- 無Migration、schema、RLS、RPC、dual-write、consumer cutover、legacy freeze、historical rewrite、Production操作或deploy。Phase 5未開始。
+
 ## 2026-08-18 — LE-001 Phase 3：Controlled Backfill & Enrollment Parity
 
 Package status: **LE-001 Phase 3 — DEVELOPMENT VERIFIED AND PACKAGE SEALED**.

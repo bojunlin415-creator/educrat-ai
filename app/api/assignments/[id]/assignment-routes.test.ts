@@ -13,8 +13,15 @@ const serviceMocks = vi.hoisted(() => ({
   submitAssignment: vi.fn(),
   updateAssignment: vi.fn(),
 }));
+const shadowMocks = vi.hoisted(() => ({
+  observeLearnerShadowConsumer: vi.fn().mockResolvedValue({
+    outcome: "DISABLED",
+    result: null,
+  }),
+}));
 
 vi.mock("@/lib/assignment/service", () => serviceMocks);
+vi.mock("@/lib/learner-convergence/server", () => shadowMocks);
 
 const assignmentId = "10000000-0000-4000-8000-000000000004";
 const routeContext = { params: Promise.resolve({ id: assignmentId }) };
@@ -30,6 +37,10 @@ describe("AS-001 assignment detail API", () => {
     );
     expect(response.status).toBe(200);
     expect(serviceMocks.getAssignment).toHaveBeenCalledWith(assignmentId);
+    expect(shadowMocks.observeLearnerShadowConsumer).toHaveBeenCalledWith({
+      consumer: "assignment_recipients",
+      scope: { assignmentIds: [assignmentId] },
+    });
   });
 
   it("updates assignment schedule and status through the service", async () => {
@@ -68,8 +79,13 @@ describe("AS-001 assignment detail API", () => {
   });
 
   it("saves and submits a student submission through separate server endpoints", async () => {
-    serviceMocks.saveSubmission.mockResolvedValue({ id: "submission-1" });
-    serviceMocks.submitAssignment.mockResolvedValue({ id: "submission-1" });
+    const submission = {
+      assignment_id: assignmentId,
+      id: "submission-1",
+      student_id: "10000000-0000-4000-8000-000000000005",
+    };
+    serviceMocks.saveSubmission.mockResolvedValue(submission);
+    serviceMocks.submitAssignment.mockResolvedValue(submission);
     const request = {
       body: JSON.stringify({ content: { q1: "1/2" } }),
       headers: { "content-type": "application/json" },
@@ -95,6 +111,14 @@ describe("AS-001 assignment detail API", () => {
     });
     expect(serviceMocks.submitAssignment).toHaveBeenCalledWith(assignmentId, {
       content: { q1: "1/2" },
+    });
+    expect(shadowMocks.observeLearnerShadowConsumer).toHaveBeenCalledTimes(2);
+    expect(shadowMocks.observeLearnerShadowConsumer).toHaveBeenLastCalledWith({
+      consumer: "submission_self_resolution",
+      scope: {
+        assignmentIds: [assignmentId],
+        legacyAccountIds: [submission.student_id],
+      },
     });
   });
 

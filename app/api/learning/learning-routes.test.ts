@@ -14,8 +14,15 @@ const serviceMocks = vi.hoisted(() => ({
   getTeacherClassSummary: vi.fn(),
   getWeakKnowledgeRanking: vi.fn(),
 }));
+const shadowMocks = vi.hoisted(() => ({
+  observeLearnerShadowConsumer: vi.fn().mockResolvedValue({
+    outcome: "DISABLED",
+    result: null,
+  }),
+}));
 
 vi.mock("@/lib/learning-analytics/service", () => serviceMocks);
+vi.mock("@/lib/learner-convergence/server", () => shadowMocks);
 
 const validLearningEvent = {
   assignmentId: "10000000-0000-4000-8000-000000000001",
@@ -52,6 +59,10 @@ describe("AN-001 learning analytics API", () => {
     expect(serviceMocks.createLearningEvent).toHaveBeenCalledWith(
       validLearningEvent,
     );
+    expect(shadowMocks.observeLearnerShadowConsumer).toHaveBeenCalledWith({
+      consumer: "learning_events",
+      scope: { legacyAccountIds: [validLearningEvent.studentId] },
+    });
   });
 
   it("rejects malformed learning event before service", async () => {
@@ -95,6 +106,12 @@ describe("AN-001 learning analytics API", () => {
         )
       ).json(),
     ).toEqual(expect.objectContaining({ success: true }));
+    expect(shadowMocks.observeLearnerShadowConsumer).toHaveBeenCalledWith({
+      consumer: "mastery_subject_projections",
+      scope: {
+        legacyAccountIds: ["10000000-0000-4000-8000-000000000005"],
+      },
+    });
     expect(
       await (
         await getStudentTimeline(

@@ -280,6 +280,14 @@ S8V-001 已正面確認 linked target 為 `educrat-development`／`gqurnljrvwyhr
 - 因此 Account-link deterministic set 與 legacy-to-canonical enrollment backfill set皆為 0；`student_account_links`、audit、`student_class_members` 與 `class_enrollments` 沒有 Phase 3 historical mutation。
 - Future concrete migration backfill adapter 必須使用受控 operator authority、`migration_verified` provenance 與 audit correlation receipt；不得讓一般 browser caller 自稱 migration provenance。Consumer authority、dual-read/write 與 legacy freeze 保持未開始。
 
+### LE-001 Phase 4 shadow read boundary
+
+- Phase 4 沒有新增或修改 Migration、table、column、index、constraint、policy、grant、trigger 或 RPC；既有 `20260818120000_le001_create_student_account_links.sql` 保持不變。
+- Shadow server adapter只呼叫既有 Owner/Admin-only `get_learner_convergence_snapshot()`，並在記憶體依 consumer scope比較 legacy/canonical references；不寫入任何 learner、enrollment、assignment、analytics、guardian或audit table。
+- Runtime authority仍是 Profile-backed learner與`class_enrollments`。`students`／`student_class_members`只作shadow comparison，不參與目前response、authorization或write。
+- Development read-only verification確認8位 canonical Student、0 active verified link、0 legacy enrollment、2 canonical enrollment、0 tenant mismatch；沒有執行backfill或historical mutation。
+- Teacher／Student／Guardian consumer若未來需要長期開啟shadow，必須先建立另外核准的least-privilege scoped snapshot adapter；不得授予`auth.users` read、放寬Account-link RLS或使用Service Role。
+
 ## 多租戶原則
 
 - 機構資料以 `organization_id` 隔離，跨機構讀寫預設拒絕。

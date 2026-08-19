@@ -4,6 +4,12 @@ import path from "node:path";
 const root = path.join(process.cwd(), "lib", "learner-convergence");
 const coreDirectories = ["application", "domain", "interfaces"];
 
+function shadowCoreFiles(): readonly string[] {
+  return ["analyze.ts", "domain.ts", "interfaces.ts", "run.ts"].map((file) =>
+    path.join(root, "shadow", file),
+  );
+}
+
 function productionFiles(directory: string): readonly string[] {
   const absolute = path.join(root, directory);
   return fs
@@ -48,12 +54,24 @@ describe("LE-001 architecture", () => {
         ).toEqual([]);
       }
     }
+    for (const file of shadowCoreFiles()) {
+      expect(
+        importsOf(file).filter((specifier) =>
+          forbidden.some(
+            (prefix) =>
+              specifier === prefix || specifier.startsWith(`${prefix}/`),
+          ),
+        ),
+        file,
+      ).toEqual([]);
+    }
   });
 
   it("has no circular production imports", () => {
     const files = [
       ...coreDirectories.flatMap(productionFiles),
       ...productionFiles("infrastructure"),
+      ...shadowCoreFiles(),
     ];
     const aliasPrefix = "@/lib/learner-convergence/";
     const byAlias = new Map(
@@ -94,5 +112,31 @@ describe("LE-001 architecture", () => {
     expect(operator).not.toContain("@/lib/supabase/");
     expect(operator).not.toContain("next/");
     expect(operator).not.toContain("react");
+  });
+
+  it("keeps Phase 4 reads batched, read-only, and behind legacy assignment expansion", () => {
+    const shadowServer = fs.readFileSync(
+      path.join(root, "shadow", "server.ts"),
+      "utf8",
+    );
+    const assignmentService = fs.readFileSync(
+      path.join(process.cwd(), "lib", "assignment", "service.ts"),
+      "utf8",
+    );
+    const assignmentExpansion = assignmentService.slice(
+      assignmentService.indexOf("async function assignClasses"),
+      assignmentService.indexOf("export async function saveSubmission"),
+    );
+
+    expect(shadowServer.match(/\.rpc\(/g)).toHaveLength(1);
+    expect(shadowServer).not.toMatch(/\.(?:delete|insert|update|upsert)\s*\(/);
+    expect(assignmentExpansion).toContain('.from("class_enrollments")');
+    expect(assignmentExpansion).not.toContain('.from("student_class_members")');
+    expect(
+      assignmentExpansion.indexOf('.from("class_enrollments")'),
+    ).toBeLessThan(assignmentExpansion.indexOf("observeLearnerShadowConsumer"));
+    expect(
+      assignmentExpansion.indexOf("observeLearnerShadowConsumer"),
+    ).toBeLessThan(assignmentExpansion.indexOf("assignStudents"));
   });
 });
