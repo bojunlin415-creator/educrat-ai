@@ -288,6 +288,14 @@ S8V-001 已正面確認 linked target 為 `educrat-development`／`gqurnljrvwyhr
 - Development read-only verification確認8位 canonical Student、0 active verified link、0 legacy enrollment、2 canonical enrollment、0 tenant mismatch；沒有執行backfill或historical mutation。
 - Teacher／Student／Guardian consumer若未來需要長期開啟shadow，必須先建立另外核准的least-privilege scoped snapshot adapter；不得授予`auth.users` read、放寬Account-link RLS或使用Service Role。
 
+### LE-001 Phase 5 cutover readiness boundary
+
+- Phase 5 是 code/document planning package，沒有新增或修改 Migration、table、column、index、constraint、policy、grant、trigger或RPC；`20260818120000_le001_create_student_account_links.sql`保持不變。
+- `students.id`與`student_class_members.id`仍只是future canonical authority；Profile learner與`class_enrollments`仍是runtime compatibility authority。沒有dual-write、consumer cutover、legacy write freeze或historical rewrite。
+- Future schema prerequisites只能由5A～5J各自提出forward-only migration，例如Assignment dual-reference、Learning Event canonical reference／mapping provenance、Guardian canonical child reference；Phase 5不建立speculative schema。
+- Class roster與Assignment targeting可支援managed/accountless Student；Submission self resolver仍要求active organization內唯一有效verified Account link。Guardian relationship不以Account link取代或自動建立。
+- Future least-privilege adapter只可提供tenant、Student／Enrollment／Link／Relationship technical ID與status；不開放Profile PII、`auth.users`、token、credential或broader Teacher organization roster。
+
 ## 多租戶原則
 
 - 機構資料以 `organization_id` 隔離，跨機構讀寫預設拒絕。

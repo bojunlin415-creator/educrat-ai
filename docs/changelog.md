@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-19 — LE-001 Phase 5：Consumer Authority Cutover Planning & Readiness Gates
+
+Package status: **Consumer Authority Cutover Planning & Readiness Gates**.
+
+- 新增`le-001.cutover.v1` planning-only readiness model，明列`NOT_READY`至`LEGACY_FROZEN`的11態、machine-readable blockers、global zero-mismatch gates與pure evaluator；`NO_DATA`與invalid evidence均fail closed，不以percentage parity升級。
+- 新增11個consumer dependency graph、5A～5J future package order validator、11個default `LEGACY_ONLY` technical controls與Teacher Dashboard六個independent population plan。Controls未接入任何runtime consumer。
+- Account link需求改為consumer-specific：Class roster、Assignment expansion、canonical evidence projection與Guardian child不強迫Student Account；Submission self必須由active organization內唯一verified link解析。
+- 新增Teacher／Student self／Guardian／Owner/Admin四種interface-only minimal snapshot projection，只有tenant、technical ID、status與relationship reference；無Profile PII、`auth.users`、token或Service Role。
+- 依Phase 4實際Development evidence評估：Class read/detail為`BLOCKED_SECURITY`（缺Teacher assigned-class minimal adapter及canonical product-read fixture）、Teacher Dashboard／Reporting為`BLOCKED_IDENTITY`，其餘consumer為`NOT_READY/NO_DATA`；沒有consumer被人工升級。
+- 無Migration、schema、RLS、RPC、backfill、dual-write、runtime cutover、legacy freeze、history rewrite、destructive cleanup、Production操作或deploy。LE-001 Phase 1–4均已sealed；第一個real cutover package未開始。
+
 ## 2026-08-19 — LE-001 Phase 4：Shadow Dual-Read & Consumer Parity
 
 Package status: **LE-001 Phase 4 — DEVELOPMENT VERIFIED**.

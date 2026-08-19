@@ -160,7 +160,7 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - `assignment_classes` 將 Assignment target 擴充為單一班級或多班級。班級派發時會把 active enrollments materialize 到 `assignment_students`，Assignment 仍固定綁定 published Curriculum Version，且不解析 `latest`。
 - CL-001 不建立 Attendance、Timetable、Learning Analytics、Dashboard、Parent Portal、AI Recommendation、批改或報表流程。
 
-### Learner & Enrollment Convergence（LE-001 Phase 1–4）
+### Learner & Enrollment Convergence（LE-001 Phase 1–5）
 
 - `students.id` 與 `student_class_members.id` 是 future canonical learner／class-enrollment authority；Profile-backed learner ID 與 `class_enrollments` 在 consumer parity/cutover 完成前仍是 compatibility boundary。
 - `lib/learner-convergence/` 提供 framework-neutral strict snapshot analyzer、typed discrepancy taxonomy、不可變 parity metrics 與 explicit legacy/canonical enrollment status contract。Candidate 只供人工審查，不能自動建立 identity authority。
@@ -173,7 +173,12 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - Development review 的 8 位 canonical Student 均無 authoritative Account evidence，2 筆 canonical-only membership 均 identity unresolved，故 Phase 3 沒有實際資料 write。Consumer authority、dual-read/write、legacy freeze、Person merge、Student claim UI、Course Enrollment 與 Learning Passport 均未開始。
 - Phase 4 在 `lib/learner-convergence/shadow/` 建立共用、不可變的 consumer parity analyzer與 readiness classifier，並依 Class、Teacher Dashboard、Assignment、Submission、Analytics、Adaptive、Reporting、Guardian順序接入 default-disabled shadow observation。每個 request 最多讀取一次 Owner/Admin-only aggregate snapshot；unexpected failure只記錄 sanitized metric，不影響 legacy response。
 - Development live matrix正確顯示 Class／Teacher Dashboard／Reporting因2筆 canonical-only enrollment與0 verified link而為 `BLOCKED_IDENTITY`；其他 consumer沒有相關資料，明確為`NO_DATA/NOT_READY`。Teacher／Student／Guardian least-privilege snapshot adapter尚未核准，不能以放寬RLS或Service Role取代。
-- Phase 4 不啟動 dual-write、consumer cutover、legacy freeze、歷史ID rewrite或destructive cleanup；Phase 5 必須以實際 readiness 另行決策。
+- Phase 4 不啟動 dual-write、consumer cutover、legacy freeze、歷史ID rewrite或destructive cleanup；Package 已 Git Sealed。
+- Phase 5 在 `lib/learner-convergence/cutover/` 建立 planning-only `le-001.cutover.v1`：11態 readiness、完整 blocker/prerequisite、consumer dependency graph、5A～5J package order、default-legacy technical controls與interface-only least-privilege snapshot projections。現有 app/service 沒有 import此模組，runtime authority維持 legacy。
+- Account link需求依consumer區分：Class roster與Assignment class expansion支援managed/accountless Student；Submission self必須由active organization內唯一有效verified link解析。Guardian-child authority保持獨立，不由Student Account Link推論。
+- Phase 5 Development評估將Class read/detail從generic identity blocker細分為`BLOCKED_SECURITY`（缺Teacher assigned-class minimal adapter）；Teacher Dashboard／Reporting維持`BLOCKED_IDENTITY`，其他無資料consumer維持`NOT_READY`。沒有consumer升級至shadow/dual-read/cutover ready。
+- Teacher Dashboard拆為class、assignment、submission、analytics、reporting與alerts/recommendations六個獨立population；Phase 5B只處理class learner population。Reporting Phase 5C只處理learner-key compatibility，完整canonical report仍受Assignment與Learning Event依賴阻擋。
+- Phase 5沒有Migration、schema、RLS、RPC、backfill、dual-write、cutover、legacy freeze或destructive cleanup；所有rollback均以future authority control與compatibility adapter完成，不刪除歷史資料。
 
 ### Student Learning Analytics Foundation（AN-001）
 
