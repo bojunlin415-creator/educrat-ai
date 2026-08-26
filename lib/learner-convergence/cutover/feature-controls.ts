@@ -58,6 +58,7 @@ export const LEARNER_CUTOVER_CONTROLS: Readonly<
   learner_reporting_canonical_population: control({
     key: "learner_reporting_canonical_population",
     ownerPackage: "LE-001-5C",
+    selectedMode: "CANONICAL_PRIMARY_LEGACY_FALLBACK",
   }),
   learner_submission_canonical_self: control({
     key: "learner_submission_canonical_self",

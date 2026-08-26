@@ -61,6 +61,33 @@ describe("RP-001 reporting API", () => {
     expect(serviceMocks.getTeacherReport).not.toHaveBeenCalled();
   });
 
+  it("loads the teacher report without sending learner identifiers to shadow diagnostics", async () => {
+    const classId = "10000000-0000-4000-8000-000000000002";
+    serviceMocks.getTeacherReport.mockResolvedValue({
+      classId,
+      studentRanking: [
+        {
+          accuracy: 0.8,
+          learnerReference: "canonical-reference",
+          studentId: "10000000-0000-4000-8000-000000000003",
+        },
+      ],
+    });
+
+    const response = await getTeacherReport(
+      new Request(`http://localhost/api/reports/teacher?classId=${classId}`),
+    );
+
+    expect(response.status).toBe(200);
+    expect(shadowMocks.observeLearnerShadowConsumer).toHaveBeenCalledWith({
+      consumer: "reporting",
+      scope: { classIds: [classId] },
+    });
+    expect(
+      shadowMocks.observeLearnerShadowConsumer.mock.calls.at(-1)?.[0],
+    ).not.toHaveProperty("scope.legacyAccountIds");
+  });
+
   it("returns safe forbidden errors without leaking stack traces", async () => {
     serviceMocks.getStudentReport.mockRejectedValue(
       new ReportingError("forbidden"),

@@ -184,6 +184,10 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - Phase 5B 僅將 Teacher Dashboard 的 current learner population 與 per-Class learner count切至 batched canonical `student_class_members` + `students`；直接重用Phase 5A roster source，支援managed/accountless Student，且在browser boundary移除legacy Profile learner ID。
 - Teacher Dashboard 現為 **partially canonical**。Assignment、Submission、Learning Events、Mastery、Adaptive、Reporting 與其衍生Alerts仍是legacy/compatibility metric authority；Phase 5B不以姓名、Email、學號或其他PII猜測canonical/legacy mapping。
 - `learner_teacher_dashboard_canonical_population` 選定 `CANONICAL_PRIMARY_LEGACY_FALLBACK`。只有canonical runtime/service failure可fallback；authorization、RLS、tenant/integrity failure維持fail closed，valid empty population不fallback，`LEGACY_ONLY`可無資料改寫立即rollback。
+- Phase 5C 只切RP-001 Teacher Reporting的current learner/class population與canonical learner-key plumbing，重用Phase 5A batched roster與assigned-Class gate。Reporting現為**partially canonical**；Assignment、Submission、Learning Events、Mastery、Adaptive、class summary與歷史Profile-keyed metric authority均未切換。
+- Canonical Reporting key為`students.id`。Legacy metric只能經「唯一effective verified Account link＋同tenant同Class active legacy enrollment」映射；禁止姓名、Email、生日、學號、學校或年級推論。Runtime尚無Teacher-safe link enumeration boundary，所以無mapping的canonical learner保留population但metric為unavailable。
+- `learner_reporting_canonical_population`選定`CANONICAL_PRIMARY_LEGACY_FALLBACK`；valid empty不fallback，只有canonical runtime failure可fallback，security/integrity failure fail closed，來源不merge。`LEGACY_ONLY` rollback不改寫資料，且對browser只回opaque legacy metric reference。
+- Phase 5C Development唯讀current-population evidence為canonical 0、legacy 0、match 0、tenant/shadow/unexpected mismatch 0；歷史兩筆left canonical membership不列入current population。無Migration、backfill、fixture、dual-write或Production操作；Phase 5D未開始。
 
 ### Student Learning Analytics Foundation（AN-001）
 

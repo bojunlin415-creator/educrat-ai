@@ -53,6 +53,8 @@
 正式瀏覽器測試不得依賴不穩定的真實 AI 或付款服務，應使用可控測試 provider。
 Guardian E2E 必須使用 Development fixture accounts 與假學生 membership，不得使用 Service Role、production data、direct active relationship insert、RLS disablement 或測試後門。
 
+LE-001 Phase 5C Reporting cutover必須驗證四種authority mode、runtime-only fallback、無資料rollback、active/left與archived Class語意、Owner/Admin/assigned Teacher scope、unassigned/cross-tenant denial、managed/accountless Student、authoritative metric mapping、無mapping的unavailable語意、opaque legacy reference、batched roster與無PII structured log。缺少安全Development role fixture時必須標示`NOT EXECUTED — FIXTURE UNAVAILABLE`，不得fabricate live success或建立Account-link backfill。
+
 ### 人工與領域驗證
 
 - 響應式版面、列印、PDF、DOCX、中文與數學符號。

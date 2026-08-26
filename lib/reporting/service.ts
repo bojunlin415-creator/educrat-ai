@@ -1,5 +1,6 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
 import type { User } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -13,6 +14,7 @@ import {
   type TrendPoint,
 } from "@/lib/reporting/domain";
 import { ReportingError } from "@/lib/reporting/errors";
+import { loadReportingLearnerPopulation } from "@/lib/reporting/learner-population";
 import { OrganizationError } from "@/lib/organization/errors";
 import {
   requireOrganizationMembership,
@@ -255,16 +257,31 @@ export async function getTeacherReport(
   if (!parsed.success) throw new ReportingError("invalid_input");
   const context = await requireReportingMembership();
   const user = await requireReportingActor();
-  if (!canReadAll(context.membership.role)) {
-    const classIds = await loadTeacherClassIds(
-      user.id,
-      context.organization.id,
-    );
-    if (!classIds.some((classId) => classId === parsed.data.classId)) {
-      throw new ReportingError("forbidden");
-    }
+  const role = context.membership.role;
+  if (
+    role !== "organization_owner" &&
+    role !== "organization_admin" &&
+    role !== "teacher"
+  ) {
+    throw new ReportingError("forbidden");
   }
   const supabase = await createClient();
+  const { data: classroom, error: classroomError } = await supabase
+    .from("classes")
+    .select("*")
+    .eq("id", parsed.data.classId)
+    .eq("organization_id", context.organization.id)
+    .maybeSingle();
+  if (classroomError) throw mapDatabaseError(classroomError);
+  if (!classroom) throw new ReportingError("not_found");
+  const population = await loadReportingLearnerPopulation({
+    accountId: user.id,
+    classroom,
+    correlationId: randomUUID(),
+    membershipStatus: context.membership.status,
+    organizationId: context.organization.id,
+    role,
+  });
   const { data: summary, error } = await supabase
     .from("teacher_class_summary")
     .select("*")
@@ -275,7 +292,7 @@ export async function getTeacherReport(
   if (!summary) throw new ReportingError("not_found");
 
   const ranking = await loadClassStudentRanking(
-    parsed.data.classId,
+    population,
     context.organization.id,
   );
   const completion = await loadAssignmentCompletion(
@@ -428,15 +445,58 @@ function buildWeakKnowledgeReason(row: StudentKnowledgeMasteryRow): string {
 }
 
 async function loadClassStudentRanking(
-  classId: string,
+  population: Awaited<ReturnType<typeof loadReportingLearnerPopulation>>,
   organizationId: string,
 ) {
   const supabase = await createClient();
+  if (population.authority === "CANONICAL") {
+    if (population.metricCompatibilityReferences.length === 0) return [];
+    const legacyMetricIds = population.metricCompatibilityReferences.map(
+      (reference) => reference.legacyMetricStudentId,
+    );
+    const { data: subjects, error: subjectError } = await supabase
+      .from("student_subject_summary")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .in("student_id", legacyMetricIds);
+    if (subjectError) throw mapDatabaseError(subjectError);
+    const canonicalByLegacy = new Map(
+      population.metricCompatibilityReferences.map((reference) => [
+        reference.legacyMetricStudentId,
+        reference.canonicalStudentId,
+      ]),
+    );
+    const byStudent = new Map<string, StudentSubjectSummaryRow[]>();
+    for (const subject of subjects) {
+      byStudent.set(subject.student_id, [
+        ...(byStudent.get(subject.student_id) ?? []),
+        subject,
+      ]);
+    }
+    return [...byStudent.entries()]
+      .flatMap(([legacyMetricStudentId, rows]) => {
+        const canonicalStudentId = canonicalByLegacy.get(legacyMetricStudentId);
+        return canonicalStudentId
+          ? [
+              {
+                accuracy: calculateAverage(rows.map((row) => row.accuracy)),
+                learnerReference: canonicalStudentId,
+                studentId: canonicalStudentId,
+              },
+            ]
+          : [];
+      })
+      .sort((a, b) => b.accuracy - a.accuracy);
+  }
+  const classIds = [
+    ...new Set(population.entries.map((entry) => entry.classId)),
+  ];
+  if (classIds.length === 0) return [];
   const { data: enrollments, error: enrollmentError } = await supabase
     .from("class_enrollments")
     .select("student_id")
     .eq("organization_id", organizationId)
-    .eq("class_id", classId)
+    .in("class_id", classIds)
     .eq("status", "active");
   if (enrollmentError) throw mapDatabaseError(enrollmentError);
   if (enrollments.length === 0) return [];
@@ -456,12 +516,17 @@ async function loadClassStudentRanking(
       subject,
     ]);
   }
-  return [...byStudent.entries()]
-    .map(([studentId, rows]) => ({
+  return [...byStudent.values()]
+    .map((rows) => ({
       accuracy: calculateAverage(rows.map((row) => row.accuracy)),
-      studentId,
+      learnerReference: "",
+      studentId: null,
     }))
-    .sort((a, b) => b.accuracy - a.accuracy);
+    .sort((a, b) => b.accuracy - a.accuracy)
+    .map((row, index) => ({
+      ...row,
+      learnerReference: `legacy-metric-${index + 1}`,
+    }));
 }
 
 async function loadAssignmentCompletion(

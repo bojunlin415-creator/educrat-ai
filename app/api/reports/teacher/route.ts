@@ -17,9 +17,6 @@ export async function GET(request: Request) {
       consumer: "reporting",
       scope: {
         classIds: [parsed.data.classId],
-        legacyAccountIds: Array.isArray(report.studentRanking)
-          ? report.studentRanking.map((row) => row.studentId)
-          : undefined,
       },
     });
     return Response.json(reportingSuccess("教師報表已載入。", { report }));

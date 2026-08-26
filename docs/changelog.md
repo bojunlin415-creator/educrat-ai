@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-26 — LE-001 Phase 5C：Reporting Learner Population Cutover
+
+Package status: **Development Verified — Canonical Primary with Legacy Fallback**.
+
+- RP-001 Teacher Reporting current learner/class population與internal learner key改用Phase 5A sealed batched `student_class_members`＋`students` adapter；Student/Organization/Guardian reports與所有upstream metric authority不變。
+- `learner_reporting_canonical_population`選定`CANONICAL_PRIMARY_LEGACY_FALLBACK`；valid empty不fallback，只有canonical runtime failure可fallback，authorization/RLS/tenant/integrity failure fail closed，來源不merge，`LEGACY_ONLY`可無資料改寫rollback。
+- Legacy metric只允許唯一effective verified Account link＋同tenant同Class active legacy enrollment的authoritative mapping；禁止PII heuristic。Runtime沒有least-privilege link enumeration，無mapping的canonical learner保留population、metric維持unavailable。
+- Browser-facingTeacher ranking不再暴露raw Profile ID：verified mapping回canonical `students.id`；legacy rollback回opaque `legacy-metric-N`與`studentId: null`。
+- Development唯讀evidence確認project ref `gqurnljrvwyhruhutvni`，current canonical/legacy population為0/0，match/legacy-only/expected-unexpected canonical-only/identity unresolved/tenant mismatch/shadow error/mapping/fallback均為0；歷史2筆left canonical membership排除於current population。
+- Deterministic tests涵蓋四mode、fallback/rollback、Owner/Admin/Teacher scope、active/left、archived Class、managed/accountless、metric compatibility、privacy與architecture boundary。Admin及assigned/unassigned Teacher live role case為`NOT EXECUTED — FIXTURE UNAVAILABLE`，所以`CANONICAL_ONLY`未開放。
+- 無Migration、schema、RLS、grant、RPC、backfill、persistent fixture、dual-write、Production操作、deploy或Phase 5D。
+
 ## 2026-08-26 — LE-001 Phase 5B：Teacher Dashboard Learner Population Cutover
 
 Package status: **Development Verified — Canonical Primary with Legacy Fallback**.

@@ -28,7 +28,7 @@ describe("LE-001 Phase 5 cutover plan", () => {
     }
   });
 
-  it("advances only the independently approved Phase 5A and Phase 5B controls", () => {
+  it("advances only the independently approved Phase 5A, Phase 5B, and Phase 5C controls", () => {
     expect(
       LEARNER_CUTOVER_CONTROLS.learner_class_roster_canonical_read.selectedMode,
     ).toBe("CANONICAL_PRIMARY_LEGACY_FALLBACK");
@@ -37,11 +37,16 @@ describe("LE-001 Phase 5 cutover plan", () => {
         .selectedMode,
     ).toBe("CANONICAL_PRIMARY_LEGACY_FALLBACK");
     expect(
+      LEARNER_CUTOVER_CONTROLS.learner_reporting_canonical_population
+        .selectedMode,
+    ).toBe("CANONICAL_PRIMARY_LEGACY_FALLBACK");
+    expect(
       Object.entries(LEARNER_CUTOVER_CONTROLS)
         .filter(
           ([key]) =>
             key !== "learner_class_roster_canonical_read" &&
-            key !== "learner_teacher_dashboard_canonical_population",
+            key !== "learner_teacher_dashboard_canonical_population" &&
+            key !== "learner_reporting_canonical_population",
         )
         .every(([, control]) => control.selectedMode === "LEGACY_ONLY"),
     ).toBe(true);

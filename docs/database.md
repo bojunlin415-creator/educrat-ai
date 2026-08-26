@@ -311,6 +311,14 @@ S8V-001 已正面確認 linked target 為 `educrat-development`／`gqurnljrvwyhr
 - Managed/accountless Student可進入population而不建立Profile或Account link。left membership不列入current population；cross-tenant、RLS、authorization與canonical integrity錯誤不允許fallback。
 - Phase 5B沿用現有RLS與Phase 5A assigned-Class server gate，不放寬Teacher organization-wide Student access。若未來需收斂general Student policy，必須另建forward-only hardening package。
 
+### LE-001 Phase 5C Reporting learner population boundary
+
+- **No Migration**：Phase 5C沒有新增或修改table、column、index、constraint、RLS、grant、function、trigger或歷史migration。
+- RP-001 Teacher Reporting先驗證active organization/membership與精確Class scope，再重用Phase 5A batched `student_class_members`＋`students` current roster；不做per-Student Profile、Account-link或`auth.users` read。
+- `students.id`是新Reporting population的canonical learner key。既有`student_subject_summary`、`learning_events`、assignment/submission、mastery、adaptive與歷史Profile-keyed資料不重寫；只有authoritative verified mapping存在時才能作compatibility metric read。
+- Current population只含active membership/Student；left row只保留為歷史證據。Archived Class的current population為空，Owner/Admin既有historical report access不因此擴大Teacher scope。
+- Development唯讀證據為current canonical/legacy population 0/0、tenant/shadow/unexpected mismatch 0；歷史snapshot的2筆left canonical enrollment不列入current population。沒有persistent fixture、backfill、資料write或Production操作。
+
 ## 多租戶原則
 
 - 機構資料以 `organization_id` 隔離，跨機構讀寫預設拒絕。

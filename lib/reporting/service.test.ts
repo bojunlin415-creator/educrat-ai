@@ -8,6 +8,7 @@ import {
 const dependencyMocks = vi.hoisted(() => ({
   createClient: vi.fn(),
   getCurrentUser: vi.fn(),
+  loadReportingLearnerPopulation: vi.fn(),
   requireOrganizationMembership: vi.fn(),
   requireOrganizationRole: vi.fn(),
 }));
@@ -25,6 +26,11 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: dependencyMocks.createClient,
 }));
 
+vi.mock("@/lib/reporting/learner-population", () => ({
+  loadReportingLearnerPopulation:
+    dependencyMocks.loadReportingLearnerPopulation,
+}));
+
 type InsertCapture = {
   readonly row: unknown;
   readonly table: string;
@@ -34,7 +40,6 @@ const organizationId = "10000000-0000-4000-8000-000000000001";
 const studentId = "10000000-0000-4000-8000-000000000002";
 const teacherId = "10000000-0000-4000-8000-000000000003";
 const classId = "10000000-0000-4000-8000-000000000004";
-const otherClassId = "10000000-0000-4000-8000-000000000005";
 
 class FakeQuery {
   private currentRows: readonly unknown[];
@@ -129,6 +134,22 @@ function installMembership(role: string, userId: string) {
 }
 
 describe("RP-001 reporting service", () => {
+  beforeEach(() => {
+    dependencyMocks.loadReportingLearnerPopulation.mockResolvedValue({
+      authority: "CANONICAL",
+      canonicalLearnersWithoutLegacyMetrics: 0,
+      canonicalPopulationCount: 0,
+      entries: [],
+      fallbackUsed: false,
+      identityUnresolvedCount: 0,
+      legacyPopulationCount: null,
+      metricCompatibilityReferences: [],
+      mode: "CANONICAL_PRIMARY_LEGACY_FALLBACK",
+      shadowErrorCount: 0,
+      version: "le-001.reporting-population.v1",
+    });
+  });
+
   afterEach(() => vi.clearAllMocks());
 
   it("allows a student to read only their own report and writes safe audit", async () => {
@@ -239,13 +260,197 @@ describe("RP-001 reporting service", () => {
   it("denies teacher access outside owned class scope before report audit", async () => {
     installMembership("teacher", teacherId);
     const inserts = installSupabaseMock({
-      classes: [{ id: otherClassId }],
+      classes: [
+        {
+          id: classId,
+          organization_id: organizationId,
+          status: "active",
+          teacher_id: teacherId,
+        },
+      ],
     });
+    dependencyMocks.loadReportingLearnerPopulation.mockRejectedValueOnce(
+      new ReportingError("forbidden"),
+    );
 
     await expect(getTeacherReport({ classId })).rejects.toEqual(
       new ReportingError("forbidden"),
     );
     expect(inserts).toHaveLength(0);
+  });
+
+  it("uses canonical learner population while preserving unavailable legacy metric semantics", async () => {
+    installMembership("teacher", teacherId);
+    const inserts = installSupabaseMock({
+      classes: [
+        {
+          id: classId,
+          organization_id: organizationId,
+          status: "active",
+          teacher_id: teacherId,
+        },
+      ],
+      teacher_class_summary: [
+        {
+          accuracy: 0.7,
+          activity_trend: [],
+          class_id: classId,
+          knowledge_distribution: {},
+          teacher_id: teacherId,
+          weak_knowledge_ranking: [],
+        },
+      ],
+    });
+    dependencyMocks.loadReportingLearnerPopulation.mockResolvedValueOnce({
+      authority: "CANONICAL",
+      canonicalLearnersWithoutLegacyMetrics: 1,
+      canonicalPopulationCount: 1,
+      entries: [{ studentId }],
+      fallbackUsed: false,
+      identityUnresolvedCount: 1,
+      legacyPopulationCount: null,
+      metricCompatibilityReferences: [],
+      mode: "CANONICAL_PRIMARY_LEGACY_FALLBACK",
+      shadowErrorCount: 0,
+      version: "le-001.reporting-population.v1",
+    });
+
+    const report = await getTeacherReport({ classId });
+
+    expect(report.classAccuracy).toBe(0.7);
+    expect(report.studentRanking).toEqual([]);
+    expect(dependencyMocks.loadReportingLearnerPopulation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountId: teacherId,
+        organizationId,
+        role: "teacher",
+      }),
+    );
+    expect(inserts).toHaveLength(1);
+  });
+
+  it("returns canonical learner keys only for verified metric compatibility", async () => {
+    installMembership("organization_owner", teacherId);
+    const legacyMetricStudentId = "10000000-0000-4000-8000-000000000006";
+    installSupabaseMock({
+      classes: [
+        {
+          id: classId,
+          organization_id: organizationId,
+          status: "active",
+          teacher_id: teacherId,
+        },
+      ],
+      student_subject_summary: [
+        {
+          accuracy: 0.9,
+          student_id: legacyMetricStudentId,
+        },
+      ],
+      teacher_class_summary: [
+        {
+          accuracy: 0.9,
+          activity_trend: [],
+          class_id: classId,
+          knowledge_distribution: {},
+          teacher_id: teacherId,
+          weak_knowledge_ranking: [],
+        },
+      ],
+    });
+    dependencyMocks.loadReportingLearnerPopulation.mockResolvedValueOnce({
+      authority: "CANONICAL",
+      canonicalLearnersWithoutLegacyMetrics: 0,
+      canonicalPopulationCount: 1,
+      entries: [{ studentId }],
+      fallbackUsed: false,
+      identityUnresolvedCount: 0,
+      legacyPopulationCount: null,
+      metricCompatibilityReferences: [
+        {
+          canonicalStudentId: studentId,
+          classId,
+          legacyMetricStudentId,
+        },
+      ],
+      mode: "CANONICAL_PRIMARY_LEGACY_FALLBACK",
+      shadowErrorCount: 0,
+      version: "le-001.reporting-population.v1",
+    });
+
+    const report = await getTeacherReport({ classId });
+
+    expect(report.studentRanking).toEqual([
+      {
+        accuracy: 0.9,
+        learnerReference: studentId,
+        studentId,
+      },
+    ]);
+    expect(JSON.stringify(report)).not.toContain(legacyMetricStudentId);
+  });
+
+  it("keeps rollback metrics available through opaque references without exposing Profile IDs", async () => {
+    installMembership("organization_owner", teacherId);
+    const legacyMetricStudentId = "10000000-0000-4000-8000-000000000007";
+    installSupabaseMock({
+      class_enrollments: [
+        {
+          class_id: classId,
+          organization_id: organizationId,
+          status: "active",
+          student_id: legacyMetricStudentId,
+        },
+      ],
+      classes: [
+        {
+          id: classId,
+          organization_id: organizationId,
+          status: "active",
+          teacher_id: teacherId,
+        },
+      ],
+      student_subject_summary: [
+        {
+          accuracy: 0.65,
+          student_id: legacyMetricStudentId,
+        },
+      ],
+      teacher_class_summary: [
+        {
+          accuracy: 0.65,
+          activity_trend: [],
+          class_id: classId,
+          knowledge_distribution: {},
+          teacher_id: teacherId,
+          weak_knowledge_ranking: [],
+        },
+      ],
+    });
+    dependencyMocks.loadReportingLearnerPopulation.mockResolvedValueOnce({
+      authority: "LEGACY",
+      canonicalLearnersWithoutLegacyMetrics: 0,
+      canonicalPopulationCount: null,
+      entries: [{ classId }],
+      fallbackUsed: false,
+      identityUnresolvedCount: 0,
+      legacyPopulationCount: 1,
+      metricCompatibilityReferences: [],
+      mode: "LEGACY_ONLY",
+      shadowErrorCount: 0,
+      version: "le-001.reporting-population.v1",
+    });
+
+    const report = await getTeacherReport({ classId });
+
+    expect(report.studentRanking).toEqual([
+      {
+        accuracy: 0.65,
+        learnerReference: "legacy-metric-1",
+        studentId: null,
+      },
+    ]);
+    expect(JSON.stringify(report)).not.toContain(legacyMetricStudentId);
   });
 
   it("allows organization admin report access through organization gate", async () => {

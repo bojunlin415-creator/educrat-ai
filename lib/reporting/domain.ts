@@ -40,7 +40,8 @@ export interface TeacherReportViewModel {
   readonly classId: string;
   readonly studentRanking: readonly {
     readonly accuracy: number;
-    readonly studentId: string;
+    readonly learnerReference: string;
+    readonly studentId: string | null;
   }[];
   readonly weakKnowledgeRanking: readonly {
     readonly accuracy: number;
