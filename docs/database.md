@@ -319,6 +319,14 @@ S8V-001 已正面確認 linked target 為 `educrat-development`／`gqurnljrvwyhr
 - Current population只含active membership/Student；left row只保留為歷史證據。Archived Class的current population為空，Owner/Admin既有historical report access不因此擴大Teacher scope。
 - Development唯讀證據為current canonical/legacy population 0/0、tenant/shadow/unexpected mismatch 0；歷史snapshot的2筆left canonical enrollment不列入current population。沒有persistent fixture、backfill、資料write或Production操作。
 
+### LE-001 Phase 5D Assignment class expansion boundary
+
+- **No Migration**：Phase 5D沒有新增或修改table、column、index、constraint、RLS、grant、function、trigger或歷史migration。
+- Class-target Assignment先以active organization與現有Owner/Admin/assigned-Teacher規則批次驗證Classes，再重用Phase 5A `student_class_members`＋`students` roster source。只含active membership/Student；left/inactive/archived/cross-tenant target fail closed。
+- `assignment_students.student_id`仍維持legacy Profile/Account recipient語意，Submission ownership亦未改。Phase 5D不寫canonical Student ID至該欄位、不改recipient schema、不dual-write、不重寫歷史資料。
+- 目前sealed schema沒有Teacher-safe candidate-scoped Account-link mapping。非空canonical expansion無法安全materialize時，在任何Assignment/target/recipient寫入前回傳typed `recipient_identity_unavailable`。Phase 5E才可另行審查recipient authority。
+- Development唯讀current candidate evidence為canonical/legacy 0/0；兩筆歷史canonical membership均為left並排除。沒有persistent fixture、backfill、資料write或Production操作。
+
 ## 多租戶原則
 
 - 機構資料以 `organization_id` 隔離，跨機構讀寫預設拒絕。

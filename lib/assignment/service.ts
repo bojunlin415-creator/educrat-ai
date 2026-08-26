@@ -3,8 +3,13 @@ import "server-only";
 import type { User } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { getCurrentUser } from "@/lib/auth/session";
+import {
+  prepareAssignmentClassExpansion,
+  requireMaterializableAssignmentRecipients,
+  type AssignmentClassExpansionPlan,
+} from "@/lib/assignment/class-expansion";
 import { AssignmentError } from "@/lib/assignment/errors";
-import { observeLearnerShadowConsumer } from "@/lib/learner-convergence/server";
+import type { AssignmentClassExpansionActorRole } from "@/lib/learner-convergence/assignment-class-expansion/domain";
 import { createClient } from "@/lib/supabase/server";
 import {
   requireOrganizationMembership,
@@ -127,6 +132,19 @@ function isStudent(role: string): boolean {
   return role === "student";
 }
 
+function assignmentClassExpansionRole(
+  role: string,
+): AssignmentClassExpansionActorRole {
+  if (
+    role === "organization_owner" ||
+    role === "organization_admin" ||
+    role === "teacher"
+  ) {
+    return role;
+  }
+  throw new AssignmentError("forbidden");
+}
+
 async function requirePublishedVersion(input: {
   readonly curriculumId: string;
   readonly curriculumVersionId: string;
@@ -180,6 +198,44 @@ async function writeAssignmentAudit(input: {
   if (error) throw mapDatabaseError(error);
 }
 
+async function persistAssignmentClasses(
+  assignmentId: string,
+  plan: AssignmentClassExpansionPlan,
+): Promise<readonly AssignmentClassRow[]> {
+  const supabase = await createClient();
+  const rows = plan.classIds.map((classId) => ({
+    assignment_id: assignmentId,
+    class_id: classId,
+    organization_id: plan.organizationId,
+  }));
+  const { data, error } = await supabase
+    .from("assignment_classes")
+    .upsert(rows, { onConflict: "assignment_id,class_id" })
+    .select("*");
+  if (error) throw mapDatabaseError(error);
+  return data;
+}
+
+async function persistAssignmentStudents(input: {
+  readonly assignmentId: string;
+  readonly organizationId: string;
+  readonly studentIds: readonly string[];
+}): Promise<readonly AssignmentStudentRow[]> {
+  if (input.studentIds.length === 0) return Object.freeze([]);
+  const supabase = await createClient();
+  const rows = input.studentIds.map((studentId) => ({
+    assignment_id: input.assignmentId,
+    organization_id: input.organizationId,
+    student_id: studentId,
+  }));
+  const { data, error } = await supabase
+    .from("assignment_students")
+    .upsert(rows, { onConflict: "assignment_id,student_id" })
+    .select("*");
+  if (error) throw mapDatabaseError(error);
+  return data;
+}
+
 export async function createAssignment(
   input: CreateAssignmentInput,
 ): Promise<AssignmentDetail> {
@@ -192,6 +248,16 @@ export async function createAssignment(
     curriculumVersionId: parsed.data.curriculumVersionId,
     organizationId: context.organization.id,
   });
+  const classExpansion = parsed.data.classIds?.length
+    ? await prepareAssignmentClassExpansion({
+        actorId: user.id,
+        actorRole: assignmentClassExpansionRole(context.membership.role),
+        assignmentId: null,
+        classIds: parsed.data.classIds,
+        organizationId: context.organization.id,
+      })
+    : null;
+  if (classExpansion) requireMaterializableAssignmentRecipients(classExpansion);
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -211,11 +277,25 @@ export async function createAssignment(
     .single();
   if (error) throw mapDatabaseError(error);
 
-  if (parsed.data.classIds?.length) {
-    await assignClasses(data.id, parsed.data.classIds);
-  }
-  if (parsed.data.studentIds?.length) {
-    await assignStudents(data.id, { studentIds: parsed.data.studentIds });
+  if (classExpansion) await persistAssignmentClasses(data.id, classExpansion);
+  const recipientIds = [
+    ...(classExpansion?.result.legacyRecipientIds ?? []),
+    ...(parsed.data.studentIds ?? []),
+  ];
+  const uniqueRecipientIds = [...new Set(recipientIds)];
+  if (uniqueRecipientIds.length > 0) {
+    await persistAssignmentStudents({
+      assignmentId: data.id,
+      organizationId: context.organization.id,
+      studentIds: uniqueRecipientIds,
+    });
+    await writeAssignmentAudit({
+      action: "ASSIGNMENT_ASSIGNED",
+      assignmentId: data.id,
+      metadata: { studentCount: uniqueRecipientIds.length },
+      organizationId: context.organization.id,
+      userId: user.id,
+    });
   }
   await writeAssignmentAudit({
     action: "ASSIGNMENT_CREATED",
@@ -389,92 +469,39 @@ export async function assignStudents(
   if (assignment.status === "cancelled" || assignment.status === "closed") {
     throw new AssignmentError("invalid_assignment_state");
   }
-  if (parsed.data.classIds?.length) {
-    await assignClasses(parsedId.data, parsed.data.classIds);
+  const classExpansion = parsed.data.classIds?.length
+    ? await prepareAssignmentClassExpansion({
+        actorId: user.id,
+        actorRole: assignmentClassExpansionRole(context.membership.role),
+        assignmentId: parsedId.data,
+        classIds: parsed.data.classIds,
+        organizationId: context.organization.id,
+      })
+    : null;
+  if (classExpansion) requireMaterializableAssignmentRecipients(classExpansion);
+  const studentIds = [
+    ...(classExpansion?.result.legacyRecipientIds ?? []),
+    ...(parsed.data.studentIds ?? []),
+  ];
+  const uniqueStudentIds = [...new Set(studentIds)];
+  if (classExpansion) {
+    await persistAssignmentClasses(parsedId.data, classExpansion);
   }
-  if (!parsed.data.studentIds?.length) {
+  if (uniqueStudentIds.length === 0) {
     return getAssignment(parsedId.data).then((detail) => detail.students);
   }
-  const supabase = await createClient();
-  const rows = parsed.data.studentIds.map((studentId) => ({
-    assignment_id: parsedId.data,
-    organization_id: context.organization.id,
-    student_id: studentId,
-  }));
-  const { data, error } = await supabase
-    .from("assignment_students")
-    .upsert(rows, { onConflict: "assignment_id,student_id" })
-    .select("*");
-  if (error) throw mapDatabaseError(error);
+  const data = await persistAssignmentStudents({
+    assignmentId: parsedId.data,
+    organizationId: context.organization.id,
+    studentIds: uniqueStudentIds,
+  });
   await writeAssignmentAudit({
     action: "ASSIGNMENT_ASSIGNED",
     assignmentId: parsedId.data,
-    metadata: { studentCount: parsed.data.studentIds.length },
+    metadata: { studentCount: uniqueStudentIds.length },
     organizationId: context.organization.id,
     userId: user.id,
   });
-  return data;
-}
-
-async function assignClasses(
-  assignmentId: string,
-  classIds: readonly string[],
-): Promise<readonly AssignmentClassRow[]> {
-  const context = await requireTeacherManager();
-  const user = await requireAssignmentActor();
-  const uniqueClassIds = [...new Set(classIds)];
-  const supabase = await createClient();
-  const { data: classes, error: classesError } = await supabase
-    .from("classes")
-    .select("*")
-    .in("id", uniqueClassIds)
-    .eq("organization_id", context.organization.id)
-    .eq("status", "active");
-  if (classesError) throw mapDatabaseError(classesError);
-  if (classes.length !== uniqueClassIds.length) {
-    throw new AssignmentError("invalid_input");
-  }
-  if (
-    context.membership.role === "teacher" &&
-    classes.some((classroom) => classroom.teacher_id !== user.id)
-  ) {
-    throw new AssignmentError("forbidden");
-  }
-
-  const classRows = classes.map((classroom) => ({
-    assignment_id: assignmentId,
-    class_id: classroom.id,
-    organization_id: context.organization.id,
-  }));
-  const { data, error } = await supabase
-    .from("assignment_classes")
-    .upsert(classRows, { onConflict: "assignment_id,class_id" })
-    .select("*");
-  if (error) throw mapDatabaseError(error);
-
-  const { data: enrollments, error: enrollmentError } = await supabase
-    .from("class_enrollments")
-    .select("student_id")
-    .in(
-      "class_id",
-      classes.map((classroom) => classroom.id),
-    )
-    .eq("organization_id", context.organization.id)
-    .eq("status", "active");
-  if (enrollmentError) throw mapDatabaseError(enrollmentError);
-
-  const studentIds = [...new Set(enrollments.map((row) => row.student_id))];
-  await observeLearnerShadowConsumer({
-    consumer: "assignment_class_expansion",
-    scope: {
-      assignmentIds: [assignmentId],
-      classIds: classes.map((classroom) => classroom.id),
-      legacyAccountIds: studentIds,
-    },
-  });
-  if (studentIds.length > 0) {
-    await assignStudents(assignmentId, { studentIds });
-  }
   return data;
 }
 

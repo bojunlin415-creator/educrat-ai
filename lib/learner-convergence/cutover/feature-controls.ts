@@ -29,6 +29,7 @@ export const LEARNER_CUTOVER_CONTROLS: Readonly<
   learner_assignment_canonical_expansion: control({
     key: "learner_assignment_canonical_expansion",
     ownerPackage: "LE-001-5D",
+    selectedMode: "CANONICAL_PRIMARY_LEGACY_FALLBACK",
   }),
   learner_assignment_recipient_canonical_reference: control({
     key: "learner_assignment_recipient_canonical_reference",

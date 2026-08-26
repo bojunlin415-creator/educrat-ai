@@ -187,7 +187,10 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - Phase 5C 只切RP-001 Teacher Reporting的current learner/class population與canonical learner-key plumbing，重用Phase 5A batched roster與assigned-Class gate。Reporting現為**partially canonical**；Assignment、Submission、Learning Events、Mastery、Adaptive、class summary與歷史Profile-keyed metric authority均未切換。
 - Canonical Reporting key為`students.id`。Legacy metric只能經「唯一effective verified Account link＋同tenant同Class active legacy enrollment」映射；禁止姓名、Email、生日、學號、學校或年級推論。Runtime尚無Teacher-safe link enumeration boundary，所以無mapping的canonical learner保留population但metric為unavailable。
 - `learner_reporting_canonical_population`選定`CANONICAL_PRIMARY_LEGACY_FALLBACK`；valid empty不fallback，只有canonical runtime failure可fallback，security/integrity failure fail closed，來源不merge。`LEGACY_ONLY` rollback不改寫資料，且對browser只回opaque legacy metric reference。
-- Phase 5C Development唯讀current-population evidence為canonical 0、legacy 0、match 0、tenant/shadow/unexpected mismatch 0；歷史兩筆left canonical membership不列入current population。無Migration、backfill、fixture、dual-write或Production操作；Phase 5D未開始。
+- Phase 5C Development唯讀current-population evidence為canonical 0、legacy 0、match 0、tenant/shadow/unexpected mismatch 0；歷史兩筆left canonical membership不列入current population。無Migration、backfill、fixture、dual-write或Production操作。
+- Phase 5D 只切Assignment的Class-target learner expansion：先驗證active tenant-scoped Class與assigned-Teacher scope，再重用Phase 5A batched roster，以canonical Student去重並保存Class/membership origin。`assignment_students`、Submission與既有metrics仍是legacy compatibility authority，因此Assignment現為**partially canonical**。
+- Canonical expansion不要求Student具備Account。若目前legacy recipient table無authoritative mapping可表示候選人，create/add-Class流程會在任何Assignment/target/recipient寫入前回傳`recipient_identity_unavailable`，不偽造Profile ID、不寫canonical ID進legacy欄位、不靜默丟棄Student。只有canonical runtime failure可fallback；authorization/RLS/tenant/integrity/status failure fail closed。
+- Phase 5D Development唯讀current-population evidence為canonical 0、legacy 0；snapshot兩筆歷史canonical membership均為left並排除。無Migration、backfill、fixture、dual-write或Production操作；Phase 5E未開始。
 
 ### Student Learning Analytics Foundation（AN-001）
 

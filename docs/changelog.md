@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-26 — LE-001 Phase 5D：Assignment Class Expansion Cutover
+
+Package status: **Development Verified — Canonical Primary with Legacy Fallback**.
+
+- 僅將Assignment Class-target learner expansion切至Phase 5A sealed `student_class_members`＋`students` adapter；`assignment_students`、Submission、analytics/reporting metrics與歷史Profile reference authority不變。
+- `learner_assignment_canonical_expansion`選定`CANONICAL_PRIMARY_LEGACY_FALLBACK`；active Classes與assigned-Teacher scope先驗證，canonical runtime failure才fallback，authorization/RLS/tenant/Class lifecycle/integrity failure fail closed，candidate sources不merge。
+- Canonical Student跨多Class會去重並保留Class/membership origin；active membership/Student納入，left/inactive排除。Expansion projection與structured log不含Student PII、Profile、Account link或`auth.users`。
+- Runtime不枚舉Account links；非空canonical expansion無verified legacy recipient mapping時，在任何Assignment、target或recipient write前回傳typed `recipient_identity_unavailable`（409），不偽造Profile、不誤寫canonical ID、不靜默丟棄candidate。
+- Development唯讀evidence確認project ref `gqurnljrvwyhruhutvni`，current canonical/legacy candidates為0/0；snapshot兩筆歷史canonical membership均為left並排除。Owner/Admin/Teacher/cross-tenant/managed-accountless live mutation為`NOT EXECUTED — FIXTURE UNAVAILABLE`，deterministic tests完整覆蓋。
+- 無Migration、schema、RLS、grant、RPC、backfill、persistent fixture、dual-write、Production操作、deploy或Phase 5E。
+
 ## 2026-08-26 — LE-001 Phase 5C：Reporting Learner Population Cutover
 
 Package status: **Development Verified — Canonical Primary with Legacy Fallback**.

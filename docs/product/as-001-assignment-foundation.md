@@ -96,6 +96,17 @@ or dashboard analytics.
 
 ## Boundaries
 
+### LE-001 Phase 5D learner authority
+
+Assignment is **PARTIALLY CANONICAL**. Class-target learner expansion now uses
+active `student_class_members` and `students`, with canonical Student
+deduplication and reversible legacy fallback. Recipient materialization in
+`assignment_students` and Submission identity remain legacy Profile/Account
+authorities. A canonical candidate without an authoritative legacy recipient
+mapping returns `recipient_identity_unavailable` before any Assignment target
+or recipient write; it is never silently dropped or written with the wrong ID
+semantics.
+
 AS-001 does not implement:
 
 - AI analysis;

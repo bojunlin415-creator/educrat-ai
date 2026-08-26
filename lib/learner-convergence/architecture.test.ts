@@ -114,29 +114,48 @@ describe("LE-001 architecture", () => {
     expect(operator).not.toContain("react");
   });
 
-  it("keeps Phase 4 reads batched, read-only, and behind legacy assignment expansion", () => {
+  it("keeps Phase 4 shadow reads batched and read-only", () => {
     const shadowServer = fs.readFileSync(
       path.join(root, "shadow", "server.ts"),
       "utf8",
     );
+
+    expect(shadowServer.match(/\.rpc\(/g)).toHaveLength(1);
+    expect(shadowServer).not.toMatch(/\.(?:delete|insert|update|upsert)\s*\(/);
+  });
+
+  it("cuts only Assignment class expansion to the canonical roster authority", () => {
     const assignmentService = fs.readFileSync(
       path.join(process.cwd(), "lib", "assignment", "service.ts"),
       "utf8",
     );
-    const assignmentExpansion = assignmentService.slice(
-      assignmentService.indexOf("async function assignClasses"),
-      assignmentService.indexOf("export async function saveSubmission"),
+    const assignmentExpansion = fs.readFileSync(
+      path.join(process.cwd(), "lib", "assignment", "class-expansion.ts"),
+      "utf8",
     );
 
-    expect(shadowServer.match(/\.rpc\(/g)).toHaveLength(1);
-    expect(shadowServer).not.toMatch(/\.(?:delete|insert|update|upsert)\s*\(/);
+    expect(assignmentExpansion).toContain("createClassRosterSource");
     expect(assignmentExpansion).toContain('.from("class_enrollments")');
-    expect(assignmentExpansion).not.toContain('.from("student_class_members")');
+    expect(assignmentExpansion).not.toMatch(
+      /auth\.users|\.from\("profiles"\)|\.from\("student_account_links"\)/,
+    );
+    expect(assignmentService).not.toContain('.from("class_enrollments")');
+    expect(assignmentService).not.toContain('.from("student_class_members")');
+    expect(assignmentService).toContain("prepareAssignmentClassExpansion");
+    expect(assignmentService).toContain(
+      "requireMaterializableAssignmentRecipients",
+    );
+    const createFlow = assignmentService.slice(
+      assignmentService.indexOf("export async function createAssignment"),
+      assignmentService.indexOf("export async function updateAssignment"),
+    );
+    expect(createFlow.indexOf("prepareAssignmentClassExpansion")).toBeLessThan(
+      createFlow.indexOf('.from("assignments")'),
+    );
     expect(
-      assignmentExpansion.indexOf('.from("class_enrollments")'),
-    ).toBeLessThan(assignmentExpansion.indexOf("observeLearnerShadowConsumer"));
-    expect(
-      assignmentExpansion.indexOf("observeLearnerShadowConsumer"),
-    ).toBeLessThan(assignmentExpansion.indexOf("assignStudents"));
+      createFlow.indexOf("requireMaterializableAssignmentRecipients"),
+    ).toBeLessThan(createFlow.indexOf('.from("assignments")'));
+    expect(assignmentService).toContain('.from("assignment_students")');
+    expect(assignmentService).toContain("const studentId = user.id");
   });
 });

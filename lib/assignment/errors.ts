@@ -6,6 +6,7 @@ export type AssignmentErrorCode =
   | "invalid_input"
   | "invalid_curriculum_version"
   | "invalid_assignment_state"
+  | "recipient_identity_unavailable"
   | "submission_locked"
   | "duplicate_assignment_student"
   | "service_unavailable";
@@ -19,6 +20,8 @@ const assignmentErrorMessages: Record<AssignmentErrorCode, string> = {
   not_authenticated: "請先登入後再管理派發。",
   not_found: "找不到派發資料，或你沒有查看權限。",
   organization_required: "請先選擇可使用的機構。",
+  recipient_identity_unavailable:
+    "班級包含尚無相容派發身分的學生；目前無法建立學生派發名單。",
   service_unavailable: "目前無法處理派發資料，請稍後再試。",
   submission_locked: "已提交的作答內容不可修改。",
 };
@@ -46,6 +49,7 @@ export function getAssignmentErrorStatus(error: AssignmentError): number {
     case "duplicate_assignment_student":
     case "invalid_assignment_state":
     case "invalid_curriculum_version":
+    case "recipient_identity_unavailable":
     case "submission_locked":
       return 409;
     case "invalid_input":

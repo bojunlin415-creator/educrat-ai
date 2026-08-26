@@ -76,7 +76,7 @@ describe("LE-001 Phase 5 architecture boundary", () => {
     expect(contract).toContain("studentId");
   });
 
-  it("wires only the approved Phase 5A, Phase 5B, and Phase 5C controls", () => {
+  it("wires only the approved Phase 5A through Phase 5D controls", () => {
     const roots = [
       "app",
       "lib/assignment",
@@ -97,6 +97,15 @@ describe("LE-001 Phase 5 architecture boundary", () => {
     );
 
     expect(imports).toEqual([
+      {
+        file: path.join(
+          process.cwd(),
+          "lib",
+          "assignment",
+          "class-expansion.ts",
+        ),
+        specifier: "@/lib/learner-convergence/cutover/feature-controls",
+      },
       {
         file: path.join(process.cwd(), "lib", "classroom", "roster.ts"),
         specifier: "@/lib/learner-convergence/cutover/feature-controls",

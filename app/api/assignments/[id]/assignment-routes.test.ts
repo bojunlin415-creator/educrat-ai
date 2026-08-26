@@ -78,6 +78,28 @@ describe("AS-001 assignment detail API", () => {
     expect(serviceMocks.assignStudents).not.toHaveBeenCalled();
   });
 
+  it("returns a typed compatibility response when a canonical learner cannot be materialized yet", async () => {
+    serviceMocks.assignStudents.mockRejectedValue(
+      new AssignmentError("recipient_identity_unavailable"),
+    );
+    const response = await assignStudentsPost(
+      new Request(`http://localhost/api/assignments/${assignmentId}/students`, {
+        body: JSON.stringify({
+          classIds: ["20000000-0000-4000-8000-000000000001"],
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+      routeContext,
+    );
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      code: "recipient_identity_unavailable",
+      success: false,
+    });
+  });
+
   it("saves and submits a student submission through separate server endpoints", async () => {
     const submission = {
       assignment_id: assignmentId,
