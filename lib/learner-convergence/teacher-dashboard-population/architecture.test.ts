@@ -2,18 +2,18 @@ import fs from "node:fs";
 import path from "node:path";
 
 const projectRoot = process.cwd();
-const rosterRoot = path.join(
+const foundationRoot = path.join(
   projectRoot,
   "lib",
   "learner-convergence",
-  "class-roster",
+  "teacher-dashboard-population",
 );
 
 function productionFiles(): readonly string[] {
   return fs
-    .readdirSync(rosterRoot)
+    .readdirSync(foundationRoot)
     .filter((file) => file.endsWith(".ts") && !file.endsWith(".test.ts"))
-    .map((file) => path.join(rosterRoot, file));
+    .map((file) => path.join(foundationRoot, file));
 }
 
 function importsOf(file: string): readonly string[] {
@@ -24,8 +24,8 @@ function importsOf(file: string): readonly string[] {
   ).filter((specifier): specifier is string => specifier !== undefined);
 }
 
-describe("LE-001 Phase 5A Class roster architecture", () => {
-  it("keeps authority, parity, and access rules framework-neutral", () => {
+describe("LE-001 Phase 5B Teacher Dashboard population architecture", () => {
+  it("keeps the authority core framework, database, and product neutral", () => {
     const forbidden = [
       "react",
       "next",
@@ -33,6 +33,7 @@ describe("LE-001 Phase 5A Class roster architecture", () => {
       "@/app",
       "@/components",
       "@/lib/supabase",
+      "@/lib/teacher-dashboard",
       "@/lib/classroom",
     ];
 
@@ -49,9 +50,10 @@ describe("LE-001 Phase 5A Class roster architecture", () => {
     }
   });
 
-  it("has no circular imports in the Class roster core", () => {
+  it("has no circular production imports", () => {
     const files = productionFiles();
-    const aliasPrefix = "@/lib/learner-convergence/class-roster/";
+    const aliasPrefix =
+      "@/lib/learner-convergence/teacher-dashboard-population/";
     const byAlias = new Map(
       files.map((file) => [
         `${aliasPrefix}${path.basename(file, ".ts")}`,
@@ -82,34 +84,8 @@ describe("LE-001 Phase 5A Class roster architecture", () => {
     expect(visited.size).toBe(files.length);
   });
 
-  it("uses fixed batched reads and never reads identity or broad Profile sources", () => {
+  it("limits the application adapter to canonical roster reads and safe output", () => {
     const adapter = fs.readFileSync(
-      path.join(projectRoot, "lib", "classroom", "roster.ts"),
-      "utf8",
-    );
-
-    expect(adapter.match(/\.from\("student_class_members"\)/g)).toHaveLength(1);
-    expect(adapter.match(/\.from\("students"\)/g)).toHaveLength(1);
-    expect(adapter.match(/\.from\("class_enrollments"\)/g)).toHaveLength(1);
-    expect(adapter).not.toContain('.from("profiles")');
-    expect(adapter).not.toContain('.from("student_account_links")');
-    expect(adapter).not.toContain("auth.users");
-    expect(adapter).not.toMatch(/\.(?:delete|insert|update|upsert)\s*\(/);
-    expect(adapter).not.toContain("birthday");
-    expect(adapter).not.toContain("guardian");
-    expect(adapter).not.toContain("accountLink");
-  });
-
-  it("keeps the sealed Class read and Phase 5B population integrations isolated", () => {
-    const classRoute = fs.readFileSync(
-      path.join(projectRoot, "app", "api", "classes", "[id]", "route.ts"),
-      "utf8",
-    );
-    const untouchedConsumers = [
-      path.join(projectRoot, "lib", "assignment", "service.ts"),
-      path.join(projectRoot, "lib", "reporting", "service.ts"),
-    ];
-    const dashboardAdapter = fs.readFileSync(
       path.join(
         projectRoot,
         "lib",
@@ -118,13 +94,18 @@ describe("LE-001 Phase 5A Class roster architecture", () => {
       ),
       "utf8",
     );
+    const dashboardService = fs.readFileSync(
+      path.join(projectRoot, "lib", "teacher-dashboard", "service.ts"),
+      "utf8",
+    );
 
-    expect(classRoute).toContain("getCanonicalClassRosterDetail");
-    expect(classRoute).toContain("updateClass");
-    expect(classRoute).toContain("archiveClass");
-    expect(dashboardAdapter).toContain("createClassRosterSource");
-    for (const file of untouchedConsumers) {
-      expect(fs.readFileSync(file, "utf8")).not.toContain("classroom/roster");
-    }
+    expect(adapter).toContain("createClassRosterSource");
+    expect(adapter).not.toContain("auth.users");
+    expect(adapter).not.toContain("student_account_links");
+    expect(adapter).not.toContain("profiles");
+    expect(adapter).not.toContain("birthday");
+    expect(adapter).not.toMatch(/\.(?:delete|insert|update|upsert)\s*\(/);
+    expect(dashboardService).toContain("loadTeacherDashboardLearnerPopulation");
+    expect(dashboardService).not.toContain("getClass(");
   });
 });

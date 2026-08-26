@@ -7,10 +7,10 @@ import {
 
 const dependencyMocks = vi.hoisted(() => ({
   createClient: vi.fn(),
-  getClass: vi.fn(),
   getCurrentUser: vi.fn(),
   getStudentReport: vi.fn(),
   getTeacherReport: vi.fn(),
+  loadTeacherDashboardLearnerPopulation: vi.fn(),
   listAssignments: vi.fn(),
   listStudentAssignments: vi.fn(),
   listTeacherClasses: vi.fn(),
@@ -26,8 +26,12 @@ vi.mock("@/lib/organization/service", () => ({
 }));
 
 vi.mock("@/lib/classroom/service", () => ({
-  getClass: dependencyMocks.getClass,
   listTeacherClasses: dependencyMocks.listTeacherClasses,
+}));
+
+vi.mock("@/lib/teacher-dashboard/learner-population", () => ({
+  loadTeacherDashboardLearnerPopulation:
+    dependencyMocks.loadTeacherDashboardLearnerPopulation,
 }));
 
 vi.mock("@/lib/reporting/service", () => ({
@@ -52,7 +56,7 @@ const studentId = "10000000-0000-4000-8000-000000000004";
 function installAccess() {
   dependencyMocks.getCurrentUser.mockResolvedValue({ id: teacherId });
   dependencyMocks.requireOrganizationRole.mockResolvedValue({
-    membership: { role: "teacher" },
+    membership: { role: "teacher", status: "active", user_id: teacherId },
     organization: { id: organizationId },
   });
 }
@@ -60,12 +64,20 @@ function installAccess() {
 function installAuditMock() {
   const inserts: unknown[] = [];
   dependencyMocks.createClient.mockResolvedValue({
-    from: (table: string) => ({
-      insert: (row: unknown) => {
-        inserts.push({ row, table });
-        return Promise.resolve({ error: null });
-      },
-    }),
+    from: (table: string) => {
+      const query = {
+        eq: () => query,
+        in: () => query,
+        insert: (row: unknown) => {
+          inserts.push({ row, table });
+          return Promise.resolve({ error: null });
+        },
+        order: () =>
+          Promise.resolve({ data: [{ student_id: studentId }], error: null }),
+        select: () => query,
+      };
+      return query;
+    },
   });
   return inserts;
 }
@@ -78,16 +90,19 @@ function installDashboardData() {
       status: "active",
     },
   ]);
-  dependencyMocks.getClass.mockResolvedValue({
-    enrollments: [
+  dependencyMocks.loadTeacherDashboardLearnerPopulation.mockResolvedValue({
+    classLearnerCounts: new Map([[classId, 1]]),
+    entries: [
       {
-        status: "active",
-        student_id: studentId,
+        classId,
+        displayName: "受管理學生",
+        membershipId: "10000000-0000-4000-8000-000000000005",
+        membershipStatus: "active",
+        studentId,
+        studentStatus: "active",
       },
     ],
-    id: classId,
-    name: "五年甲班",
-    status: "active",
+    learnerCount: 1,
   });
   dependencyMocks.getTeacherReport.mockResolvedValue({
     activityTrend: [{ accuracy: 0.7, date: "2026-07-30", questionCount: 10 }],
@@ -149,6 +164,14 @@ describe("TD-001 teacher dashboard service", () => {
     expect(dependencyMocks.getStudentReport).toHaveBeenCalledWith({
       studentId,
     });
+    expect(dashboard.learnerPopulation).toEqual([
+      expect.objectContaining({ studentId }),
+    ]);
+    expect(dashboard.learnerPopulationCount).toBe(1);
+    expect(dashboard.studentPerformance[0]).toMatchObject({
+      metricReference: "metric-1",
+      studentId: null,
+    });
     expect(dashboard.todayOverview.averageAccuracy).toBe(0.7);
     expect(dashboard.weakKnowledge[0]).toEqual(
       expect.objectContaining({ knowledgePointId: "位值概念" }),
@@ -183,6 +206,27 @@ describe("TD-001 teacher dashboard service", () => {
     );
   });
 
+  it("fails closed when no authenticated Account is available", async () => {
+    dependencyMocks.requireOrganizationRole.mockResolvedValue({
+      membership: {
+        role: "teacher",
+        status: "active",
+        user_id: teacherId,
+      },
+      organization: { id: organizationId },
+    });
+    dependencyMocks.getCurrentUser.mockResolvedValue(null);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await expect(getTeacherDashboard()).rejects.toMatchObject({
+      code: "not_authenticated",
+      name: "TeacherDashboardError",
+    });
+    expect(
+      dependencyMocks.loadTeacherDashboardLearnerPopulation,
+    ).not.toHaveBeenCalled();
+  });
+
   it("writes teaching insight audit separately", async () => {
     installAccess();
     installDashboardData();
@@ -202,6 +246,11 @@ describe("TD-001 teacher dashboard service", () => {
   it("returns a valid empty dashboard when teacher has no classes or analytics", async () => {
     installAccess();
     dependencyMocks.listTeacherClasses.mockResolvedValue([]);
+    dependencyMocks.loadTeacherDashboardLearnerPopulation.mockResolvedValue({
+      classLearnerCounts: new Map(),
+      entries: [],
+      learnerCount: 0,
+    });
     dependencyMocks.listAssignments.mockResolvedValue([]);
     dependencyMocks.listStudentAssignments.mockResolvedValue([]);
     installAuditMock();
@@ -223,6 +272,7 @@ describe("TD-001 teacher dashboard service", () => {
       assignmentsDue: 0,
       averageAccuracy: 0,
       recentLearningActivity: 0,
+      rosterLearners: 0,
       todaysActiveStudents: 0,
     });
     expect(dashboard.insights[0]).toEqual(
@@ -235,20 +285,89 @@ describe("TD-001 teacher dashboard service", () => {
     expect(dependencyMocks.getStudentReport).not.toHaveBeenCalled();
   });
 
+  it("keeps a canonical-only managed learner in population without fabricating legacy metrics", async () => {
+    installAccess();
+    installDashboardData();
+    dependencyMocks.createClient.mockResolvedValue({
+      from: () => {
+        const query = {
+          eq: () => query,
+          in: () => query,
+          insert: () => Promise.resolve({ error: null }),
+          order: () => Promise.resolve({ data: [], error: null }),
+          select: () => query,
+        };
+        return query;
+      },
+    });
+
+    const dashboard = await getTeacherDashboard();
+
+    expect(dashboard.learnerPopulation).toHaveLength(1);
+    expect(dashboard.learnerPopulation[0]?.studentId).toBe(studentId);
+    expect(dashboard.studentPerformance).toEqual([]);
+    expect(dependencyMocks.getStudentReport).not.toHaveBeenCalled();
+  });
+
+  it("excludes archived Classes from current Owner/Admin learner population", async () => {
+    installAccess();
+    dependencyMocks.requireOrganizationRole.mockResolvedValue({
+      membership: {
+        role: "organization_owner",
+        status: "active",
+        user_id: teacherId,
+      },
+      organization: { id: organizationId },
+    });
+    dependencyMocks.listTeacherClasses.mockResolvedValue([
+      {
+        id: classId,
+        name: "已封存班級",
+        status: "archived",
+      },
+    ]);
+    dependencyMocks.loadTeacherDashboardLearnerPopulation.mockResolvedValue({
+      classLearnerCounts: new Map(),
+      entries: [],
+      learnerCount: 0,
+    });
+    dependencyMocks.listAssignments.mockResolvedValue([]);
+    dependencyMocks.listStudentAssignments.mockResolvedValue([]);
+    installAuditMock();
+
+    await getTeacherDashboard();
+
+    expect(
+      dependencyMocks.loadTeacherDashboardLearnerPopulation,
+    ).toHaveBeenCalledWith(expect.objectContaining({ classes: [] }));
+  });
+
   it("logs but does not crash when dashboard view audit is unavailable", async () => {
     installAccess();
     installDashboardData();
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     dependencyMocks.createClient.mockResolvedValue({
-      from: () => ({
-        insert: () =>
-          Promise.resolve({
-            error: {
-              code: "42P01",
-              message: 'relation "teacher_dashboard_audit_events" missing',
-            },
-          }),
-      }),
+      from: (table: string) => {
+        const query = {
+          eq: () => query,
+          in: () => query,
+          insert: () =>
+            Promise.resolve({
+              error:
+                table === "teacher_dashboard_audit_events"
+                  ? {
+                      code: "42P01",
+                      message:
+                        'relation "teacher_dashboard_audit_events" missing',
+                    }
+                  : null,
+            }),
+          order: () =>
+            Promise.resolve({ data: [{ student_id: studentId }], error: null }),
+          select: () => query,
+        };
+        return query;
+      },
     });
 
     const dashboard = await getTeacherDashboard();

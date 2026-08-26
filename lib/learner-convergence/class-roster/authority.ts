@@ -44,13 +44,8 @@ export function resolveClassRosterAuthorityMode(input: {
     : "LEGACY_ONLY";
 }
 
-export async function readClassRosterByAuthority(input: {
-  readonly actorRole: ClassRosterActorRole;
-  readonly classId: string;
-  readonly correlationId: string;
+export async function readRosterPopulationByAuthority(input: {
   readonly mode: LearnerCutoverControlMode;
-  readonly observer: ClassRosterAuthorityObserver;
-  readonly organizationId: string;
   readonly source: ClassRosterSource;
 }): Promise<ClassRosterReadResult> {
   let canonicalCount: number | null = null;
@@ -96,7 +91,7 @@ export async function readClassRosterByAuthority(input: {
       break;
   }
 
-  const output = result({
+  return result({
     authority: returnedAuthority,
     canonicalCount,
     entries,
@@ -105,19 +100,31 @@ export async function readClassRosterByAuthority(input: {
     mode: input.mode,
     shadowErrorCount,
   });
+}
+
+export async function readClassRosterByAuthority(input: {
+  readonly actorRole: ClassRosterActorRole;
+  readonly classId: string;
+  readonly correlationId: string;
+  readonly mode: LearnerCutoverControlMode;
+  readonly observer: ClassRosterAuthorityObserver;
+  readonly organizationId: string;
+  readonly source: ClassRosterSource;
+}): Promise<ClassRosterReadResult> {
+  const output = await readRosterPopulationByAuthority(input);
   input.observer.record(
     Object.freeze({
       actorRole: input.actorRole,
-      canonicalCount,
+      canonicalCount: output.canonicalCount,
       classId: input.classId,
       correlationId: input.correlationId,
-      fallbackReason: fallbackUsed ? "canonical_read_failure" : null,
-      fallbackUsed,
-      legacyCount,
+      fallbackReason: output.fallbackUsed ? "canonical_read_failure" : null,
+      fallbackUsed: output.fallbackUsed,
+      legacyCount: output.legacyCount,
       mode: input.mode,
       organizationId: input.organizationId,
-      returnedAuthority,
-      shadowErrorCount,
+      returnedAuthority: output.authority,
+      shadowErrorCount: output.shadowErrorCount,
       version: CLASS_ROSTER_CUTOVER_VERSION,
     }),
   );

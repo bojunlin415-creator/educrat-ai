@@ -303,6 +303,14 @@ S8V-001 已正面確認 linked target 為 `educrat-development`／`gqurnljrvwyhr
 - Existing canonical Student RLS 尚有 organization-wide active staff scope；Phase 5A 不將其宣稱為 Teacher product authority。Class detail server adapter 會在讀 roster 前額外驗證 assigned active Class，一般 Student table RLS 收旂仍留待獨立 forward-only hardening package。
 - Linked Development read-only evidence 為 canonical enrollment 2、legacy 0、expected managed canonical-only 2，unexpected/tenant/identity/status/shadow error 全部 0；目前 active canonical roster 0。未 backfill、未寫入 fixture、Production 未操作。
 
+### LE-001 Phase 5B Teacher Dashboard learner population boundary
+
+- **No Migration**：Phase 5B 沒有新增或修改 table、column、index、constraint、RLS、grant、function、trigger或歷史migration。
+- Teacher Dashboard先取得active scoped Class IDs，再以一個`student_class_members`查詢取得active membership，並以一個`students.id IN (...)`查詢取得active canonical Student minimal projection；不做per-Class、per-Student、Profile、Account-link或`auth.users`查詢。
+- Canonical Student／membership只作目前learner population與per-Class count。`class_enrollments`與Profile learner ID仍是Reporting、Assignment、Submission與Analytics metric compatibility boundary；legacy ID不得送至browser。
+- Managed/accountless Student可進入population而不建立Profile或Account link。left membership不列入current population；cross-tenant、RLS、authorization與canonical integrity錯誤不允許fallback。
+- Phase 5B沿用現有RLS與Phase 5A assigned-Class server gate，不放寬Teacher organization-wide Student access。若未來需收斂general Student policy，必須另建forward-only hardening package。
+
 ## 多租戶原則
 
 - 機構資料以 `organization_id` 隔離，跨機構讀寫預設拒絕。

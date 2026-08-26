@@ -145,12 +145,14 @@ class ConsoleClassRosterAuthorityObserver implements ClassRosterAuthorityObserve
   }
 }
 
-function createRosterSource(input: {
-  readonly classId: string;
+export function createClassRosterSource(input: {
+  readonly classIds: readonly string[];
   readonly organizationId: string;
 }): ClassRosterSource {
+  const classIds = Object.freeze([...new Set(input.classIds)]);
   return {
     async loadCanonical() {
+      if (classIds.length === 0) return Object.freeze([]);
       const supabase = await createClient();
       const { data: memberships, error: membershipError } = await supabase
         .from("student_class_members")
@@ -158,8 +160,8 @@ function createRosterSource(input: {
           "id,organization_id,class_id,student_id,joined_at,left_at,status",
         )
         .eq("organization_id", input.organizationId)
-        .eq("class_id", input.classId)
         .eq("status", "active")
+        .in("class_id", classIds)
         .order("joined_at", { ascending: true });
       if (membershipError) throw canonicalDatabaseFailure(membershipError);
       if (memberships.length === 0) return Object.freeze([]);
@@ -170,7 +172,8 @@ function createRosterSource(input: {
         .select("id,organization_id,student_no,name,english_name,grade,status")
         .eq("organization_id", input.organizationId)
         .eq("status", "active")
-        .in("id", studentIds);
+        .in("id", studentIds)
+        .order("id", { ascending: true });
       if (studentError) throw canonicalDatabaseFailure(studentError);
       const studentsById = new Map(students.map((row) => [row.id, row]));
 
@@ -202,13 +205,14 @@ function createRosterSource(input: {
       );
     },
     async loadLegacy() {
+      if (classIds.length === 0) return Object.freeze([]);
       const supabase = await createClient();
       const { data, error } = await supabase
         .from("class_enrollments")
         .select("id,organization_id,class_id,joined_at,left_at,status")
         .eq("organization_id", input.organizationId)
-        .eq("class_id", input.classId)
         .eq("status", "active")
+        .in("class_id", classIds)
         .order("joined_at", { ascending: true });
       if (error) throw databaseFailure(error);
       return Object.freeze(
@@ -297,8 +301,8 @@ export async function getCanonicalClassRosterDetail(
     mode,
     observer: new ConsoleClassRosterAuthorityObserver(),
     organizationId: context.organization.id,
-    source: createRosterSource({
-      classId: classroom.id,
+    source: createClassRosterSource({
+      classIds: [classroom.id],
       organizationId: context.organization.id,
     }),
   });

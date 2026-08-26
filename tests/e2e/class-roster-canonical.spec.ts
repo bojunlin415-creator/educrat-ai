@@ -15,6 +15,18 @@ interface RosterEnrollment {
   readonly [key: string]: unknown;
 }
 
+interface TeacherDashboardPayload {
+  readonly dashboard: {
+    readonly classPerformance: readonly { readonly classId: string }[];
+    readonly learnerPopulation: readonly Record<string, unknown>[];
+    readonly learnerPopulationCount: number;
+    readonly studentPerformance: readonly {
+      readonly metricReference: string;
+      readonly studentId: unknown;
+    }[];
+  };
+}
+
 function requiredEnvironment(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) throw new Error(`missing_environment:${name}`);
@@ -40,6 +52,8 @@ function secondaryAccount(): AccountConfiguration {
 
 async function signIn(page: Page, account: AccountConfiguration) {
   if (account.passwords.length === 0) throw new Error("missing_password");
+  const retryAfterSeconds: string[] = [];
+  const statuses: number[] = [];
   await page.goto("/login");
   for (const password of account.passwords) {
     await page.getByLabel("電子郵件").fill(account.email);
@@ -50,9 +64,14 @@ async function signIn(page: Page, account: AccountConfiguration) {
         response.request().method() === "POST",
     );
     await page.getByRole("button", { name: "登入", exact: true }).click();
-    if ((await responsePromise).ok()) return;
+    const response = await responsePromise;
+    statuses.push(response.status());
+    retryAfterSeconds.push(response.headers()["retry-after"] ?? "none");
+    if (response.ok()) return;
   }
-  throw new Error("development_auth_failed");
+  throw new Error(
+    `development_auth_failed:${statuses.join(",")}:retry_after=${retryAfterSeconds.join(",")}`,
+  );
 }
 
 test("Class detail roster denies anonymous access", async ({ request }) => {
@@ -60,6 +79,7 @@ test("Class detail roster denies anonymous access", async ({ request }) => {
     "/api/classes/10000000-0000-4000-8000-000000000001",
   );
   expect(response.status()).toBe(401);
+  expect((await request.get("/api/dashboard/teacher")).status()).toBe(401);
 });
 
 test("Owner reads the canonical Class roster projection and another tenant is denied", async ({
@@ -109,12 +129,52 @@ test("Owner reads the canonical Class roster projection and another tenant is de
       expect(enrollment).not.toHaveProperty("profile_id");
     }
 
+    const dashboardResponse = await ownerContext.request.get(
+      "/api/dashboard/teacher",
+    );
+    expect(dashboardResponse.status()).toBe(200);
+    const dashboardPayload =
+      (await dashboardResponse.json()) as TeacherDashboardPayload;
+    expect(
+      dashboardPayload.dashboard.learnerPopulationCount,
+    ).toBeGreaterThanOrEqual(0);
+    for (const learner of dashboardPayload.dashboard.learnerPopulation) {
+      expect(learner).toHaveProperty("studentId");
+      expect(learner).toHaveProperty("membershipId");
+      expect(learner).not.toHaveProperty("profileId");
+      expect(learner).not.toHaveProperty("accountId");
+      expect(learner).not.toHaveProperty("accountLinkId");
+      expect(learner).not.toHaveProperty("birthday");
+      expect(learner).not.toHaveProperty("gender");
+      expect(learner).not.toHaveProperty("guardian");
+    }
+    expect(dashboardPayload.dashboard).not.toHaveProperty("authorityMode");
+    expect(dashboardPayload.dashboard).not.toHaveProperty("parityDiagnostics");
+    for (const metric of dashboardPayload.dashboard.studentPerformance) {
+      expect(metric.studentId).toBeNull();
+      expect(metric.metricReference).toMatch(/^metric-\d+$/);
+    }
+    await ownerPage.goto("/dashboard/teacher");
+    await expect(
+      ownerPage.getByRole("heading", { name: "教師儀表板", exact: true }),
+    ).toBeVisible();
+    await expect(
+      ownerPage.getByText("目前學生", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      ownerPage.getByText("教師儀表板暫時無法載入", { exact: true }),
+    ).toHaveCount(0);
+
     const otherTenantPage = await otherTenantContext.newPage();
     await signIn(otherTenantPage, secondaryAccount());
     const crossTenantResponse = await otherTenantContext.request.get(
       `/api/classes/${classroom.id}`,
     );
     expect(crossTenantResponse.status()).toBe(404);
+    const crossTenantDashboardResponse = await otherTenantContext.request.get(
+      `/api/dashboard/teacher?classId=${classroom.id}`,
+    );
+    expect([403, 404]).toContain(crossTenantDashboardResponse.status());
   } finally {
     await ownerContext.close();
     await otherTenantContext.close();

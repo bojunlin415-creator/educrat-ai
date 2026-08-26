@@ -10,7 +10,7 @@ import {
   listStudentAssignments,
 } from "@/lib/assignment/service";
 import { ClassroomError } from "@/lib/classroom/errors";
-import { getClass, listTeacherClasses } from "@/lib/classroom/service";
+import { listTeacherClasses } from "@/lib/classroom/service";
 import { OrganizationError } from "@/lib/organization/errors";
 import { requireOrganizationRole } from "@/lib/organization/service";
 import {
@@ -33,6 +33,7 @@ import {
   type WeakKnowledgeDashboardItem,
 } from "@/lib/teacher-dashboard/domain";
 import { TeacherDashboardError } from "@/lib/teacher-dashboard/errors";
+import { loadTeacherDashboardLearnerPopulation } from "@/lib/teacher-dashboard/learner-population";
 import {
   teacherDashboardQuerySchema,
   teacherDashboardStudentsQuerySchema,
@@ -45,15 +46,18 @@ type AssignmentStudentRow =
 type ClassRow = Database["public"]["Tables"]["classes"]["Row"];
 
 interface TeacherDashboardAccess {
+  readonly membershipStatus: "active" | "invited" | "removed" | "suspended";
   readonly organizationId: string;
+  readonly role: "organization_admin" | "organization_owner" | "teacher";
   readonly user: User;
 }
 
 type TeacherDashboardOperation =
   | "resolve_trusted_account_context"
   | "load_scoped_classes"
+  | "load_learner_population"
+  | "load_legacy_metric_population"
   | "get_teacher_report"
-  | "load_student_reports"
   | "load_assignments"
   | "load_assignment_students"
   | "write_teacher_dashboard_audit"
@@ -308,7 +312,20 @@ async function requireTeacherDashboardAccess(): Promise<TeacherDashboardAccess> 
     ]);
     const user = await getCurrentUser();
     if (!user) throw new TeacherDashboardError("not_authenticated");
-    return { organizationId: context.organization.id, user };
+    const role = context.membership.role;
+    if (
+      role !== "organization_owner" &&
+      role !== "organization_admin" &&
+      role !== "teacher"
+    ) {
+      throw new TeacherDashboardError("forbidden");
+    }
+    return {
+      membershipStatus: context.membership.status,
+      organizationId: context.organization.id,
+      role,
+      user,
+    };
   } catch (error: unknown) {
     if (error instanceof OrganizationError) throw mapOrganizationError(error);
     throw error;
@@ -337,10 +354,14 @@ async function loadScopedClasses(
   classId?: string,
 ): Promise<readonly ClassRow[]> {
   try {
-    const classes = classId
-      ? [await getClass(classId)]
-      : await listTeacherClasses();
-    return classes.filter((classroom) => classroom.status === "active");
+    const classes = await listTeacherClasses();
+    const activeClasses = classes.filter(
+      (classroom) => classroom.status === "active",
+    );
+    if (!classId) return activeClasses;
+    const classroom = activeClasses.find((entry) => entry.id === classId);
+    if (!classroom) throw new ClassroomError("not_found");
+    return [classroom];
   } catch (error: unknown) {
     if (error instanceof ClassroomError) throw mapClassroomError(error);
     throw error;
@@ -366,45 +387,53 @@ async function loadClassReports(
 
 async function loadStudentReports(
   classes: readonly ClassRow[],
+  organizationId: string,
 ): Promise<readonly StudentPerformance[]> {
+  if (classes.length === 0) return Object.freeze([]);
+  const supabase = await createClient();
+  const { data: enrollments, error: enrollmentError } = await supabase
+    .from("class_enrollments")
+    .select("student_id")
+    .eq("organization_id", organizationId)
+    .eq("status", "active")
+    .in(
+      "class_id",
+      classes.map((classroom) => classroom.id),
+    )
+    .order("student_id", { ascending: true });
+  if (enrollmentError) throw mapDatabaseError(enrollmentError);
   const studentIds = new Set<string>();
-  for (const classroom of classes) {
-    try {
-      const detail = await getClass(classroom.id);
-      for (const enrollment of detail.enrollments) {
-        if (enrollment.status === "active")
-          studentIds.add(enrollment.student_id);
-      }
-    } catch (error: unknown) {
-      if (error instanceof ClassroomError) throw mapClassroomError(error);
-      throw error;
-    }
+  for (const enrollment of enrollments) {
+    studentIds.add(enrollment.student_id);
   }
 
   const reports = await Promise.all(
-    [...studentIds].map(
-      async (studentId): Promise<StudentPerformance | null> => {
-        const report = await getStudentReport({ studentId }).catch(
-          (error: unknown) => {
+    [...studentIds]
+      .sort()
+      .map(
+        async (legacyStudentId, index): Promise<StudentPerformance | null> => {
+          const report = await getStudentReport({
+            studentId: legacyStudentId,
+          }).catch((error: unknown) => {
             if (error instanceof ReportingError && error.code === "not_found") {
               return null;
             }
             throw error;
-          },
-        );
-        if (!report) return null;
-        return Object.freeze({
-          accuracy: report.overallAccuracy,
-          activityCount: report.learningTrend.reduce(
-            (sum, point) => sum + point.questionCount,
-            0,
-          ),
-          masterySummary: report.masterySummary,
-          rank: 0,
-          studentId,
-        });
-      },
-    ),
+          });
+          if (!report) return null;
+          return Object.freeze({
+            accuracy: report.overallAccuracy,
+            activityCount: report.learningTrend.reduce(
+              (sum, point) => sum + point.questionCount,
+              0,
+            ),
+            masterySummary: report.masterySummary,
+            metricReference: `metric-${index + 1}`,
+            rank: 0,
+            studentId: null,
+          });
+        },
+      ),
   );
   return buildStudentRanking(
     reports.filter((report): report is StudentPerformance => Boolean(report)),
@@ -449,6 +478,7 @@ function buildAssignmentStatus(
 function buildClassPerformance(
   classes: readonly ClassRow[],
   reports: readonly TeacherReportViewModel[],
+  classLearnerCounts: ReadonlyMap<string, number>,
 ): readonly ClassPerformance[] {
   return Object.freeze(
     classes.map((classroom, index) => {
@@ -469,6 +499,7 @@ function buildClassPerformance(
           ]),
         ),
         learningTrend: report?.activityTrend ?? [],
+        learnerCount: classLearnerCounts.get(classroom.id) ?? 0,
         masteryDistribution: report?.weakKnowledgeRanking ?? [],
       });
     }),
@@ -500,7 +531,7 @@ function buildWeakKnowledgeDashboard(
     for (const student of studentPerformance.filter(
       (item) => item.accuracy < 0.6,
     )) {
-      aggregated.set(student.studentId, {
+      aggregated.set(student.metricReference, {
         affectedStudents: 1,
         recommendationCount: student.activityCount,
       });
@@ -569,7 +600,7 @@ async function buildTeacherDashboard(
       correlationId,
       operation: "load_scoped_classes",
       organizationId: access.organizationId,
-      queryName: parsed.data.classId ? "getClass" : "listTeacherClasses",
+      queryName: "listTeacherClasses",
       table: "classes",
     },
     () => loadScopedClasses(parsed.data.classId),
@@ -585,16 +616,35 @@ async function buildTeacherDashboard(
     },
     () => loadClassReports(classes),
   );
+  const learnerPopulation = await runTeacherDashboardOperation(
+    {
+      actorId: access.user.id,
+      correlationId,
+      operation: "load_learner_population",
+      organizationId: access.organizationId,
+      queryName: "loadTeacherDashboardLearnerPopulation",
+      table: "student_class_members,students",
+    },
+    () =>
+      loadTeacherDashboardLearnerPopulation({
+        accountId: access.user.id,
+        classes,
+        correlationId,
+        membershipStatus: access.membershipStatus,
+        organizationId: access.organizationId,
+        role: access.role,
+      }),
+  );
   const students = await runTeacherDashboardOperation(
     {
       actorId: access.user.id,
       correlationId,
-      operation: "load_student_reports",
+      operation: "load_legacy_metric_population",
       organizationId: access.organizationId,
       queryName: "getStudentReport",
-      table: "student_subject_summary",
+      table: "class_enrollments,student_subject_summary",
     },
-    () => loadStudentReports(classes),
+    () => loadStudentReports(classes, access.organizationId),
   );
   const assignments = await runTeacherDashboardOperation(
     {
@@ -618,7 +668,11 @@ async function buildTeacherDashboard(
     },
     listStudentAssignments,
   );
-  const classPerformance = buildClassPerformance(classes, reports);
+  const classPerformance = buildClassPerformance(
+    classes,
+    reports,
+    learnerPopulation.classLearnerCounts,
+  );
   const studentPerformance = buildStudentRanking(students, "needs_attention");
   const assignmentStatus = buildAssignmentStatus(
     assignments,
@@ -636,6 +690,7 @@ async function buildTeacherDashboard(
       classPerformance.map((item) => item.averageAccuracy),
     ),
     learningTrend,
+    rosterLearners: learnerPopulation.learnerCount,
     studentPerformance,
   });
   const insights = buildTeachingInsights({
@@ -659,6 +714,7 @@ async function buildTeacherDashboard(
           actorId: access.user.id,
           metadata: {
             classCount: classes.length,
+            learnerPopulationCount: learnerPopulation.learnerCount,
             scopedClassId: parsed.data.classId ?? null,
           },
           organizationId: access.organizationId,
@@ -673,6 +729,8 @@ async function buildTeacherDashboard(
     classPerformance,
     generatedAt: new Date().toISOString(),
     insights,
+    learnerPopulation: learnerPopulation.entries,
+    learnerPopulationCount: learnerPopulation.learnerCount,
     recommendations,
     studentPerformance,
     todayOverview,

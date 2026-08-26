@@ -4,10 +4,13 @@
 
 TD-001 建立 Teacher Dashboard UI、API 與 rule-based teaching insight foundation。Dashboard 建立於 RP-001 Reporting Foundation 上；Learning data 必須透過 Reporting Service 取得，不得由 Dashboard 直接查詢 Learning tables。
 
+LE-001 Phase 5B 後，Teacher Dashboard 是 **partially canonical**：目前Class learner population與learner count使用canonical `students`／`student_class_members`；Reporting、Assignment、Submission、Learning Events、Mastery、Adaptive與其衍生Alerts仍維持legacy/compatibility authority。不得把整個Dashboard宣稱為canonical。
+
 ## Architecture
 
 - `lib/teacher-dashboard/domain.ts` 定義 dashboard view model、overview、insight、student ranking、weak knowledge 與 recommendation panel model。
 - `lib/teacher-dashboard/service.ts` 組合 RP-001 Reporting Service、Class／Assignment service 與 dashboard audit writer。
+- `lib/teacher-dashboard/learner-population.ts` 以active organization與assigned-Class scope重用Phase 5A canonical roster source；batched載入managed/accountless Student，legacy fallback不向browser暴露Profile learner ID。
 - `app/dashboard/teacher` 呈現 Teacher Dashboard page；原 `/dashboard` 只提供入口，不讓報表載入失敗影響既有教材工作台。
 - `components/teacher-dashboard/teacher-dashboard.tsx` 呈現 Teacher Dashboard layout；Chart 僅使用 framework-neutral chart model，不綁定特定 chart library。
 - `app/api/dashboard/teacher/*` 提供 server-side shared dashboard API。
@@ -31,6 +34,7 @@ TD-001 建立 Teacher Dashboard UI、API 與 rule-based teaching insight foundat
 - Assignment Completion Rate
 - Average Accuracy
 - Recent Learning Activity
+- Current canonical roster learners
 
 ## Teaching Insights
 

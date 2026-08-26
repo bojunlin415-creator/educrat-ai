@@ -1,4 +1,7 @@
-import { getCanonicalClassRosterDetail } from "@/lib/classroom/roster";
+import {
+  createClassRosterSource,
+  getCanonicalClassRosterDetail,
+} from "@/lib/classroom/roster";
 import { ClassRosterSourceError } from "@/lib/learner-convergence/class-roster/errors";
 
 type TableName =
@@ -88,7 +91,7 @@ vi.mock("@/lib/supabase/server", () => ({
         },
         in(...arguments_: readonly unknown[]) {
           record("in", arguments_);
-          return Promise.resolve(state.results[table]);
+          return query;
         },
         maybeSingle() {
           record("maybeSingle", []);
@@ -327,6 +330,58 @@ describe("LE-001 Phase 5A canonical Class roster product read", () => {
 
     const result = await getCanonicalClassRosterDetail(classId);
     expect(result.class.enrollments).toHaveLength(2);
+    expect(
+      state.calls.filter(
+        (call) => call.table === "students" && call.operation === "in",
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("loads multiple Classes with one membership query and one Student query", async () => {
+    const secondClassId = "30000000-0000-4000-8000-000000000002";
+    const secondStudentId = "40000000-0000-4000-8000-000000000002";
+    state.results.student_class_members = {
+      data: [
+        canonicalMembership,
+        {
+          ...canonicalMembership,
+          class_id: secondClassId,
+          id: "50000000-0000-4000-8000-000000000002",
+          student_id: secondStudentId,
+        },
+      ],
+      error: null,
+    };
+    state.results.students = {
+      data: [
+        canonicalStudent,
+        {
+          ...canonicalStudent,
+          id: secondStudentId,
+          name: "第二班學生",
+          student_no: "P5B-002",
+        },
+      ],
+      error: null,
+    };
+
+    const source = createClassRosterSource({
+      classIds: [classId, secondClassId],
+      organizationId,
+    });
+    await expect(source.loadCanonical()).resolves.toHaveLength(2);
+    expect(
+      state.calls.filter(
+        (call) =>
+          call.table === "student_class_members" &&
+          call.operation === "in" &&
+          call.arguments[0] === "class_id",
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        arguments: ["class_id", [classId, secondClassId]],
+      }),
+    ]);
     expect(
       state.calls.filter(
         (call) => call.table === "students" && call.operation === "in",

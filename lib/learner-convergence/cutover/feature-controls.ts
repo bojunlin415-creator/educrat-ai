@@ -66,6 +66,7 @@ export const LEARNER_CUTOVER_CONTROLS: Readonly<
   learner_teacher_dashboard_canonical_population: control({
     key: "learner_teacher_dashboard_canonical_population",
     ownerPackage: "LE-001-5B",
+    selectedMode: "CANONICAL_PRIMARY_LEGACY_FALLBACK",
   }),
 });
 

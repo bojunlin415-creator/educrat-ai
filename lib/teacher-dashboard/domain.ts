@@ -14,6 +14,7 @@ export interface TodayOverview {
   readonly assignmentCompletionRate: number;
   readonly averageAccuracy: number;
   readonly recentLearningActivity: number;
+  readonly rosterLearners: number;
   readonly todaysActiveStudents: number;
 }
 
@@ -31,6 +32,7 @@ export interface ClassPerformance {
   readonly className: string;
   readonly knowledgeDistribution: OrganizationReportViewModel["knowledgeDistribution"];
   readonly learningTrend: readonly TrendPoint[];
+  readonly learnerCount: number;
   readonly masteryDistribution: TeacherReportViewModel["weakKnowledgeRanking"];
 }
 
@@ -38,8 +40,18 @@ export interface StudentPerformance {
   readonly accuracy: number;
   readonly activityCount: number;
   readonly masterySummary: StudentReportViewModel["masterySummary"];
+  readonly metricReference: string;
   readonly rank: number;
-  readonly studentId: string;
+  readonly studentId: string | null;
+}
+
+export interface TeacherDashboardLearnerPopulationEntry {
+  readonly classId: string;
+  readonly displayName: string | null;
+  readonly membershipId: string;
+  readonly membershipStatus: "active";
+  readonly studentId: string | null;
+  readonly studentStatus: "active" | "archived" | null;
 }
 
 export interface WeakKnowledgeDashboardItem {
@@ -69,6 +81,8 @@ export interface TeacherDashboardViewModel {
   readonly classPerformance: readonly ClassPerformance[];
   readonly generatedAt: string;
   readonly insights: readonly TeachingInsight[];
+  readonly learnerPopulation: readonly TeacherDashboardLearnerPopulationEntry[];
+  readonly learnerPopulationCount: number;
   readonly recommendations: readonly RecommendationDashboardItem[];
   readonly studentPerformance: readonly StudentPerformance[];
   readonly todayOverview: TodayOverview;
@@ -79,6 +93,7 @@ export function buildTodayOverview(input: {
   readonly assignmentStatus: AssignmentStatusSummary;
   readonly averageAccuracy: number;
   readonly learningTrend: readonly TrendPoint[];
+  readonly rosterLearners: number;
   readonly studentPerformance: readonly StudentPerformance[];
 }): TodayOverview {
   const totalAssignments =
@@ -100,6 +115,7 @@ export function buildTodayOverview(input: {
       (sum, point) => sum + point.questionCount,
       0,
     ),
+    rosterLearners: input.rosterLearners,
     todaysActiveStudents: input.studentPerformance.filter(
       (student) => student.activityCount > 0,
     ).length,

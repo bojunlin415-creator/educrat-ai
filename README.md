@@ -219,6 +219,7 @@ Sprint 8 的章節／課次變更只允許 active organization 的 owner/admin �
 - [LE-001 Phase 4 Shadow Dual-Read & Consumer Parity](docs/architecture/le-001-phase-4-shadow-dual-read-consumer-parity.md)：default-disabled、read-only、non-blocking consumer parity instrumentation 與 Development aggregate matrix；legacy runtime authority 不變
 - [LE-001 Phase 5 Consumer Cutover Readiness](docs/architecture/le-001-phase-5-consumer-cutover-readiness.md)：typed readiness gates、consumer dependency graph、technical controls、least-privilege snapshot contract 與 5A～5J rollout/rollback plan；未切換 runtime authority
 - [LE-001 Phase 5A Class Roster Canonical Read](docs/architecture/le-001-phase-5a-class-roster-canonical-read.md)：Class detail GET 已改用 canonical Student／membership minimal projection，具 assigned-Teacher gate、runtime fallback 與 rollback；其他 consumer 未切換
+- [LE-001 Phase 5B Teacher Dashboard Learner Population](docs/architecture/le-001-phase-5b-teacher-dashboard-learner-population.md)：Teacher Dashboard current learner population與Class counts改用batched canonical roster；Dashboard仍為partially canonical，其他metrics未切換
 - [Event Catalog](docs/architecture/event-catalog.md)：Approved Contract Baseline — Not Implemented
 - [Lifecycle UX Guidelines](docs/product/lifecycle-ux-guidelines.md)：已核准的 Danger Zone、關閉精靈與回收桶 wireframe
 - [Platform Admin Governance](docs/security/platform-admin-governance.md)：已核准的跨租戶支援、PII 與高風險操作安全契約

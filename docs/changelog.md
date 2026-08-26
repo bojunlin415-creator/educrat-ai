@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-26 — LE-001 Phase 5B：Teacher Dashboard Learner Population Cutover
+
+Package status: **Development Verified — Canonical Primary with Legacy Fallback**.
+
+- 僅將Teacher Dashboard current learner population與per-Class learner count切至canonical `student_class_members` + `students`；Assignment、Submission、Learning Events、Mastery、Adaptive、Reporting、Alerts、Guardian與Parent仍維持legacy/compatibility authority。
+- 重用Phase 5A roster source並擴充為multi-Class batched membership/Student read；active managed/accountless Student可進入population，left membership排除，無per-Class／per-Student query、Profile、Account-link或`auth.users` read。
+- `learner_teacher_dashboard_canonical_population`選定`CANONICAL_PRIMARY_LEGACY_FALLBACK`；valid empty不fallback，authorization/RLS/tenant/integrity failure fail closed，只有canonical runtime failure可fallback，`LEGACY_ONLY`可無資料改寫rollback。
+- Browser response不暴露legacy Profile learner ID、Account ID、Account-link或internal authority diagnostics；legacy metric相容列改用opaque `metricReference`，不猜測canonical/legacy identity mapping。
+- Development只讀evidence：canonical Students 9、canonical enrollment 2、legacy enrollment 0、expected managed canonical-only 2、identity unresolved 2、tenant/shadow error 0、current active roster 0。真實Owner API/UI、anonymous denial與second-tenant denial通過；Admin與assigned/unassigned Teacher因無安全fixture標記`NOT EXECUTED — FIXTURE UNAVAILABLE`。
+- Selected mode維持`CANONICAL_PRIMARY_LEGACY_FALLBACK`；`CANONICAL_ONLY`在缺少上述live role gate時不開放。Phase 5B沒有建立或清除persistent fixture。
+- 無Migration、schema、RLS、grant、RPC、backfill、dual-write、Production操作、deploy或Phase 5C。
+
 ## 2026-08-19 — LE-001 Phase 5A：Class Roster Canonical Read Cutover
 
 Package status: **Development Verified — Canonical Primary with Legacy Fallback**.

@@ -20,7 +20,7 @@ export function TeacherDashboard({ dashboard }: TeacherDashboardProps) {
   const accuracyChart = createChartModel({
     kind: "bar",
     points: dashboard.classPerformance.map((classroom) => ({
-      label: classroom.className,
+      label: `${classroom.className}（${classroom.learnerCount} 位）`,
       value: classroom.averageAccuracy,
     })),
     title: "班級平均正確率",
@@ -46,7 +46,11 @@ export function TeacherDashboard({ dashboard }: TeacherDashboardProps) {
         </p>
       </div>
 
-      <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+        <SummaryCard
+          label="目前學生"
+          value={dashboard.todayOverview.rosterLearners}
+        />
         <SummaryCard
           label="今日活躍學生"
           value={dashboard.todayOverview.todaysActiveStudents}
@@ -149,11 +153,11 @@ export function TeacherDashboard({ dashboard }: TeacherDashboardProps) {
               dashboard.studentPerformance.slice(0, 8).map((student) => (
                 <div
                   className="flex items-center justify-between gap-3 py-3"
-                  key={student.studentId}
+                  key={student.metricReference}
                 >
                   <div>
                     <p className="font-black text-emerald-950">
-                      #{student.rank} 學生 {student.studentId.slice(0, 8)}
+                      #{student.rank} 學習指標 {student.metricReference}
                     </p>
                     <p className="text-xs text-slate-500">
                       活動量 {student.activityCount} · Mastered{" "}

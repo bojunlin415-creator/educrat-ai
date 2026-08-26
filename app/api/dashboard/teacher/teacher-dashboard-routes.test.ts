@@ -38,7 +38,7 @@ describe("TD-001 teacher dashboard API", () => {
     expect(serviceMocks.getTeacherDashboard).toHaveBeenCalledWith({ classId });
     expect(shadowMocks.observeLearnerShadowConsumer).toHaveBeenCalledWith({
       consumer: "teacher_dashboard",
-      scope: { classIds: [classId], legacyAccountIds: undefined },
+      scope: { classIds: [classId] },
     });
     expect(await response.json()).toEqual(
       expect.objectContaining({

@@ -18,8 +18,9 @@ const students: readonly StudentPerformance[] = [
       proficient: 1,
       unknown: 0,
     },
+    metricReference: "metric-a",
     rank: 0,
-    studentId: "student-a",
+    studentId: null,
   },
   {
     accuracy: 0.91,
@@ -31,8 +32,9 @@ const students: readonly StudentPerformance[] = [
       proficient: 2,
       unknown: 0,
     },
+    metricReference: "metric-b",
     rank: 0,
-    studentId: "student-b",
+    studentId: null,
   },
 ];
 
@@ -50,6 +52,7 @@ describe("TD-001 teacher dashboard domain", () => {
         learningTrend: [
           { accuracy: 0.8, date: "2026-07-30", questionCount: 12 },
         ],
+        rosterLearners: 3,
         studentPerformance: students,
       }),
     ).toEqual({
@@ -57,17 +60,18 @@ describe("TD-001 teacher dashboard domain", () => {
       assignmentCompletionRate: 0.6,
       averageAccuracy: 0.75,
       recentLearningActivity: 12,
+      rosterLearners: 3,
       todaysActiveStudents: 2,
     });
   });
 
   it("sorts student ranking by teacher dashboard modes", () => {
-    expect(buildStudentRanking(students, "needs_attention")[0]?.studentId).toBe(
-      "student-a",
-    );
     expect(
-      buildStudentRanking(students, "highest_accuracy")[0]?.studentId,
-    ).toBe("student-b");
+      buildStudentRanking(students, "needs_attention")[0]?.metricReference,
+    ).toBe("metric-a");
+    expect(
+      buildStudentRanking(students, "highest_accuracy")[0]?.metricReference,
+    ).toBe("metric-b");
     expect(
       Object.isFrozen(buildStudentRanking(students, "most_improved")),
     ).toBe(true);
@@ -87,6 +91,7 @@ describe("TD-001 teacher dashboard domain", () => {
           className: "五年甲班",
           knowledgeDistribution: {},
           learningTrend: [],
+          learnerCount: 2,
           masteryDistribution: [],
         },
       ],

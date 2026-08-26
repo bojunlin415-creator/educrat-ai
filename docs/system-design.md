@@ -181,6 +181,9 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - Phase 5沒有Migration、schema、RLS、RPC、backfill、dual-write、cutover、legacy freeze或destructive cleanup；所有rollback均以future authority control與compatibility adapter完成，不刪除歷史資料。
 - Phase 5A 僅將 Class detail GET roster 切至 `students` + `student_class_members`的 minimal projection。Server 先解出 authenticated actor、active organization/membership 與 Class tenant；Teacher 只允許讀取自己負責的 active Class，Owner/Admin 只能讀取 active organization 內 Class。
 - Phase 5A 選定 `CANONICAL_PRIMARY_LEGACY_FALLBACK`；只在 canonical runtime/service exception 時 fallback，不因 count difference 或 empty roster fallback，也不 merge。`LEGACY_ONLY` 是無資料寫入的立即 rollback。Teacher Dashboard、Reporting、Assignment、Submission、Analytics、Guardian/Parent 維持既有 authority。
+- Phase 5B 僅將 Teacher Dashboard 的 current learner population 與 per-Class learner count切至 batched canonical `student_class_members` + `students`；直接重用Phase 5A roster source，支援managed/accountless Student，且在browser boundary移除legacy Profile learner ID。
+- Teacher Dashboard 現為 **partially canonical**。Assignment、Submission、Learning Events、Mastery、Adaptive、Reporting 與其衍生Alerts仍是legacy/compatibility metric authority；Phase 5B不以姓名、Email、學號或其他PII猜測canonical/legacy mapping。
+- `learner_teacher_dashboard_canonical_population` 選定 `CANONICAL_PRIMARY_LEGACY_FALLBACK`。只有canonical runtime/service failure可fallback；authorization、RLS、tenant/integrity failure維持fail closed，valid empty population不fallback，`LEGACY_ONLY`可無資料改寫立即rollback。
 
 ### Student Learning Analytics Foundation（AN-001）
 

@@ -20,9 +20,6 @@ export async function GET(request: Request) {
       consumer: "teacher_dashboard",
       scope: {
         classIds: parsed.data.classId ? [parsed.data.classId] : undefined,
-        legacyAccountIds: Array.isArray(dashboard.studentPerformance)
-          ? dashboard.studentPerformance.map((student) => student.studentId)
-          : undefined,
       },
     });
     return Response.json(

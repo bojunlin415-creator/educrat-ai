@@ -28,13 +28,21 @@ describe("LE-001 Phase 5 cutover plan", () => {
     }
   });
 
-  it("advances only the Phase 5A class roster control", () => {
+  it("advances only the independently approved Phase 5A and Phase 5B controls", () => {
     expect(
       LEARNER_CUTOVER_CONTROLS.learner_class_roster_canonical_read.selectedMode,
     ).toBe("CANONICAL_PRIMARY_LEGACY_FALLBACK");
     expect(
+      LEARNER_CUTOVER_CONTROLS.learner_teacher_dashboard_canonical_population
+        .selectedMode,
+    ).toBe("CANONICAL_PRIMARY_LEGACY_FALLBACK");
+    expect(
       Object.entries(LEARNER_CUTOVER_CONTROLS)
-        .filter(([key]) => key !== "learner_class_roster_canonical_read")
+        .filter(
+          ([key]) =>
+            key !== "learner_class_roster_canonical_read" &&
+            key !== "learner_teacher_dashboard_canonical_population",
+        )
         .every(([, control]) => control.selectedMode === "LEGACY_ONLY"),
     ).toBe(true);
   });
