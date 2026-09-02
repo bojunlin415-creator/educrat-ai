@@ -327,6 +327,16 @@ S8V-001 已正面確認 linked target 為 `educrat-development`／`gqurnljrvwyhr
 - 目前sealed schema沒有Teacher-safe candidate-scoped Account-link mapping。非空canonical expansion無法安全materialize時，在任何Assignment/target/recipient寫入前回傳typed `recipient_identity_unavailable`。Phase 5E才可另行審查recipient authority。
 - Development唯讀current candidate evidence為canonical/legacy 0/0；兩筆歷史canonical membership均為left並排除。沒有persistent fixture、backfill、資料write或Production操作。
 
+### LE-001 Phase 5E Assignment recipient canonicalization boundary
+
+- Migration `20260831120000_le001_canonicalize_assignment_recipients.sql`只套用Development，新增`assignment_student_recipients`、`assignment_recipient_classes`與server-only`assignment_recipient_legacy_compatibility`；沒有backfill、DROP、歷史migration修改或Production操作。
+- Canonical recipient以`students.id`為唯一learner key；Assignment／Student／Class／membership皆以organization composite FK強制同tenant，`(assignment_id, student_id)` unique確保idempotency，所有關係均`ON DELETE RESTRICT`。
+- 三表均ENABLE/FORCE RLS。authenticated沒有直接INSERT/UPDATE/DELETE；compatibility table沒有直接SELECT。internal persistence helper也撤銷public/anon/authenticated/service_role execute。
+- `create_assignment_with_canonical_recipients`在一個transaction建立Assignment、Class target、canonical recipient、provenance、可選verified legacy mirror與audit；`add_assignment_canonical_recipients`共用相同validation。Caller不能提供actor或organization authority。
+- Compatibility只接受同tenant、active且verified/in-window的`student_account_links`、存在Profile與active Student membership。無link的managed Student仍可canonical寫入，不建立Profile、Auth user或Account link。
+- `get_assignment_recipient_projection`只輸出canonical-safe recipient；無mapping的歷史Profile recipient標記`LEGACY_ONLY_HISTORICAL`，不回傳raw Profile/Account/link ID。`assignment_students`與`assignment_submissions`schema/RLS/identity語意未修改。
+- Development migration history為30 local / 30 remote、dry-run up to date；三張新表、RPC與ACL live verification通過，目前canonical/legacy recipient均為0且無unexpected backfill。
+
 ## 多租戶原則
 
 - 機構資料以 `organization_id` 隔離，跨機構讀寫預設拒絕。

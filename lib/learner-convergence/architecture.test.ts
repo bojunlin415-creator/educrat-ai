@@ -124,7 +124,7 @@ describe("LE-001 architecture", () => {
     expect(shadowServer).not.toMatch(/\.(?:delete|insert|update|upsert)\s*\(/);
   });
 
-  it("cuts only Assignment class expansion to the canonical roster authority", () => {
+  it("cuts Assignment expansion and recipient identity to their canonical authorities", () => {
     const assignmentService = fs.readFileSync(
       path.join(process.cwd(), "lib", "assignment", "service.ts"),
       "utf8",
@@ -143,6 +143,10 @@ describe("LE-001 architecture", () => {
     expect(assignmentService).not.toContain('.from("student_class_members")');
     expect(assignmentService).toContain("prepareAssignmentClassExpansion");
     expect(assignmentService).toContain(
+      "create_assignment_with_canonical_recipients",
+    );
+    expect(assignmentService).toContain("get_assignment_recipient_projection");
+    expect(assignmentService).not.toContain(
       "requireMaterializableAssignmentRecipients",
     );
     const createFlow = assignmentService.slice(
@@ -152,9 +156,9 @@ describe("LE-001 architecture", () => {
     expect(createFlow.indexOf("prepareAssignmentClassExpansion")).toBeLessThan(
       createFlow.indexOf('.from("assignments")'),
     );
-    expect(
-      createFlow.indexOf("requireMaterializableAssignmentRecipients"),
-    ).toBeLessThan(createFlow.indexOf('.from("assignments")'));
+    expect(createFlow.indexOf("createCanonicalAssignment")).toBeLessThan(
+      createFlow.indexOf('.from("assignments")'),
+    );
     expect(assignmentService).toContain('.from("assignment_students")');
     expect(assignmentService).toContain("const studentId = user.id");
   });

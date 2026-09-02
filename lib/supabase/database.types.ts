@@ -93,6 +93,50 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      assignment_recipient_classes: {
+        Row: {
+          assigned_at: string;
+          assignment_id: string;
+          class_id: string;
+          membership_id: string;
+          organization_id: string;
+          recipient_id: string;
+          student_id: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      assignment_recipient_legacy_compatibility: {
+        Row: {
+          assignment_id: string;
+          created_at: string;
+          legacy_student_id: string;
+          organization_id: string;
+          recipient_id: string;
+          student_account_link_id: string;
+          student_id: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      assignment_student_recipients: {
+        Row: {
+          assigned_at: string;
+          assignment_id: string;
+          id: string;
+          identity_authority:
+            "canonical" | "canonical_with_legacy_compatibility";
+          organization_id: string;
+          status: "in_progress" | "not_started" | "overdue" | "submitted";
+          student_id: string;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       assignment_students: {
         Row: {
           assigned_at: string;
@@ -1510,6 +1554,16 @@ export interface Database {
     };
     Views: { [_ in never]: never };
     Functions: {
+      add_assignment_canonical_recipients: {
+        Args: {
+          p_assignment_id: string;
+          p_class_ids: string[];
+          p_direct_student_ids: string[];
+          p_expected_class_student_ids: string[];
+          p_write_legacy_compatibility: boolean;
+        };
+        Returns: Json;
+      };
       accept_guardian_invitation: {
         Args: { p_consent_version: string; p_token_hash: string };
         Returns: string;
@@ -1526,6 +1580,37 @@ export interface Database {
           p_student_id: string;
         };
         Returns: string;
+      };
+      create_assignment_with_canonical_recipients: {
+        Args: {
+          p_class_ids: string[];
+          p_curriculum_id: string;
+          p_curriculum_version_id: string;
+          p_description: string;
+          p_direct_student_ids: string[];
+          p_due_at: string;
+          p_expected_class_student_ids: string[];
+          p_publish_at: string;
+          p_title: string;
+          p_write_legacy_compatibility: boolean;
+        };
+        Returns: string;
+      };
+      get_assignment_recipient_projection: {
+        Args: { p_assignment_id: string };
+        Returns: {
+          assigned_at: string;
+          assignment_id: string;
+          canonical_student_id: string | null;
+          identity_authority:
+            | "CANONICAL"
+            | "CANONICAL_WITH_LEGACY_COMPATIBILITY"
+            | "LEGACY_ONLY_HISTORICAL";
+          recipient_id: string | null;
+          recipient_status:
+            "in_progress" | "not_started" | "overdue" | "submitted";
+          source_class_ids: string[];
+        }[];
       };
       get_learner_convergence_snapshot: {
         Args: Record<PropertyKey, never>;

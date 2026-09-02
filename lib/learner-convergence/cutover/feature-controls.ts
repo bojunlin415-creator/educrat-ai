@@ -34,6 +34,7 @@ export const LEARNER_CUTOVER_CONTROLS: Readonly<
   learner_assignment_recipient_canonical_reference: control({
     key: "learner_assignment_recipient_canonical_reference",
     ownerPackage: "LE-001-5E",
+    selectedMode: "CANONICAL_PRIMARY_LEGACY_FALLBACK",
   }),
   learner_class_roster_canonical_read: control({
     key: "learner_class_roster_canonical_read",

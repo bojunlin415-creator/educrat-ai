@@ -10,6 +10,31 @@ export const assignmentStatusSchema = z.enum([
   "closed",
 ]);
 
+export const assignmentRecipientProjectionSchema = z
+  .object({
+    assigned_at: z.iso.datetime({ offset: true }),
+    assignment_id: z.uuid(),
+    canonical_student_id: z.uuid().nullable(),
+    identity_authority: z.enum([
+      "CANONICAL",
+      "CANONICAL_WITH_LEGACY_COMPATIBILITY",
+      "LEGACY_ONLY_HISTORICAL",
+    ]),
+    recipient_id: z.uuid().nullable(),
+    recipient_status: z.enum([
+      "not_started",
+      "in_progress",
+      "submitted",
+      "overdue",
+    ]),
+    source_class_ids: z.array(z.uuid()).max(200),
+  })
+  .strict();
+
+export const assignmentRecipientProjectionListSchema = z.array(
+  assignmentRecipientProjectionSchema,
+);
+
 const isoDateTimeSchema = z.iso.datetime({ offset: true });
 const uuidArraySchema = z.array(z.uuid()).min(1).max(200);
 

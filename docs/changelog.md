@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-09-02 — LE-001 Phase 5E：Assignment Recipient Canonicalization
+
+Package status: **Development Verified — Canonical Primary with Legacy Fallback**.
+
+- 新增獨立canonical recipient、Class/membership provenance與server-only verified legacy compatibility schema；`assignment_student_recipients.student_id`只表示`students.id`，既有`assignment_students.student_id` Profile語意與Submission ownership不修改。
+- Assignment create/add recipient改由tenant-scoped transaction RPC處理，canonical Student可在無Account／Profile／link時成為recipient；只有唯一active verified同tenant link才建立legacy Submission mirror。Canonical write失敗不會retry legacy write。
+- Manager recipient read model支援`CANONICAL`、`CANONICAL_WITH_LEGACY_COMPATIBILITY`與`LEGACY_ONLY_HISTORICAL`，不暴露Profile、Account、Account-link或PII。runtime fallback只限typed availability failure，security／RLS／tenant／integrity均fail closed。
+- 三張新表皆ENABLE/FORCE RLS，無authenticated直接write，compatibility table無direct read；composite FK、unique recipient、snapshot comparison與`ON DELETE RESTRICT`保障tenant、idempotency及歷史資料。
+- Migration`20260831120000_le001_canonicalize_assignment_recipients.sql`只套用`educrat-development`；30/30 history同步、dry-run up to date，新舊recipient row皆0且無backfill。authenticated RPC/table health、anonymous deny與compatibility ACL deny live驗證通過。
+- Development沒有active Assignment candidate，managed/accountless、Admin、assigned/unassigned Teacher與cross-tenant live mutation為`NOT EXECUTED — FIXTURE UNAVAILABLE`；deterministic service/RLS/migration tests覆蓋。維持`CANONICAL_PRIMARY_LEGACY_FALLBACK`，Submission、metrics與歷史recipient仍legacy/compatibility，未開始Phase 5F、未操作Production、未deploy。
+
 ## 2026-08-26 — LE-001 Phase 5D：Assignment Class Expansion Cutover
 
 Package status: **Development Verified — Canonical Primary with Legacy Fallback**.

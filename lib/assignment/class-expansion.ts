@@ -17,6 +17,7 @@ import type {
   AssignmentRecipientCompatibilityResolver,
 } from "@/lib/learner-convergence/assignment-class-expansion/domain";
 import { getLearnerCutoverControl } from "@/lib/learner-convergence/cutover/feature-controls";
+import type { LearnerCutoverControlMode } from "@/lib/learner-convergence/cutover/domain";
 import { createClient } from "@/lib/supabase/server";
 
 export interface AssignmentClassExpansionPlan {
@@ -117,6 +118,7 @@ export async function prepareAssignmentClassExpansion(input: {
   readonly actorRole: AssignmentClassExpansionActorRole;
   readonly assignmentId: string | null;
   readonly classIds: readonly string[];
+  readonly modeOverride?: LearnerCutoverControlMode;
   readonly organizationId: string;
 }): Promise<AssignmentClassExpansionPlan> {
   const classIds = Object.freeze([...new Set(input.classIds)]);
@@ -156,6 +158,7 @@ export async function prepareAssignmentClassExpansion(input: {
   );
   const mode = resolveAssignmentClassExpansionAuthorityMode({
     configuredMode:
+      input.modeOverride ??
       process.env.LEARNER_ASSIGNMENT_CLASS_EXPANSION_AUTHORITY_MODE,
     selectedMode: control.selectedMode,
   });

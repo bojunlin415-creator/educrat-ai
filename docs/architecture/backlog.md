@@ -4,9 +4,9 @@
 
 ## LE-001：Canonical Learner & Enrollment Convergence
 
-- 狀態：**LE-001 Phase 1–5C — SEALED；Phase 5D — Assignment Class Expansion Canonical Primary with Legacy Fallback, Development Verified**。
+- 狀態：**LE-001 Phase 1–5D — SEALED；Phase 5E — Assignment Recipient Canonical Primary with Legacy Fallback, Development Verified**。
 - 已完成：`le-001.v1` typed discrepancy taxonomy、parity metrics、explicit enrollment-status compatibility、read-only tenant-admin snapshot、additive verified Student↔Account link schema、trusted create/revoke RPC、minimal link audit 與 typed self resolver。
-- Authority：Class detail、Teacher Dashboard、RP-001 Teacher Reporting current population與Assignment Class expansion已切至`students.id`／`student_class_members.id`；`assignment_students` recipient、Submission、Learning Events、Mastery、Adaptive、Guardian/Parent與歷史metrics仍為legacy compatibility boundary。
+- Authority：Class detail、Teacher Dashboard、RP-001 Teacher Reporting current population、Assignment Class expansion與新Assignment recipient identity已切至`students.id`／`student_class_members.id`；歷史`assignment_students`、Submission、Learning Events、Mastery、Adaptive、Guardian/Parent與歷史metrics仍為legacy compatibility boundary。
 - 安全：無 heuristic auto-link、無 client organization/link authority、ENABLE/FORCE RLS、one-active-link tenant constraints、Account FK `ON DELETE RESTRICT`、不開放 `auth.users`、ambiguous/cross-tenant fail closed。
 - Phase 3：新增 authoritative-evidence candidate classification、safe dry-run、idempotent/conflict-safe Account-link executor、enrollment parity 與 legacy→canonical backfill contract。Development 的 8 位 Student 均為 `NO_VALID_CANDIDATE`，2 筆 canonical-only membership 均 `IDENTITY_UNRESOLVED`，所以 real backfill count 為 0。
 - Phase 4：十個consumer共用default-disabled shadow parity、typed readiness、單一batched snapshot與privacy-safe diagnostics；Class／Teacher Dashboard／Reporting目前為`BLOCKED_IDENTITY`，其他consumer因無資料為`NOT_READY`。Legacy response與authority不變。
@@ -15,8 +15,9 @@
 - Phase 5B：Teacher Dashboard current learner population/per-Class count已切canonical batched roster；其他Dashboard metric authority不變。
 - Phase 5C：RP-001 Teacher Reporting current population與canonical learner key已切換；legacy metric只接受authoritative verified mapping，無mapping時維持unavailable。Development active canonical/legacy population為0/0，無安全Admin/Teacher live fixture，故維持`CANONICAL_PRIMARY_LEGACY_FALLBACK`。
 - Phase 5D：Assignment Class-target expansion重用canonical roster、跨班去重並保留origin；無verified legacy recipient mapping時在任何write前回傳typed `recipient_identity_unavailable`。Development active canonical/legacy candidate為0/0，live mutation fixture不可用，故維持`CANONICAL_PRIMARY_LEGACY_FALLBACK`。
-- 下一 gate：Phase 5E Assignment Recipient Canonicalization未開始。Dual-write、legacy freeze與destructive cleanup仍未開始。
-- Development：`20260818120000_le001_create_student_account_links.sql` 已只套用 `educrat-development`；history 同步且 post-apply dry-run 為 up to date。rollback-only 實測已驗證 Owner／Admin mutation、self resolver、revoke／expired、唯一性、multi-organization、cross-tenant、Teacher／anonymous／ordinary isolation、audit 與 Account delete protection；51 筆暫存 fixture／audit rows 已全部 rollback。Production 未操作。
+- Phase 5E：新增獨立`assignment_student_recipients`與Class provenance，不重用或改寫legacy欄位；新recipient以canonical Student原子寫入，只有verified Account link才建立legacy Submission mirror，accountless learner不因缺mirror失敗。歷史recipient保持`LEGACY_ONLY_HISTORICAL`，raw Profile/Account ID不出server boundary。
+- 下一 gate：Phase 5F Submission Self-Resolution Canonical Cutover未開始。Learning Event、Mastery、Adaptive、Guardian/Parent、legacy freeze與destructive cleanup仍未開始。
+- Development：`20260818120000_le001_create_student_account_links.sql`與`20260831120000_le001_canonicalize_assignment_recipients.sql`已只套用`educrat-development`；30/30 history同步且post-apply dry-run up to date。Phase 5E live RPC/ACL/empty-table health通過，無active Assignment candidate故mutation fixture未建立。Production未操作。
 
 ## UX-001：Role Access, Navigation & Admin Control Completion
 

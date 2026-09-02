@@ -1,15 +1,29 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
 import type { User } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { getCurrentUser } from "@/lib/auth/session";
 import {
   prepareAssignmentClassExpansion,
-  requireMaterializableAssignmentRecipients,
   type AssignmentClassExpansionPlan,
 } from "@/lib/assignment/class-expansion";
 import { AssignmentError } from "@/lib/assignment/errors";
 import type { AssignmentClassExpansionActorRole } from "@/lib/learner-convergence/assignment-class-expansion/domain";
+import {
+  readAssignmentRecipientsByAuthority,
+  resolveAssignmentRecipientAuthorityMode,
+  resolveAssignmentRecipientWriteAuthority,
+} from "@/lib/learner-convergence/assignment-recipient/authority";
+import {
+  AssignmentRecipientSourceError,
+  type AssignmentRecipientAuthorityEvent,
+  type AssignmentRecipientAuthorityObserver,
+  type AssignmentRecipientProjection,
+  type AssignmentRecipientSource,
+} from "@/lib/learner-convergence/assignment-recipient/domain";
+import type { LearnerCutoverControlMode } from "@/lib/learner-convergence/cutover/domain";
+import { getLearnerCutoverControl } from "@/lib/learner-convergence/cutover/feature-controls";
 import { createClient } from "@/lib/supabase/server";
 import {
   requireOrganizationMembership,
@@ -18,6 +32,7 @@ import {
 import { OrganizationError } from "@/lib/organization/errors";
 import {
   assignStudentsSchema,
+  assignmentRecipientProjectionListSchema,
   assignmentIdSchema,
   createAssignmentSchema,
   saveSubmissionSchema,
@@ -40,7 +55,32 @@ type CurriculumVersionRow =
 
 export interface AssignmentDetail extends AssignmentRow {
   readonly classes: readonly AssignmentClassRow[];
-  readonly students: readonly AssignmentStudentRow[];
+  readonly recipients: readonly AssignmentRecipientProjection[];
+}
+
+export class ConsoleAssignmentRecipientAuthorityObserver implements AssignmentRecipientAuthorityObserver {
+  record(event: AssignmentRecipientAuthorityEvent): void {
+    console.info(
+      "[assignment-recipient-authority]",
+      JSON.stringify({
+        assignment: event.assignmentId,
+        canonicalOnlyCount: event.canonicalOnlyCount,
+        canonicalRecipientCount: event.canonicalRecipientCount,
+        compatibilityMappedCount: event.compatibilityMappedCount,
+        correlation: event.correlationId,
+        fallbackUsed: event.fallbackUsed,
+        identityUnresolvedCount: event.identityUnresolvedCount,
+        legacyHistoricalCount: event.legacyHistoricalCount,
+        mode: event.mode,
+        organization: event.organizationId,
+        recipientCount: event.recipientCount,
+        returnedAuthority: event.returnedAuthority,
+        shadowErrorCount: event.shadowErrorCount,
+        version: event.version,
+        writeFallbackCount: event.writeFallbackCount,
+      }),
+    );
+  }
 }
 
 function mapDatabaseError(error: { code?: string; message?: string } | null) {
@@ -61,6 +101,21 @@ function mapDatabaseError(error: { code?: string; message?: string } | null) {
   if (error.message?.includes("assignment_invalid_class")) {
     return new AssignmentError("invalid_input", options);
   }
+  if (error.message?.includes("assignment_recipient_snapshot_changed")) {
+    return new AssignmentError("recipient_snapshot_changed", options);
+  }
+  if (error.message?.includes("recipient_not_found")) {
+    return new AssignmentError("recipient_not_found", options);
+  }
+  if (error.message?.includes("assignment_recipient_forbidden")) {
+    return new AssignmentError("forbidden", options);
+  }
+  if (
+    error.message?.includes("assignment_recipient_invalid_input") ||
+    error.message?.includes("assignment_recipient_conflict")
+  ) {
+    return new AssignmentError("recipient_conflict", options);
+  }
   if (error.code === "23505") {
     return new AssignmentError("duplicate_assignment_student", options);
   }
@@ -80,6 +135,25 @@ function mapDatabaseError(error: { code?: string; message?: string } | null) {
     return new AssignmentError("forbidden", options);
   }
   return new AssignmentError("service_unavailable", options);
+}
+
+function mapRecipientSourceError(error: {
+  readonly code?: string;
+  readonly message?: string;
+}): AssignmentRecipientSourceError {
+  if (error.code === "42501") {
+    return new AssignmentRecipientSourceError("SECURITY", { cause: error });
+  }
+  if (
+    error.code === "22023" ||
+    error.code === "23503" ||
+    error.code === "23505" ||
+    error.code === "40001" ||
+    error.code === "P0002"
+  ) {
+    return new AssignmentRecipientSourceError("INTEGRITY", { cause: error });
+  }
+  return new AssignmentRecipientSourceError("RUNTIME", { cause: error });
 }
 
 function mapOrganizationError(error: OrganizationError): AssignmentError {
@@ -236,6 +310,167 @@ async function persistAssignmentStudents(input: {
   return data;
 }
 
+function assignmentRecipientAuthorityMode(): LearnerCutoverControlMode {
+  const control = getLearnerCutoverControl(
+    "learner_assignment_recipient_canonical_reference",
+  );
+  return resolveAssignmentRecipientAuthorityMode({
+    configuredMode: process.env.LEARNER_ASSIGNMENT_RECIPIENT_AUTHORITY_MODE,
+    selectedMode: control.selectedMode,
+  });
+}
+
+function legacyRecipientProjection(
+  row: AssignmentStudentRow,
+): AssignmentRecipientProjection {
+  return Object.freeze({
+    assigned_at: row.assigned_at,
+    assignment_id: row.assignment_id,
+    canonical_student_id: null,
+    identity_authority: "LEGACY_ONLY_HISTORICAL",
+    recipient_id: null,
+    recipient_status: row.status,
+    source_class_ids: Object.freeze([]),
+  });
+}
+
+function createAssignmentRecipientSource(input: {
+  readonly assignmentId: string;
+  readonly organizationId: string;
+}): AssignmentRecipientSource {
+  return Object.freeze({
+    async loadCanonical() {
+      const supabase = await createClient();
+      const { data, error } = await supabase.rpc(
+        "get_assignment_recipient_projection",
+        { p_assignment_id: input.assignmentId },
+      );
+      if (error) throw mapRecipientSourceError(error);
+      const parsed = assignmentRecipientProjectionListSchema.safeParse(data);
+      if (!parsed.success) {
+        throw new AssignmentRecipientSourceError("INTEGRITY", {
+          cause: parsed.error,
+        });
+      }
+      return Object.freeze(
+        parsed.data.map((recipient) =>
+          Object.freeze({
+            ...recipient,
+            source_class_ids: Object.freeze([...recipient.source_class_ids]),
+          }),
+        ),
+      );
+    },
+    async loadLegacy() {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from("assignment_students")
+        .select("*")
+        .eq("assignment_id", input.assignmentId)
+        .eq("organization_id", input.organizationId)
+        .order("assigned_at", { ascending: true });
+      if (error) throw mapRecipientSourceError(error);
+      return Object.freeze(data.map(legacyRecipientProjection));
+    },
+  });
+}
+
+async function loadAssignmentRecipients(input: {
+  readonly assignmentId: string;
+  readonly organizationId: string;
+}): Promise<readonly AssignmentRecipientProjection[]> {
+  const result = await readAssignmentRecipientsByAuthority({
+    assignmentId: input.assignmentId,
+    correlationId: randomUUID(),
+    mode: assignmentRecipientAuthorityMode(),
+    observer: new ConsoleAssignmentRecipientAuthorityObserver(),
+    organizationId: input.organizationId,
+    source: createAssignmentRecipientSource(input),
+  });
+  return result.recipients;
+}
+
+function canonicalClassStudentIds(
+  plan: AssignmentClassExpansionPlan | null,
+): readonly string[] {
+  if (!plan) return Object.freeze([]);
+  if (plan.result.authority !== "CANONICAL") {
+    throw new AssignmentError("recipient_persistence_unavailable");
+  }
+  return Object.freeze(
+    plan.result.candidates.map((candidate) => {
+      if (!candidate.canonicalStudentId) {
+        throw new AssignmentError("recipient_conflict");
+      }
+      return candidate.canonicalStudentId;
+    }),
+  );
+}
+
+async function createCanonicalAssignment(input: {
+  readonly classExpansion: AssignmentClassExpansionPlan | null;
+  readonly directStudentIds: readonly string[];
+  readonly parsed: CreateAssignmentInput;
+  readonly writeLegacyCompatibility: boolean;
+}): Promise<string> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc(
+    "create_assignment_with_canonical_recipients",
+    {
+      p_class_ids: [...(input.classExpansion?.classIds ?? [])],
+      p_curriculum_id: input.parsed.curriculumId,
+      p_curriculum_version_id: input.parsed.curriculumVersionId,
+      p_description: input.parsed.description ?? "",
+      p_direct_student_ids: [...input.directStudentIds],
+      p_due_at: input.parsed.dueAt,
+      p_expected_class_student_ids: [
+        ...canonicalClassStudentIds(input.classExpansion),
+      ],
+      p_publish_at: input.parsed.publishAt,
+      p_title: input.parsed.title,
+      p_write_legacy_compatibility: input.writeLegacyCompatibility,
+    },
+  );
+  if (error) {
+    const mapped = mapDatabaseError(error);
+    if (mapped.code === "service_unavailable") {
+      throw new AssignmentError("recipient_persistence_unavailable", {
+        cause: error,
+      });
+    }
+    throw mapped;
+  }
+  if (!data) throw new AssignmentError("recipient_persistence_unavailable");
+  return data;
+}
+
+async function addCanonicalAssignmentRecipients(input: {
+  readonly assignmentId: string;
+  readonly classExpansion: AssignmentClassExpansionPlan | null;
+  readonly directStudentIds: readonly string[];
+  readonly writeLegacyCompatibility: boolean;
+}): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("add_assignment_canonical_recipients", {
+    p_assignment_id: input.assignmentId,
+    p_class_ids: [...(input.classExpansion?.classIds ?? [])],
+    p_direct_student_ids: [...input.directStudentIds],
+    p_expected_class_student_ids: [
+      ...canonicalClassStudentIds(input.classExpansion),
+    ],
+    p_write_legacy_compatibility: input.writeLegacyCompatibility,
+  });
+  if (error) {
+    const mapped = mapDatabaseError(error);
+    if (mapped.code === "service_unavailable") {
+      throw new AssignmentError("recipient_persistence_unavailable", {
+        cause: error,
+      });
+    }
+    throw mapped;
+  }
+}
+
 export async function createAssignment(
   input: CreateAssignmentInput,
 ): Promise<AssignmentDetail> {
@@ -248,16 +483,30 @@ export async function createAssignment(
     curriculumVersionId: parsed.data.curriculumVersionId,
     organizationId: context.organization.id,
   });
+  const recipientMode = assignmentRecipientAuthorityMode();
+  const writeAuthority =
+    resolveAssignmentRecipientWriteAuthority(recipientMode);
   const classExpansion = parsed.data.classIds?.length
     ? await prepareAssignmentClassExpansion({
         actorId: user.id,
         actorRole: assignmentClassExpansionRole(context.membership.role),
         assignmentId: null,
         classIds: parsed.data.classIds,
+        modeOverride: writeAuthority === "LEGACY" ? "LEGACY_ONLY" : undefined,
         organizationId: context.organization.id,
       })
     : null;
-  if (classExpansion) requireMaterializableAssignmentRecipients(classExpansion);
+
+  if (writeAuthority !== "LEGACY") {
+    const assignmentId = await createCanonicalAssignment({
+      classExpansion,
+      directStudentIds: parsed.data.studentIds ?? [],
+      parsed: parsed.data,
+      writeLegacyCompatibility:
+        writeAuthority === "CANONICAL_WITH_VERIFIED_LEGACY_PROJECTION",
+    });
+    return getAssignment(assignmentId);
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -376,13 +625,6 @@ export async function getAssignment(id: string): Promise<AssignmentDetail> {
     .maybeSingle();
   if (error) throw mapDatabaseError(error);
   if (!data) throw new AssignmentError("not_found");
-  const { data: students, error: studentsError } = await supabase
-    .from("assignment_students")
-    .select("*")
-    .eq("assignment_id", data.id)
-    .eq("organization_id", context.organization.id)
-    .order("assigned_at", { ascending: true });
-  if (studentsError) throw mapDatabaseError(studentsError);
   const { data: classes, error: classesError } = await supabase
     .from("assignment_classes")
     .select("*")
@@ -391,22 +633,29 @@ export async function getAssignment(id: string): Promise<AssignmentDetail> {
     .order("assigned_at", { ascending: true });
   if (classesError) throw mapDatabaseError(classesError);
   if (isStudent(context.membership.role)) {
-    if (
-      !students.some(
-        (student) => student.student_id === context.membership.user_id,
-      )
-    ) {
-      throw new AssignmentError("not_found");
-    }
+    const { data: legacyRecipient, error: recipientError } = await supabase
+      .from("assignment_students")
+      .select("*")
+      .eq("assignment_id", data.id)
+      .eq("organization_id", context.organization.id)
+      .eq("student_id", context.membership.user_id)
+      .maybeSingle();
+    if (recipientError) throw mapDatabaseError(recipientError);
+    if (!legacyRecipient) throw new AssignmentError("not_found");
     return {
       ...data,
       classes,
-      students: students.filter(
-        (student) => student.student_id === context.membership.user_id,
-      ),
+      recipients: Object.freeze([legacyRecipientProjection(legacyRecipient)]),
     };
   }
-  return { ...data, classes, students };
+  return {
+    ...data,
+    classes,
+    recipients: await loadAssignmentRecipients({
+      assignmentId: data.id,
+      organizationId: context.organization.id,
+    }),
+  };
 }
 
 export async function listAssignments(): Promise<readonly AssignmentRow[]> {
@@ -431,7 +680,7 @@ export async function listAssignments(): Promise<readonly AssignmentRow[]> {
 }
 
 export async function listStudentAssignments(): Promise<
-  readonly AssignmentStudentRow[]
+  readonly AssignmentRecipientProjection[]
 > {
   const context = await requireAssignmentMembership();
   const supabase = await createClient();
@@ -445,13 +694,13 @@ export async function listStudentAssignments(): Promise<
   }
   const { data, error } = await query;
   if (error) throw mapDatabaseError(error);
-  return data;
+  return Object.freeze(data.map(legacyRecipientProjection));
 }
 
 export async function assignStudents(
   assignmentId: string,
   input: AssignStudentsInput,
-): Promise<readonly AssignmentStudentRow[]> {
+): Promise<readonly AssignmentRecipientProjection[]> {
   const parsedId = assignmentIdSchema.safeParse(assignmentId);
   const parsed = assignStudentsSchema.safeParse(input);
   if (!parsedId.success || !parsed.success) {
@@ -469,16 +718,31 @@ export async function assignStudents(
   if (assignment.status === "cancelled" || assignment.status === "closed") {
     throw new AssignmentError("invalid_assignment_state");
   }
+  const recipientMode = assignmentRecipientAuthorityMode();
+  const writeAuthority =
+    resolveAssignmentRecipientWriteAuthority(recipientMode);
   const classExpansion = parsed.data.classIds?.length
     ? await prepareAssignmentClassExpansion({
         actorId: user.id,
         actorRole: assignmentClassExpansionRole(context.membership.role),
         assignmentId: parsedId.data,
         classIds: parsed.data.classIds,
+        modeOverride: writeAuthority === "LEGACY" ? "LEGACY_ONLY" : undefined,
         organizationId: context.organization.id,
       })
     : null;
-  if (classExpansion) requireMaterializableAssignmentRecipients(classExpansion);
+
+  if (writeAuthority !== "LEGACY") {
+    await addCanonicalAssignmentRecipients({
+      assignmentId: parsedId.data,
+      classExpansion,
+      directStudentIds: parsed.data.studentIds ?? [],
+      writeLegacyCompatibility:
+        writeAuthority === "CANONICAL_WITH_VERIFIED_LEGACY_PROJECTION",
+    });
+    return getAssignment(parsedId.data).then((detail) => detail.recipients);
+  }
+
   const studentIds = [
     ...(classExpansion?.result.legacyRecipientIds ?? []),
     ...(parsed.data.studentIds ?? []),
@@ -488,9 +752,9 @@ export async function assignStudents(
     await persistAssignmentClasses(parsedId.data, classExpansion);
   }
   if (uniqueStudentIds.length === 0) {
-    return getAssignment(parsedId.data).then((detail) => detail.students);
+    return getAssignment(parsedId.data).then((detail) => detail.recipients);
   }
-  const data = await persistAssignmentStudents({
+  await persistAssignmentStudents({
     assignmentId: parsedId.data,
     organizationId: context.organization.id,
     studentIds: uniqueStudentIds,
@@ -502,7 +766,7 @@ export async function assignStudents(
     organizationId: context.organization.id,
     userId: user.id,
   });
-  return data;
+  return getAssignment(parsedId.data).then((detail) => detail.recipients);
 }
 
 export async function saveSubmission(
@@ -521,16 +785,21 @@ export async function saveSubmission(
     throw new AssignmentError("forbidden");
   }
 
-  const assignment = await getAssignment(parsedId.data);
-  const assignmentStudent = assignment.students.find(
-    (student) => student.student_id === studentId,
-  );
+  await getAssignment(parsedId.data);
+  const supabase = await createClient();
+  const { data: assignmentStudent, error: recipientError } = await supabase
+    .from("assignment_students")
+    .select("*")
+    .eq("assignment_id", parsedId.data)
+    .eq("organization_id", context.organization.id)
+    .eq("student_id", studentId)
+    .maybeSingle();
+  if (recipientError) throw mapDatabaseError(recipientError);
   if (!assignmentStudent) throw new AssignmentError("not_found");
   if (assignmentStudent.status === "submitted") {
     throw new AssignmentError("submission_locked");
   }
 
-  const supabase = await createClient();
   const { data, error } = await supabase
     .from("assignment_submissions")
     .upsert(

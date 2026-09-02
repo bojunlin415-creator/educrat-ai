@@ -9,6 +9,7 @@ import {
   listAssignments,
   listStudentAssignments,
 } from "@/lib/assignment/service";
+import type { AssignmentRecipientProjection } from "@/lib/learner-convergence/assignment-recipient/domain";
 import { ClassroomError } from "@/lib/classroom/errors";
 import { listTeacherClasses } from "@/lib/classroom/service";
 import { OrganizationError } from "@/lib/organization/errors";
@@ -41,8 +42,6 @@ import {
   type TeacherDashboardStudentsQuery,
 } from "@/lib/validation/teacher-dashboard";
 
-type AssignmentStudentRow =
-  Database["public"]["Tables"]["assignment_students"]["Row"];
 type ClassRow = Database["public"]["Tables"]["classes"]["Row"];
 
 interface TeacherDashboardAccess {
@@ -458,20 +457,24 @@ function emptyTeacherReport(classId: string): TeacherReportViewModel {
 
 function buildAssignmentStatus(
   assignments: readonly { readonly id: string }[],
-  assignmentStudents: readonly AssignmentStudentRow[],
+  assignmentStudents: readonly AssignmentRecipientProjection[],
 ): AssignmentStatusSummary {
   const assignmentIds = new Set(assignments.map((assignment) => assignment.id));
   const scoped = assignmentStudents.filter((student) =>
     assignmentIds.has(student.assignment_id),
   );
   return Object.freeze({
-    inProgress: scoped.filter((student) => student.status === "in_progress")
+    inProgress: scoped.filter(
+      (student) => student.recipient_status === "in_progress",
+    ).length,
+    overdue: scoped.filter((student) => student.recipient_status === "overdue")
       .length,
-    overdue: scoped.filter((student) => student.status === "overdue").length,
-    pending: scoped.filter((student) => student.status === "not_started")
-      .length,
-    submitted: scoped.filter((student) => student.status === "submitted")
-      .length,
+    pending: scoped.filter(
+      (student) => student.recipient_status === "not_started",
+    ).length,
+    submitted: scoped.filter(
+      (student) => student.recipient_status === "submitted",
+    ).length,
   });
 }
 

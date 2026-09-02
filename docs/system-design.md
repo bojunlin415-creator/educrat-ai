@@ -191,6 +191,10 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - Phase 5D 只切Assignment的Class-target learner expansion：先驗證active tenant-scoped Class與assigned-Teacher scope，再重用Phase 5A batched roster，以canonical Student去重並保存Class/membership origin。`assignment_students`、Submission與既有metrics仍是legacy compatibility authority，因此Assignment現為**partially canonical**。
 - Canonical expansion不要求Student具備Account。若目前legacy recipient table無authoritative mapping可表示候選人，create/add-Class流程會在任何Assignment/target/recipient寫入前回傳`recipient_identity_unavailable`，不偽造Profile ID、不寫canonical ID進legacy欄位、不靜默丟棄Student。只有canonical runtime failure可fallback；authorization/RLS/tenant/integrity/status failure fail closed。
 - Phase 5D Development唯讀current-population evidence為canonical 0、legacy 0；snapshot兩筆歷史canonical membership均為left並排除。無Migration、backfill、fixture、dual-write或Production操作；Phase 5E未開始。
+- Phase 5E新增獨立canonical recipient aggregate：`assignment_student_recipients.student_id`只指`students.id`，`assignment_recipient_classes`保存snapshot-at-assign的Class/membership provenance，server-only compatibility table只接受active verified Account link。歷史`assignment_students.student_id`與Submission語意完全不變。
+- Assignment create改由單一tenant-scoped RPC原子建立Assignment、target、canonical recipients、provenance、可選verified legacy mirror與audit。Canonical write失敗不做legacy write fallback；accountless Student可canonical持久化且不建立synthetic Profile。manager read model不回傳Profile、Account或link key。
+- Phase 5E read authority為`CANONICAL_PRIMARY_LEGACY_FALLBACK`，只允許runtime availability fallback；security／RLS／tenant／integrity fail closed。`LEGACY_ONLY`是無data rewrite的runtime rollback。Submission self-resolution、Assignment metrics、Learning Events、Mastery、Adaptive與Guardian/Parent authority未切換。
+- Development migration已同步30/30；authenticated RPC/ACL/empty table health與anonymous/compatibility denial通過。因active canonical Assignment candidate為0，managed/accountless live mutation為`NOT EXECUTED — FIXTURE UNAVAILABLE`，Phase 5E不升級`CANONICAL_ONLY`且Phase 5F未開始。
 
 ### Student Learning Analytics Foundation（AN-001）
 
