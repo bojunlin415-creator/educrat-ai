@@ -337,6 +337,15 @@ S8V-001 已正面確認 linked target 為 `educrat-development`／`gqurnljrvwyhr
 - `get_assignment_recipient_projection`只輸出canonical-safe recipient；無mapping的歷史Profile recipient標記`LEGACY_ONLY_HISTORICAL`，不回傳raw Profile/Account/link ID。`assignment_students`與`assignment_submissions`schema/RLS/identity語意未修改。
 - Development migration history為30 local / 30 remote、dry-run up to date；三張新表、RPC與ACL live verification通過，目前canonical/legacy recipient均為0且無unexpected backfill。
 
+### LE-001 Phase 5F Submission self-resolution boundary
+
+- Migration `20260907120000_le001_canonicalize_submission_self_resolution.sql`只套用Development，新增`assignment_submission_canonical_ownerships`；`submission_id`為PK，`(assignment_id, student_id)`唯一，並以same-tenant composite FK連至既有Submission與`assignment_student_recipients`。所有FK均`ON DELETE RESTRICT`。
+- `assignment_submissions.student_id`與`assignment_students.student_id`仍為`profiles.id` compatibility identity；Phase 5F不改欄型、不改FK、不重寫歷史row、不backfill。Canonical learner ownership只存於新表的`student_id = students.id`。
+- Ownership表ENABLE/FORCE RLS且authenticated無direct table access；`assignment_submissions` direct INSERT/UPDATE已撤銷。New canonical save／submit只可呼叫`save_authenticated_student_submission`，由database自行解析Account、active Organization、verified Account link、active Student與canonical recipient。
+- Assignment／legacy recipient／Submission read policy允許Owner/Admin與assigned manager維持既有scope。Student canonical read需有效link；無canonical mapping的historical Profile row保留compatibility read。Phase 5E mapped row在link revoked／expired後不可透過legacy path回退。
+- `persist_authenticated_student_submission`為不可直接執行的internal transaction helper；caller不能提交Student、Organization、Profile或link ID。Canonical failure不做legacy write fallback，`save_legacy_authenticated_student_submission`只供`LEGACY_ONLY`顯式runtime rollback。
+- Development migration history為31 local / 31 remote，post-apply dry-run up to date；受控fixture已驗證linked Student canonical write/read-back、canonical ownership、零legacy recipient依賴與全部fail-closed案例。驗證後5個臨時Auth帳號及marker資料均清除，Production未操作。
+
 ## 多租戶原則
 
 - 機構資料以 `organization_id` 隔離，跨機構讀寫預設拒絕。

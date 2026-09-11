@@ -103,8 +103,12 @@ describe("AS-001 assignment detail API", () => {
   it("saves and submits a student submission through separate server endpoints", async () => {
     const submission = {
       assignment_id: assignmentId,
+      created_at: "2026-09-07T00:00:00.000Z",
       id: "submission-1",
-      student_id: "10000000-0000-4000-8000-000000000005",
+      identity_authority: "CANONICAL",
+      status: "draft",
+      submitted_at: null,
+      updated_at: "2026-09-07T00:00:00.000Z",
     };
     serviceMocks.saveSubmission.mockResolvedValue(submission);
     serviceMocks.submitAssignment.mockResolvedValue(submission);
@@ -139,7 +143,6 @@ describe("AS-001 assignment detail API", () => {
       consumer: "submission_self_resolution",
       scope: {
         assignmentIds: [assignmentId],
-        legacyAccountIds: [submission.student_id],
       },
     });
   });

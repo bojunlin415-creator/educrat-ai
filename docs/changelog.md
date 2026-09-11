@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-09-07 — LE-001 Phase 5F：Submission Self-Resolution Canonical Cutover
+
+Package status: **Implementation and Development Verification Complete — Awaiting Package Seal**.
+
+- Student self identity改走authenticated Account→active Organization→唯一active verified Account link→canonical `students.id`→canonical Assignment recipient；request body不接受Student、Organization、Profile或link authority。
+- 新增`assignment_submission_canonical_ownerships`，以same-tenant composite FK與`ON DELETE RESTRICT`保存new Submission canonical ownership；既有`assignment_submissions.student_id`仍為Profile/Auth compatibility ID，無歷史rewrite、backfill或mixed UUID semantics。
+- Save／Submit改為fixed-search-path transaction RPC；canonical write失敗不做legacy retry。Student RLS與read adapter只對typed runtime availability允許historical fallback，mapped compatibility row在link revoked／expired後不可回退。
+- Migration`20260907120000_le001_canonicalize_submission_self_resolution.sql`只套用`educrat-development`；31/31 history同步、post-apply dry-run up to date。Authenticated owner/anonymous ACL、direct-write denial、internal RPC denial與ownership table denial live health通過。
+- Development受控fixture以5個臨時Auth帳號驗證canonical create/read-back、canonical ownership、零legacy recipient依賴、accountless／revoked／expired／non-recipient／cross-tenant／spoofing／anonymous拒絕及assigned/unassigned Teacher scope；完成後所有marker domain rows與5個Auth帳號均清除。31/31 migration與dry-run同步，不升級`CANONICAL_ONLY`、未push、Production未操作。
+
 ## 2026-09-02 — LE-001 Phase 5E：Assignment Recipient Canonicalization
 
 Package status: **Development Verified — Canonical Primary with Legacy Fallback**.

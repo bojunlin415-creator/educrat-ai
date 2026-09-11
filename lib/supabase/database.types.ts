@@ -137,6 +137,20 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      assignment_submission_canonical_ownerships: {
+        Row: {
+          assignment_id: string;
+          created_at: string;
+          identity_authority: "canonical_student";
+          organization_id: string;
+          recipient_id: string;
+          student_id: string;
+          submission_id: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       assignment_students: {
         Row: {
           assigned_at: string;
@@ -1564,6 +1578,31 @@ export interface Database {
         };
         Returns: Json;
       };
+      can_authenticated_access_assignment: {
+        Args: {
+          p_assigned_by: string;
+          p_assignment_id: string;
+          p_organization_id: string;
+        };
+        Returns: boolean;
+      };
+      can_authenticated_read_assignment_submission: {
+        Args: {
+          p_assignment_id: string;
+          p_legacy_student_id: string;
+          p_organization_id: string;
+          p_submission_id: string;
+        };
+        Returns: boolean;
+      };
+      can_authenticated_read_legacy_assignment_recipient: {
+        Args: {
+          p_assignment_id: string;
+          p_legacy_student_id: string;
+          p_organization_id: string;
+        };
+        Returns: boolean;
+      };
       accept_guardian_invitation: {
         Args: { p_consent_version: string; p_token_hash: string };
         Returns: string;
@@ -1612,12 +1651,60 @@ export interface Database {
           source_class_ids: string[];
         }[];
       };
+      get_authenticated_student_assignment_recipients: {
+        Args: { p_assignment_id?: string | null };
+        Returns: {
+          assigned_at: string;
+          assignment_id: string;
+          canonical_student_id: string | null;
+          identity_authority:
+            | "CANONICAL"
+            | "CANONICAL_WITH_LEGACY_COMPATIBILITY"
+            | "LEGACY_ONLY_HISTORICAL";
+          recipient_id: string | null;
+          recipient_status:
+            "in_progress" | "not_started" | "overdue" | "submitted";
+          source_class_ids: string[];
+        }[];
+      };
       get_learner_convergence_snapshot: {
         Args: Record<PropertyKey, never>;
         Returns: Json;
       };
+      is_authenticated_canonical_assignment_recipient: {
+        Args: {
+          p_assignment_id: string;
+          p_organization_id: string;
+        };
+        Returns: boolean;
+      };
+      persist_authenticated_student_submission: {
+        Args: {
+          p_assignment_id: string;
+          p_content: Json;
+          p_submit: boolean;
+          p_use_canonical_identity: boolean;
+        };
+        Returns: Json;
+      };
       resolve_canonical_student_for_authenticated_account: {
         Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      save_authenticated_student_submission: {
+        Args: {
+          p_assignment_id: string;
+          p_content: Json;
+          p_submit: boolean;
+        };
+        Returns: Json;
+      };
+      save_legacy_authenticated_student_submission: {
+        Args: {
+          p_assignment_id: string;
+          p_content: Json;
+          p_submit: boolean;
+        };
         Returns: Json;
       };
       revoke_student_account_link: {

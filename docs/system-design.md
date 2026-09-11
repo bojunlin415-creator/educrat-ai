@@ -195,6 +195,10 @@ Auth endpoint 使用 `RateLimiter` 介面，目前由 hashed client address 搭�
 - Assignment create改由單一tenant-scoped RPC原子建立Assignment、target、canonical recipients、provenance、可選verified legacy mirror與audit。Canonical write失敗不做legacy write fallback；accountless Student可canonical持久化且不建立synthetic Profile。manager read model不回傳Profile、Account或link key。
 - Phase 5E read authority為`CANONICAL_PRIMARY_LEGACY_FALLBACK`，只允許runtime availability fallback；security／RLS／tenant／integrity fail closed。`LEGACY_ONLY`是無data rewrite的runtime rollback。Submission self-resolution、Assignment metrics、Learning Events、Mastery、Adaptive與Guardian/Parent authority未切換。
 - Development migration已同步30/30；authenticated RPC/ACL/empty table health與anonymous/compatibility denial通過。因active canonical Assignment candidate為0，managed/accountless live mutation為`NOT EXECUTED — FIXTURE UNAVAILABLE`，Phase 5E不升級`CANONICAL_ONLY`且Phase 5F未開始。
+- Phase 5F將Student self identity切為`auth.uid()`→active organization→唯一active verified Account link→`students.id`→canonical Assignment recipient；client不提供Student、Organization、Profile或link authority。
+- `assignment_submission_canonical_ownerships`以same-tenant `ON DELETE RESTRICT`複合FK連接既有Submission與canonical recipient。既有`assignment_submissions.student_id`仍是Profile/Auth compatibility ID，歷史row不rewrite、不backfill；new canonical ownership不得在同欄混用UUID語意。
+- Submission save／submit由單一fixed-search-path transaction RPC處理，canonical write失敗不會retry legacy。`LEGACY_ONLY`只作顯式runtime rollback；historical read只保留無canonical mapping的legacy row，已映射row在link revoked／expired後fail closed。
+- Development migration同步31/31；受控fixture已驗證linked Student canonical create/read-back、canonical ownership、零legacy recipient依賴、accountless／revoked／expired／non-recipient／cross-tenant／spoofing／anonymous拒絕與assigned/unassigned Teacher read scope。現有Submission模型沒有grading mutation，因此本Phase僅驗證既有manager read policy。fixture完成後全數清除；不升級`CANONICAL_ONLY`，Production未操作。
 
 ### Student Learning Analytics Foundation（AN-001）
 

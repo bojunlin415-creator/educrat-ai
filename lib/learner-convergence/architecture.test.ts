@@ -160,6 +160,12 @@ describe("LE-001 architecture", () => {
       createFlow.indexOf('.from("assignments")'),
     );
     expect(assignmentService).toContain('.from("assignment_students")');
-    expect(assignmentService).toContain("const studentId = user.id");
+    expect(assignmentService).toContain(
+      "save_authenticated_student_submission",
+    );
+    expect(assignmentService).toContain(
+      "get_authenticated_student_assignment_recipients",
+    );
+    expect(assignmentService).not.toContain("const studentId = user.id");
   });
 });

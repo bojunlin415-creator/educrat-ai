@@ -65,6 +65,7 @@ export const LEARNER_CUTOVER_CONTROLS: Readonly<
   learner_submission_canonical_self: control({
     key: "learner_submission_canonical_self",
     ownerPackage: "LE-001-5F",
+    selectedMode: "CANONICAL_PRIMARY_LEGACY_FALLBACK",
   }),
   learner_teacher_dashboard_canonical_population: control({
     key: "learner_teacher_dashboard_canonical_population",

@@ -22,7 +22,6 @@ export async function PATCH(request: Request, context: RouteContext) {
       consumer: "submission_self_resolution",
       scope: {
         assignmentIds: [submission.assignment_id],
-        legacyAccountIds: [submission.student_id],
       },
     });
     return Response.json(assignmentSuccess("作答進度已儲存。", { submission }));
@@ -42,7 +41,6 @@ export async function POST(request: Request, context: RouteContext) {
       consumer: "submission_self_resolution",
       scope: {
         assignmentIds: [submission.assignment_id],
-        legacyAccountIds: [submission.student_id],
       },
     });
     return Response.json(assignmentSuccess("作答已提交。", { submission }));

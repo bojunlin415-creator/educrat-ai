@@ -22,8 +22,22 @@ import {
   type AssignmentRecipientProjection,
   type AssignmentRecipientSource,
 } from "@/lib/learner-convergence/assignment-recipient/domain";
+import {
+  readSubmissionSelfRecipients,
+  requireCanonicalSubmissionIdentity,
+  resolveSubmissionSelfAuthorityMode,
+  resolveSubmissionSelfWriteAuthority,
+} from "@/lib/learner-convergence/submission-self-resolution/authority";
+import {
+  SubmissionSelfResolutionError,
+  SubmissionSelfSourceError,
+  type SubmissionSelfAuthorityEvent,
+  type SubmissionSelfAuthorityObserver,
+  type SubmissionSelfRecipientSource,
+} from "@/lib/learner-convergence/submission-self-resolution/domain";
 import type { LearnerCutoverControlMode } from "@/lib/learner-convergence/cutover/domain";
 import { getLearnerCutoverControl } from "@/lib/learner-convergence/cutover/feature-controls";
+import { resolveCanonicalStudentForAuthenticatedAccount } from "@/lib/learner-convergence/server";
 import { createClient } from "@/lib/supabase/server";
 import {
   requireOrganizationMembership,
@@ -33,11 +47,13 @@ import { OrganizationError } from "@/lib/organization/errors";
 import {
   assignStudentsSchema,
   assignmentRecipientProjectionListSchema,
+  assignmentSubmissionResultSchema,
   assignmentIdSchema,
   createAssignmentSchema,
   saveSubmissionSchema,
   updateAssignmentSchema,
   type AssignStudentsInput,
+  type AssignmentSubmissionResult,
   type CreateAssignmentInput,
   type SaveSubmissionInput,
   type UpdateAssignmentInput,
@@ -48,8 +64,6 @@ type AssignmentStudentRow =
   Database["public"]["Tables"]["assignment_students"]["Row"];
 type AssignmentClassRow =
   Database["public"]["Tables"]["assignment_classes"]["Row"];
-type AssignmentSubmissionRow =
-  Database["public"]["Tables"]["assignment_submissions"]["Row"];
 type CurriculumVersionRow =
   Database["public"]["Tables"]["curriculum_versions"]["Row"];
 
@@ -83,6 +97,36 @@ export class ConsoleAssignmentRecipientAuthorityObserver implements AssignmentRe
   }
 }
 
+export class ConsoleSubmissionSelfAuthorityObserver implements SubmissionSelfAuthorityObserver {
+  record(event: SubmissionSelfAuthorityEvent): void {
+    console.info(
+      "[submission-self-resolution]",
+      JSON.stringify({
+        action: event.action,
+        assignment: event.assignmentId,
+        canonicalOnlyCount: event.canonicalOnlyCount,
+        canonicalSelfResolutionSuccess: event.canonicalSelfResolutionSuccess,
+        correlation: event.correlationId,
+        fallbackCount: event.fallbackCount,
+        legacyOnlyCount: event.legacyOnlyCount,
+        legacySelfResolutionSuccess: event.legacySelfResolutionSuccess,
+        linkState: event.linkState,
+        matchedIdentityCount: event.matchedIdentityCount,
+        mode: event.mode,
+        organization: event.organizationId,
+        recipientFound: event.recipientFound,
+        recipientMismatch: event.recipientMismatch,
+        returnedAuthority: event.returnedAuthority,
+        shadowErrorCount: event.shadowErrorCount,
+        tenantMismatch: event.tenantMismatch,
+        unexpectedIdentityConflict: event.unexpectedIdentityConflict,
+        version: event.version,
+        writeFallbackCount: event.writeFallbackCount,
+      }),
+    );
+  }
+}
+
 function mapDatabaseError(error: { code?: string; message?: string } | null) {
   if (!error) return new AssignmentError("service_unavailable");
   const options = { cause: error };
@@ -97,6 +141,36 @@ function mapDatabaseError(error: { code?: string; message?: string } | null) {
   }
   if (error.message?.includes("submission_locked")) {
     return new AssignmentError("submission_locked", options);
+  }
+  if (error.message?.includes("student_account_link_missing")) {
+    return new AssignmentError("student_account_link_missing", options);
+  }
+  if (error.message?.includes("student_account_link_inactive")) {
+    return new AssignmentError("student_account_link_inactive", options);
+  }
+  if (error.message?.includes("student_account_link_expired")) {
+    return new AssignmentError("student_account_link_expired", options);
+  }
+  if (error.message?.includes("student_identity_conflict")) {
+    return new AssignmentError("student_identity_conflict", options);
+  }
+  if (error.message?.includes("assignment_recipient_not_found")) {
+    return new AssignmentError("assignment_recipient_not_found", options);
+  }
+  if (error.message?.includes("submission_not_allowed")) {
+    return new AssignmentError("submission_not_allowed", options);
+  }
+  if (error.message?.includes("submission_identity_unavailable")) {
+    return new AssignmentError("submission_identity_unavailable", options);
+  }
+  if (error.message?.includes("cross_tenant_forbidden")) {
+    return new AssignmentError("cross_tenant_forbidden", options);
+  }
+  if (error.message?.includes("submission_invalid_input")) {
+    return new AssignmentError("invalid_input", options);
+  }
+  if (error.message?.includes("submission_self_forbidden")) {
+    return new AssignmentError("forbidden", options);
   }
   if (error.message?.includes("assignment_invalid_class")) {
     return new AssignmentError("invalid_input", options);
@@ -135,6 +209,33 @@ function mapDatabaseError(error: { code?: string; message?: string } | null) {
     return new AssignmentError("forbidden", options);
   }
   return new AssignmentError("service_unavailable", options);
+}
+
+function mapSubmissionSelfResolutionError(
+  error: SubmissionSelfResolutionError,
+): AssignmentError {
+  return new AssignmentError(error.code, { cause: error });
+}
+
+function mapSubmissionSelfSourceError(error: {
+  readonly code?: string;
+  readonly message?: string;
+}): SubmissionSelfSourceError {
+  if (error.message?.includes("student_identity_conflict")) {
+    return new SubmissionSelfSourceError("IDENTITY", { cause: error });
+  }
+  if (error.code === "42501") {
+    return new SubmissionSelfSourceError("SECURITY", { cause: error });
+  }
+  if (
+    error.code === "22023" ||
+    error.code === "23503" ||
+    error.code === "23505" ||
+    error.code === "P0002"
+  ) {
+    return new SubmissionSelfSourceError("INTEGRITY", { cause: error });
+  }
+  return new SubmissionSelfSourceError("RUNTIME", { cause: error });
 }
 
 function mapRecipientSourceError(error: {
@@ -390,6 +491,78 @@ async function loadAssignmentRecipients(input: {
   return result.recipients;
 }
 
+function submissionSelfAuthorityMode(): LearnerCutoverControlMode {
+  const control = getLearnerCutoverControl("learner_submission_canonical_self");
+  return resolveSubmissionSelfAuthorityMode({
+    configuredMode: process.env.LEARNER_SUBMISSION_SELF_AUTHORITY_MODE,
+    selectedMode: control.selectedMode,
+  });
+}
+
+function createSubmissionSelfRecipientSource(input: {
+  readonly accountId: string;
+  readonly assignmentId?: string;
+  readonly organizationId: string;
+}): SubmissionSelfRecipientSource {
+  return Object.freeze({
+    async loadCanonical() {
+      const supabase = await createClient();
+      const { data, error } = await supabase.rpc(
+        "get_authenticated_student_assignment_recipients",
+        { p_assignment_id: input.assignmentId ?? null },
+      );
+      if (error) throw mapSubmissionSelfSourceError(error);
+      const parsed = assignmentRecipientProjectionListSchema.safeParse(data);
+      if (!parsed.success) {
+        throw new SubmissionSelfSourceError("INTEGRITY", {
+          cause: parsed.error,
+        });
+      }
+      return Object.freeze(
+        parsed.data.map((recipient) =>
+          Object.freeze({
+            ...recipient,
+            source_class_ids: Object.freeze([...recipient.source_class_ids]),
+          }),
+        ),
+      );
+    },
+    async loadLegacy() {
+      const supabase = await createClient();
+      let query = supabase
+        .from("assignment_students")
+        .select("*")
+        .eq("organization_id", input.organizationId)
+        .eq("student_id", input.accountId);
+      if (input.assignmentId) {
+        query = query.eq("assignment_id", input.assignmentId);
+      }
+      const { data, error } = await query.order("assigned_at", {
+        ascending: false,
+      });
+      if (error) throw mapSubmissionSelfSourceError(error);
+      return Object.freeze(data.map(legacyRecipientProjection));
+    },
+  });
+}
+
+async function loadSubmissionSelfRecipients(input: {
+  readonly accountId: string;
+  readonly assignmentId?: string;
+  readonly organizationId: string;
+}): Promise<readonly AssignmentRecipientProjection[]> {
+  const result = await readSubmissionSelfRecipients({
+    action: "READ",
+    assignmentId: input.assignmentId ?? null,
+    correlationId: randomUUID(),
+    mode: submissionSelfAuthorityMode(),
+    observer: new ConsoleSubmissionSelfAuthorityObserver(),
+    organizationId: input.organizationId,
+    source: createSubmissionSelfRecipientSource(input),
+  });
+  return result.recipients;
+}
+
 function canonicalClassStudentIds(
   plan: AssignmentClassExpansionPlan | null,
 ): readonly string[] {
@@ -633,19 +806,16 @@ export async function getAssignment(id: string): Promise<AssignmentDetail> {
     .order("assigned_at", { ascending: true });
   if (classesError) throw mapDatabaseError(classesError);
   if (isStudent(context.membership.role)) {
-    const { data: legacyRecipient, error: recipientError } = await supabase
-      .from("assignment_students")
-      .select("*")
-      .eq("assignment_id", data.id)
-      .eq("organization_id", context.organization.id)
-      .eq("student_id", context.membership.user_id)
-      .maybeSingle();
-    if (recipientError) throw mapDatabaseError(recipientError);
-    if (!legacyRecipient) throw new AssignmentError("not_found");
+    const recipients = await loadSubmissionSelfRecipients({
+      accountId: context.membership.user_id,
+      assignmentId: data.id,
+      organizationId: context.organization.id,
+    });
+    if (recipients.length === 0) throw new AssignmentError("not_found");
     return {
       ...data,
       classes,
-      recipients: Object.freeze([legacyRecipientProjection(legacyRecipient)]),
+      recipients,
     };
   }
   return {
@@ -683,15 +853,18 @@ export async function listStudentAssignments(): Promise<
   readonly AssignmentRecipientProjection[]
 > {
   const context = await requireAssignmentMembership();
+  if (isStudent(context.membership.role)) {
+    return loadSubmissionSelfRecipients({
+      accountId: context.membership.user_id,
+      organizationId: context.organization.id,
+    });
+  }
   const supabase = await createClient();
-  let query = supabase
+  const query = supabase
     .from("assignment_students")
     .select("*")
     .eq("organization_id", context.organization.id)
     .order("assigned_at", { ascending: false });
-  if (isStudent(context.membership.role)) {
-    query = query.eq("student_id", context.membership.user_id);
-  }
   const { data, error } = await query;
   if (error) throw mapDatabaseError(error);
   return Object.freeze(data.map(legacyRecipientProjection));
@@ -772,88 +945,103 @@ export async function assignStudents(
 export async function saveSubmission(
   assignmentId: string,
   input: SaveSubmissionInput,
-): Promise<AssignmentSubmissionRow> {
+): Promise<AssignmentSubmissionResult> {
+  return persistStudentSubmission(assignmentId, input, false);
+}
+
+async function persistStudentSubmission(
+  assignmentId: string,
+  input: SaveSubmissionInput,
+  submit: boolean,
+): Promise<AssignmentSubmissionResult> {
   const parsedId = assignmentIdSchema.safeParse(assignmentId);
   const parsed = saveSubmissionSchema.safeParse(input);
   if (!parsedId.success || !parsed.success) {
     throw new AssignmentError("invalid_input");
   }
   const context = await requireAssignmentMembership();
-  const user = await requireAssignmentActor();
-  const studentId = user.id;
   if (!isStudent(context.membership.role)) {
     throw new AssignmentError("forbidden");
   }
+  const mode = submissionSelfAuthorityMode();
+  const writeAuthority = resolveSubmissionSelfWriteAuthority(mode);
+  let linkState: SubmissionSelfAuthorityEvent["linkState"] = "UNKNOWN";
 
-  await getAssignment(parsedId.data);
-  const supabase = await createClient();
-  const { data: assignmentStudent, error: recipientError } = await supabase
-    .from("assignment_students")
-    .select("*")
-    .eq("assignment_id", parsedId.data)
-    .eq("organization_id", context.organization.id)
-    .eq("student_id", studentId)
-    .maybeSingle();
-  if (recipientError) throw mapDatabaseError(recipientError);
-  if (!assignmentStudent) throw new AssignmentError("not_found");
-  if (assignmentStudent.status === "submitted") {
-    throw new AssignmentError("submission_locked");
+  if (writeAuthority === "CANONICAL") {
+    try {
+      const resolution = await resolveCanonicalStudentForAuthenticatedAccount();
+      requireCanonicalSubmissionIdentity({
+        activeOrganizationId: context.organization.id,
+        resolution,
+      });
+      linkState = "ACTIVE";
+    } catch (error: unknown) {
+      if (error instanceof SubmissionSelfResolutionError) {
+        if (error.code === "student_account_link_expired") {
+          linkState = "EXPIRED";
+        } else if (error.code === "student_account_link_inactive") {
+          linkState = "INACTIVE";
+        } else if (error.code === "student_account_link_missing") {
+          linkState = "MISSING";
+        }
+        throw mapSubmissionSelfResolutionError(error);
+      }
+      throw new AssignmentError("submission_identity_unavailable", {
+        cause: error,
+      });
+    }
   }
 
-  const { data, error } = await supabase
-    .from("assignment_submissions")
-    .upsert(
-      {
-        assignment_id: parsedId.data,
-        content: parsed.data.content as Json,
-        organization_id: context.organization.id,
-        status: "draft",
-        student_id: studentId,
-      },
-      { onConflict: "assignment_id,student_id" },
-    )
-    .select("*")
-    .single();
+  const supabase = await createClient();
+  const rpcName =
+    writeAuthority === "CANONICAL"
+      ? "save_authenticated_student_submission"
+      : "save_legacy_authenticated_student_submission";
+  const { data, error } = await supabase.rpc(rpcName, {
+    p_assignment_id: parsedId.data,
+    p_content: parsed.data.content as Json,
+    p_submit: submit,
+  });
   if (error) throw mapDatabaseError(error);
+  const result = assignmentSubmissionResultSchema.safeParse(data);
+  if (!result.success) {
+    throw new AssignmentError("submission_identity_unavailable", {
+      cause: result.error,
+    });
+  }
 
-  await supabase
-    .from("assignment_students")
-    .update({
-      opened_at: assignmentStudent.opened_at ?? new Date().toISOString(),
-      status: "in_progress",
-    })
-    .eq("assignment_id", parsedId.data)
-    .eq("student_id", studentId);
-  return data;
+  new ConsoleSubmissionSelfAuthorityObserver().record(
+    Object.freeze({
+      action: submit ? "SUBMIT" : "SAVE",
+      assignmentId: parsedId.data,
+      canonicalOnlyCount: 0,
+      canonicalSelfResolutionSuccess:
+        result.data.identity_authority === "CANONICAL" ? 1 : 0,
+      correlationId: randomUUID(),
+      fallbackCount: 0,
+      legacyOnlyCount: 0,
+      legacySelfResolutionSuccess: 0,
+      linkState,
+      matchedIdentityCount: 0,
+      mode,
+      organizationId: context.organization.id,
+      recipientFound: true,
+      recipientMismatch: 0,
+      returnedAuthority:
+        result.data.identity_authority === "CANONICAL" ? "CANONICAL" : "LEGACY",
+      shadowErrorCount: 0,
+      tenantMismatch: 0,
+      unexpectedIdentityConflict: 0,
+      version: "le-001.submission-self-resolution.v1",
+      writeFallbackCount: 0,
+    }),
+  );
+  return Object.freeze({ ...result.data });
 }
 
 export async function submitAssignment(
   assignmentId: string,
   input: SaveSubmissionInput,
-): Promise<AssignmentSubmissionRow> {
-  const draft = await saveSubmission(assignmentId, input);
-  const context = await requireAssignmentMembership();
-  const user = await requireAssignmentActor();
-  const supabase = await createClient();
-  const now = new Date().toISOString();
-  const { data, error } = await supabase
-    .from("assignment_submissions")
-    .update({ status: "submitted", submitted_at: now })
-    .eq("id", draft.id)
-    .eq("student_id", user.id)
-    .select("*")
-    .single();
-  if (error) throw mapDatabaseError(error);
-  await supabase
-    .from("assignment_students")
-    .update({ status: "submitted", submitted_at: now })
-    .eq("assignment_id", assignmentId)
-    .eq("student_id", user.id);
-  await writeAssignmentAudit({
-    action: "ASSIGNMENT_SUBMITTED",
-    assignmentId,
-    organizationId: context.organization.id,
-    userId: user.id,
-  });
-  return data;
+): Promise<AssignmentSubmissionResult> {
+  return persistStudentSubmission(assignmentId, input, true);
 }

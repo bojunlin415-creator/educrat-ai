@@ -35,6 +35,18 @@ export const assignmentRecipientProjectionListSchema = z.array(
   assignmentRecipientProjectionSchema,
 );
 
+export const assignmentSubmissionResultSchema = z
+  .object({
+    assignment_id: z.uuid(),
+    created_at: z.iso.datetime({ offset: true }),
+    id: z.uuid(),
+    identity_authority: z.enum(["CANONICAL", "LEGACY_ONLY_HISTORICAL"]),
+    status: z.enum(["draft", "submitted"]),
+    submitted_at: z.iso.datetime({ offset: true }).nullable(),
+    updated_at: z.iso.datetime({ offset: true }),
+  })
+  .strict();
+
 const isoDateTimeSchema = z.iso.datetime({ offset: true });
 const uuidArraySchema = z.array(z.uuid()).min(1).max(200);
 
@@ -104,4 +116,7 @@ export const saveSubmissionSchema = z
 export type AssignStudentsInput = z.infer<typeof assignStudentsSchema>;
 export type CreateAssignmentInput = z.infer<typeof createAssignmentSchema>;
 export type SaveSubmissionInput = z.infer<typeof saveSubmissionSchema>;
+export type AssignmentSubmissionResult = z.infer<
+  typeof assignmentSubmissionResultSchema
+>;
 export type UpdateAssignmentInput = z.infer<typeof updateAssignmentSchema>;
